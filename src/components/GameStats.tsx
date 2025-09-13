@@ -1,10 +1,8 @@
 interface GameStatsProps {
   selectedCardName: string | null
-  energy: number
-  maxEnergy: number
 }
 
-export function GameStats({ selectedCardName, energy, maxEnergy }: GameStatsProps) {
+export function GameStats({ selectedCardName }: GameStatsProps) {
   return (
     <div style={{
       display: 'flex',
@@ -31,22 +29,6 @@ export function GameStats({ selectedCardName, energy, maxEnergy }: GameStatsProp
           Played: {selectedCardName}
         </div>
       )}
-      
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center'
-      }}>
-        <div style={{
-          padding: '8px 16px',
-          backgroundColor: '#ffc107',
-          color: 'black',
-          borderRadius: '4px',
-          fontWeight: 'bold',
-          fontSize: '16px'
-        }}>
-          Energy: {energy}/{maxEnergy}
-        </div>
-      </div>
     </div>
   )
 }

@@ -27,8 +27,6 @@ function App() {
     }}>
       <GameStats
         selectedCardName={selectedCardName}
-        energy={energy}
-        maxEnergy={maxEnergy}
       />
       
       <div style={{
@@ -75,6 +73,8 @@ function App() {
         canPlayCard={canPlayCard}
         deckCount={deck.length}
         discardCount={discard.length}
+        energy={energy}
+        maxEnergy={maxEnergy}
       />
     </div>
   )

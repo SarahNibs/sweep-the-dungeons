@@ -26,26 +26,30 @@ export function createTile(position: Position, owner: Tile['owner']): Tile {
 export function createBoard(width: number = 6, height: number = 5): Board {
   const tiles = new Map<string, Tile>()
   
-  // Create a simple pattern for now - just random tiles
+  // Create exact counts: 12 player, 10 enemy, 7 neutral, 1 assassin (30 total)
+  const tileTypes: Tile['owner'][] = [
+    ...Array(12).fill('player'),
+    ...Array(10).fill('enemy'),
+    ...Array(7).fill('neutral'),
+    ...Array(1).fill('assassin')
+  ]
+  
+  // Shuffle the array for random distribution
+  for (let i = tileTypes.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [tileTypes[i], tileTypes[j]] = [tileTypes[j], tileTypes[i]]
+  }
+  
+  // Create tiles with shuffled owners
+  let tileIndex = 0
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const position = createPosition(x, y)
       const key = positionToKey(position)
-      
-      // Simple random distribution for now
-      let owner: Tile['owner']
-      const rand = Math.random()
-      if (rand < 0.3) {
-        owner = 'player'
-      } else if (rand < 0.55) {
-        owner = 'enemy'
-      } else if (rand < 0.8) {
-        owner = 'neutral'
-      } else {
-        owner = 'assassin'
-      }
+      const owner = tileTypes[tileIndex]
       
       tiles.set(key, createTile(position, owner))
+      tileIndex++
     }
   }
   
@@ -129,4 +133,16 @@ export function getNeighbors(board: Board, position: Position): Position[] {
 export function isValidPosition(board: Board, position: Position): boolean {
   return position.x >= 0 && position.x < board.width &&
          position.y >= 0 && position.y < board.height
+}
+
+export function getUnrevealedCounts(board: Board): Record<Tile['owner'], number> {
+  const counts = { player: 0, enemy: 0, neutral: 0, assassin: 0 }
+  
+  for (const tile of board.tiles.values()) {
+    if (!tile.revealed) {
+      counts[tile.owner]++
+    }
+  }
+  
+  return counts
 }

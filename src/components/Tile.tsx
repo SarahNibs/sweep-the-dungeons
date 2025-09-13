@@ -99,7 +99,6 @@ export function Tile({ tile, onClick }: TileProps) {
         }
       }}
     >
-      {!tile.revealed && '?'}
       {getAdjacencyBox()}
     </div>
   )

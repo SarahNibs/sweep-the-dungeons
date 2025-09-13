@@ -7,9 +7,11 @@ interface HandProps {
   canPlayCard: (cardId: string) => boolean
   deckCount: number
   discardCount: number
+  energy: number
+  maxEnergy: number
 }
 
-export function Hand({ cards, onCardClick, canPlayCard, deckCount, discardCount }: HandProps) {
+export function Hand({ cards, onCardClick, canPlayCard, deckCount, discardCount, energy }: HandProps) {
   return (
     <div style={{
       display: 'flex',
@@ -18,29 +20,36 @@ export function Hand({ cards, onCardClick, canPlayCard, deckCount, discardCount 
       gap: '20px',
       margin: '20px 0'
     }}>
+      {/* Energy widget - blue circle */}
       <div style={{
+        width: '32px',
+        height: '32px',
+        backgroundColor: '#007bff',
+        color: 'white',
+        borderRadius: '50%',
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
-        gap: '4px'
+        justifyContent: 'center',
+        fontSize: '14px',
+        fontWeight: 'bold'
       }}>
-        <div style={{
-          padding: '6px 12px',
-          backgroundColor: '#28a745',
-          color: 'white',
-          borderRadius: '4px',
-          fontSize: '14px',
-          fontWeight: 'bold'
-        }}>
-          Deck
-        </div>
-        <div style={{
-          fontSize: '16px',
-          fontWeight: 'bold',
-          color: '#333'
-        }}>
-          {deckCount}
-        </div>
+        {energy}
+      </div>
+      
+      {/* Deck widget - green rectangle */}
+      <div style={{
+        width: '28px',
+        height: '35px',
+        backgroundColor: '#28a745',
+        color: 'white',
+        borderRadius: '2px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '12px',
+        fontWeight: 'bold'
+      }}>
+        {deckCount}
       </div>
       
       <div style={{
@@ -60,29 +69,20 @@ export function Hand({ cards, onCardClick, canPlayCard, deckCount, discardCount 
         ))}
       </div>
       
+      {/* Discard widget - gray rectangle */}
       <div style={{
+        width: '28px',
+        height: '35px',
+        backgroundColor: '#6c757d',
+        color: 'white',
+        borderRadius: '2px',
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
-        gap: '4px'
+        justifyContent: 'center',
+        fontSize: '12px',
+        fontWeight: 'bold'
       }}>
-        <div style={{
-          padding: '6px 12px',
-          backgroundColor: '#6c757d',
-          color: 'white',
-          borderRadius: '4px',
-          fontSize: '14px',
-          fontWeight: 'bold'
-        }}>
-          Discard
-        </div>
-        <div style={{
-          fontSize: '16px',
-          fontWeight: 'bold',
-          color: '#333'
-        }}>
-          {discardCount}
-        </div>
+        {discardCount}
       </div>
     </div>
   )

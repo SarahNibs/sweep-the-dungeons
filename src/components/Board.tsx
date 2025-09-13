@@ -1,5 +1,6 @@
 import { Board as BoardType, Tile as TileType } from '../types'
 import { Tile } from './Tile'
+import { TileCountInfo } from './TileCountInfo'
 
 interface BoardProps {
   board: BoardType
@@ -33,15 +34,17 @@ export function Board({ board, onTileClick }: BoardProps) {
   return (
     <div style={{
       display: 'flex',
-      justifyContent: 'center',
+      flexDirection: 'column',
+      alignItems: 'center',
       margin: '20px 0'
     }}>
+      <TileCountInfo board={board} />
       <div 
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${board.width}, 60px)`,
           gridTemplateRows: `repeat(${board.height}, 60px)`,
-          gap: '2px',
+          gap: '4px',
           padding: '20px',
           backgroundColor: '#f8f9fa',
           borderRadius: '8px',

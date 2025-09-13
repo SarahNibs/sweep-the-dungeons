@@ -48,7 +48,7 @@ When any tile is revealed, the number shown equals adjacent tiles of the **revea
 - **Player tiles** (8-10): Must reveal all to complete floor
 - **Enemy tiles** (7-9): Safe to identify but not reveal
 - **Neutral tiles** (5-8): Safe but ends turn
-- **Instant Assassin** (1-3): Ends run immediately
+- **Assassin** (1-3): Ends run immediately
 
 #### Starting Cards
 - **CLUE-2** (Cost 2): Probabilistic bag-based tile marking

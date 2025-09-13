@@ -1,6 +1,7 @@
 import { useGameStore } from './store'
 import { GameStats } from './components/GameStats'
 import { Hand } from './components/Hand'
+import { Board } from './components/Board'
 
 function App() {
   const { 
@@ -10,10 +11,12 @@ function App() {
     selectedCardName, 
     energy,
     maxEnergy,
+    board,
     playCard, 
     endTurn, 
     resetGame,
-    canPlayCard
+    canPlayCard,
+    revealTile
   } = useGameStore()
 
   return (
@@ -65,6 +68,8 @@ function App() {
           Reset Game
         </button>
       </div>
+
+      <Board board={board} onTileClick={revealTile} />
 
       <Hand cards={hand} onCardClick={playCard} canPlayCard={canPlayCard} />
     </div>

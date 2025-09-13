@@ -11,6 +11,7 @@ import {
   startNewTurn
 } from './cardSystem'
 import { GameState } from '../types'
+import { createBoard } from './boardSystem'
 
 describe('Card System', () => {
   describe('createCard', () => {
@@ -87,7 +88,8 @@ describe('Card System', () => {
         discard: [],
         selectedCardName: null,
         energy: 3,
-        maxEnergy: 3
+        maxEnergy: 3,
+        board: createBoard()
       }
     })
 
@@ -110,7 +112,8 @@ describe('Card System', () => {
         discard: [createCard('Discard 1', 1), createCard('Discard 2', 1)],
         selectedCardName: null,
         energy: 3,
-        maxEnergy: 3
+        maxEnergy: 3,
+        board: createBoard()
       }
 
       const newState = drawCards(stateWithEmptyDeck, 1)
@@ -134,7 +137,8 @@ describe('Card System', () => {
         discard: [],
         selectedCardName: null,
         energy: 3,
-        maxEnergy: 3
+        maxEnergy: 3,
+        board: createBoard()
       }
     })
 
@@ -172,7 +176,8 @@ describe('Card System', () => {
         discard: [],
         selectedCardName: 'Some Card',
         energy: 3,
-        maxEnergy: 3
+        maxEnergy: 3,
+        board: createBoard()
       }
 
       const newState = discardHand(gameState)
@@ -196,7 +201,8 @@ describe('Card System', () => {
         discard: [],
         selectedCardName: null,
         energy: 2,
-        maxEnergy: 3
+        maxEnergy: 3,
+        board: createBoard()
       }
     })
 
@@ -229,7 +235,8 @@ describe('Card System', () => {
         discard: [],
         selectedCardName: null,
         energy: 2,
-        maxEnergy: 3
+        maxEnergy: 3,
+        board: createBoard()
       }
     })
 
@@ -272,7 +279,8 @@ describe('Card System', () => {
         discard: [],
         selectedCardName: 'Some Card',
         energy: 0, // Empty energy
-        maxEnergy: 3
+        maxEnergy: 3,
+        board: createBoard()
       }
 
       const newState = startNewTurn(gameState)
@@ -292,7 +300,8 @@ describe('Card System', () => {
         discard: [],
         selectedCardName: null,
         energy: 1,
-        maxEnergy: 3
+        maxEnergy: 3,
+        board: createBoard()
       }
 
       const newState = startNewTurn(gameState)

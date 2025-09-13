@@ -1,4 +1,5 @@
 import { Card, GameState } from '../types'
+import { createBoard } from './boardSystem'
 
 export function createCard(name: string, cost: number): Card {
   return {
@@ -113,7 +114,8 @@ export function createInitialState(): GameState {
     discard: [],
     selectedCardName: null,
     energy: 3,
-    maxEnergy: 3
+    maxEnergy: 3,
+    board: createBoard()
   }
   
   return drawCards(initialState, 5)

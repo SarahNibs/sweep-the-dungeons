@@ -1,12 +1,14 @@
 import { create } from 'zustand'
-import { GameState } from './types'
+import { GameState, Tile } from './types'
 import { createInitialState, playCard, startNewTurn, canPlayCard } from './game/cardSystem'
+import { revealTile } from './game/boardSystem'
 
 interface GameStore extends GameState {
   playCard: (cardId: string) => void
   endTurn: () => void
   resetGame: () => void
   canPlayCard: (cardId: string) => boolean
+  revealTile: (tile: Tile) => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -31,5 +33,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   canPlayCard: (cardId: string) => {
     const currentState = get()
     return canPlayCard(currentState, cardId)
+  },
+
+  revealTile: (tile: Tile) => {
+    const currentState = get()
+    const newBoard = revealTile(currentState.board, tile.position, 'player')
+    
+    set({
+      ...currentState,
+      board: newBoard
+    })
   }
 }))

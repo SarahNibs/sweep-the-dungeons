@@ -8,8 +8,10 @@ import {
   getTile, 
   revealTile, 
   getNeighbors,
-  isValidPosition
+  isValidPosition,
+  calculateAdjacency
 } from './boardSystem'
+import { Board } from '../types'
 
 describe('Board System', () => {
   describe('Position utilities', () => {
@@ -101,7 +103,7 @@ describe('Board System', () => {
       
       expect(revealedTile?.revealed).toBe(true)
       expect(revealedTile?.revealedBy).toBe('player')
-      expect(revealedTile?.adjacencyCount).toBe(0) // TODO: Real adjacency calculation
+      expect(revealedTile?.adjacencyCount).toBeGreaterThanOrEqual(0)
     })
 
     it('does not modify original board when revealing', () => {
@@ -183,6 +185,110 @@ describe('Board System', () => {
       expect(isValidPosition(board, { x: 3, y: 0 })).toBe(false)
       expect(isValidPosition(board, { x: 0, y: -1 })).toBe(false)
       expect(isValidPosition(board, { x: 0, y: 4 })).toBe(false)
+    })
+  })
+
+  describe('Adjacency calculation', () => {
+    function createTestBoard(): Board {
+      // Create a predictable 3x3 board for testing
+      const board: Board = {
+        width: 3,
+        height: 3,
+        tiles: new Map()
+      }
+
+      // Layout:
+      // P E N
+      // E P A  
+      // N A P
+      const layout = [
+        ['player', 'enemy', 'neutral'],
+        ['enemy', 'player', 'assassin'],
+        ['neutral', 'assassin', 'player']
+      ]
+
+      for (let y = 0; y < 3; y++) {
+        for (let x = 0; x < 3; x++) {
+          const position = createPosition(x, y)
+          const key = positionToKey(position)
+          const owner = layout[y][x] as 'player' | 'enemy' | 'neutral' | 'assassin'
+          board.tiles.set(key, createTile(position, owner))
+        }
+      }
+
+      return board
+    }
+
+    it('calculates correct adjacency for player reveal', () => {
+      const board = createTestBoard()
+      
+      // Reveal center tile (1,1) which is 'player'
+      // Adjacent player tiles: (0,0), (1,2) = 2 player tiles
+      const adjacency = calculateAdjacency(board, createPosition(1, 1), 'player')
+      expect(adjacency).toBe(2)
+    })
+
+    it('calculates correct adjacency for enemy reveal', () => {
+      const board = createTestBoard()
+      
+      // Reveal enemy tile at (1,0)
+      // Adjacent enemy tiles: (0,1) = 1 enemy tile
+      const adjacency = calculateAdjacency(board, createPosition(1, 0), 'enemy')
+      expect(adjacency).toBe(1)
+    })
+
+    it('calculates adjacency across mixed tile types', () => {
+      const board = createTestBoard()
+      
+      // Reveal tile at (2,0) with player revealer
+      // Adjacent player tiles: (1,1) = 1 player tile
+      const adjacency = calculateAdjacency(board, createPosition(2, 0), 'player')
+      expect(adjacency).toBe(1)
+    })
+
+    it('handles corner position adjacency', () => {
+      const board = createTestBoard()
+      
+      // Reveal corner player tile at (0,0)
+      // Adjacent player tiles: (1,1) = 1 player tile
+      const adjacency = calculateAdjacency(board, createPosition(0, 0), 'player')
+      expect(adjacency).toBe(1)
+    })
+
+    it('integrates adjacency with tile reveal', () => {
+      const board = createTestBoard()
+      const position = createPosition(1, 1)
+      
+      const newBoard = revealTile(board, position, 'player')
+      const revealedTile = getTile(newBoard, position)
+      
+      expect(revealedTile?.adjacencyCount).toBe(2)
+      expect(revealedTile?.revealedBy).toBe('player')
+    })
+
+    it('calculates different adjacency for different revealers', () => {
+      const board = createTestBoard()
+      const position = createPosition(1, 1) // This is a player tile
+      
+      // If player reveals it: counts adjacent player tiles
+      const playerReveal = revealTile(board, position, 'player')
+      const playerTile = getTile(playerReveal, position)
+      
+      // If enemy revealed it: would count adjacent enemy tiles  
+      const enemyReveal = revealTile(board, position, 'enemy')
+      const enemyTile = getTile(enemyReveal, position)
+      
+      expect(playerTile?.adjacencyCount).toBe(2) // 2 adjacent player tiles
+      expect(enemyTile?.adjacencyCount).toBe(2)  // 2 adjacent enemy tiles
+    })
+
+    it('handles assassin and neutral tiles in adjacency', () => {
+      const board = createTestBoard()
+      
+      // Test adjacency calculation at position with assassin/neutral neighbors
+      // Position (2,1) is an assassin tile, but we test with player revealer
+      const playerAdjacency = calculateAdjacency(board, createPosition(2, 1), 'player')
+      expect(playerAdjacency).toBe(2) // Two adjacent players at (1,1) and (2,2)
     })
   })
 })

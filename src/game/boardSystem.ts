@@ -60,6 +60,23 @@ export function getTile(board: Board, position: Position): Tile | undefined {
   return board.tiles.get(positionToKey(position))
 }
 
+export function calculateAdjacency(board: Board, position: Position, revealedBy: 'player' | 'enemy'): number {
+  const neighbors = getNeighbors(board, position)
+  let count = 0
+  
+  // Count adjacent tiles that belong to the revealer's team
+  const targetOwner = revealedBy // 'player' or 'enemy'
+  
+  for (const neighborPos of neighbors) {
+    const neighbor = getTile(board, neighborPos)
+    if (neighbor && neighbor.owner === targetOwner) {
+      count++
+    }
+  }
+  
+  return count
+}
+
 export function revealTile(board: Board, position: Position, revealedBy: 'player' | 'enemy'): Board {
   const key = positionToKey(position)
   const tile = board.tiles.get(key)
@@ -68,12 +85,14 @@ export function revealTile(board: Board, position: Position, revealedBy: 'player
     return board
   }
   
+  const adjacencyCount = calculateAdjacency(board, position, revealedBy)
+  
   const newTiles = new Map(board.tiles)
   const revealedTile: Tile = {
     ...tile,
     revealed: true,
     revealedBy,
-    adjacencyCount: 0 // TODO: Calculate real adjacency later
+    adjacencyCount
   }
   
   newTiles.set(key, revealedTile)

@@ -13,7 +13,9 @@
       "Bash(tar:*)",
       "Bash(tools/butler.exe:*)",
       "Bash(npm run butler:status:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm test)"
     ],
     "deny": [],
     "ask": []

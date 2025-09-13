@@ -26,8 +26,6 @@ function App() {
       padding: '20px'
     }}>
       <GameStats
-        deckCount={deck.length}
-        discardCount={discard.length}
         selectedCardName={selectedCardName}
         energy={energy}
         maxEnergy={maxEnergy}
@@ -71,7 +69,13 @@ function App() {
 
       <Board board={board} onTileClick={revealTile} />
 
-      <Hand cards={hand} onCardClick={playCard} canPlayCard={canPlayCard} />
+      <Hand 
+        cards={hand} 
+        onCardClick={playCard} 
+        canPlayCard={canPlayCard}
+        deckCount={deck.length}
+        discardCount={discard.length}
+      />
     </div>
   )
 }

@@ -33,19 +33,16 @@ export function Board({ board, onTileClick }: BoardProps) {
   return (
     <div style={{
       display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: '16px',
+      justifyContent: 'center',
       margin: '20px 0'
     }}>
-      <h2 style={{ margin: '0', color: '#333' }}>Game Board ({board.width}×{board.height})</h2>
       <div 
         style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${board.width}, 40px)`,
-          gridTemplateRows: `repeat(${board.height}, 40px)`,
+          gridTemplateColumns: `repeat(${board.width}, 60px)`,
+          gridTemplateRows: `repeat(${board.height}, 60px)`,
           gap: '2px',
-          padding: '16px',
+          padding: '20px',
           backgroundColor: '#f8f9fa',
           borderRadius: '8px',
           border: '2px solid #dee2e6'

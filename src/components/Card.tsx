@@ -17,12 +17,12 @@ export function Card({ card, onClick, isPlayable }: CardProps) {
     <div
       onClick={handleClick}
       style={{
-        width: '120px',
-        height: '160px',
+        width: '80px',
+        height: '100px',
         border: `2px solid ${isPlayable ? '#333' : '#ccc'}`,
-        borderRadius: '8px',
-        padding: '8px',
-        margin: '4px',
+        borderRadius: '6px',
+        padding: '4px',
+        margin: '2px',
         backgroundColor: isPlayable ? '#f5f5f5' : '#e9e9e9',
         cursor: isPlayable ? 'pointer' : 'not-allowed',
         display: 'flex',
@@ -46,10 +46,10 @@ export function Card({ card, onClick, isPlayable }: CardProps) {
     >
       <div>
         <h3 style={{ 
-          margin: '0 0 8px 0', 
-          fontSize: '14px', 
+          margin: '0 0 4px 0', 
+          fontSize: '10px', 
           fontWeight: 'bold',
-          lineHeight: '1.2'
+          lineHeight: '1.1'
         }}>
           {card.name}
         </h3>
@@ -58,12 +58,12 @@ export function Card({ card, onClick, isPlayable }: CardProps) {
         backgroundColor: isPlayable ? '#007bff' : '#6c757d',
         color: 'white',
         borderRadius: '50%',
-        width: '24px',
-        height: '24px',
+        width: '18px',
+        height: '18px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '12px',
+        fontSize: '10px',
         fontWeight: 'bold',
         alignSelf: 'flex-end'
       }}>

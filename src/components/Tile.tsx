@@ -29,24 +29,50 @@ export function Tile({ tile, onClick }: TileProps) {
     }
   }
 
-  const getTileText = () => {
-    if (!tile.revealed) {
-      return '?'
+  const getAdjacencyBox = () => {
+    if (!tile.revealed || tile.adjacencyCount === null) {
+      return null
     }
     
-    if (tile.adjacencyCount !== null) {
-      return tile.adjacencyCount.toString()
+    const getAdjacencyColor = () => {
+      if (tile.revealedBy === 'player') {
+        return '#007bff'
+      } else if (tile.revealedBy === 'enemy') {
+        return '#dc3545'
+      }
+      return '#6c757d'
     }
     
-    return '0'
+    return (
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        backgroundColor: getAdjacencyColor(),
+        color: 'white',
+        borderRadius: '3px',
+        minWidth: '20px',
+        height: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '12px',
+        fontWeight: 'bold',
+        border: '1px solid white'
+      }}>
+        {tile.adjacencyCount}
+      </div>
+    )
   }
 
   return (
     <div
       onClick={handleClick}
       style={{
-        width: '40px',
-        height: '40px',
+        position: 'relative',
+        width: '56px',
+        height: '56px',
         backgroundColor: getTileColor(),
         border: '2px solid #333',
         borderRadius: '4px',
@@ -73,7 +99,8 @@ export function Tile({ tile, onClick }: TileProps) {
         }
       }}
     >
-      {getTileText()}
+      {!tile.revealed && '?'}
+      {getAdjacencyBox()}
     </div>
   )
 }

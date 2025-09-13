@@ -1,12 +1,10 @@
 interface GameStatsProps {
-  deckCount: number
-  discardCount: number
   selectedCardName: string | null
   energy: number
   maxEnergy: number
 }
 
-export function GameStats({ deckCount, discardCount, selectedCardName, energy, maxEnergy }: GameStatsProps) {
+export function GameStats({ selectedCardName, energy, maxEnergy }: GameStatsProps) {
   return (
     <div style={{
       display: 'flex',
@@ -20,47 +18,33 @@ export function GameStats({ deckCount, discardCount, selectedCardName, energy, m
     }}>
       <h1 style={{ margin: '0', color: '#333' }}>Sweep The Dungeons</h1>
       
-      <div style={{
-        height: '60px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '18px',
-        fontWeight: 'bold',
-        color: '#007bff'
-      }}>
-        {selectedCardName ? `Played: ${selectedCardName}` : 'Select a card to play'}
-      </div>
+      {selectedCardName && (
+        <div style={{
+          height: '40px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '18px',
+          fontWeight: 'bold',
+          color: '#007bff'
+        }}>
+          Played: {selectedCardName}
+        </div>
+      )}
       
       <div style={{
         display: 'flex',
-        gap: '24px',
-        fontSize: '16px'
+        justifyContent: 'center'
       }}>
         <div style={{
           padding: '8px 16px',
           backgroundColor: '#ffc107',
           color: 'black',
           borderRadius: '4px',
-          fontWeight: 'bold'
+          fontWeight: 'bold',
+          fontSize: '16px'
         }}>
           Energy: {energy}/{maxEnergy}
-        </div>
-        <div style={{
-          padding: '8px 16px',
-          backgroundColor: '#28a745',
-          color: 'white',
-          borderRadius: '4px'
-        }}>
-          Deck: {deckCount}
-        </div>
-        <div style={{
-          padding: '8px 16px',
-          backgroundColor: '#6c757d',
-          color: 'white',
-          borderRadius: '4px'
-        }}>
-          Discard: {discardCount}
         </div>
       </div>
     </div>

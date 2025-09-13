@@ -1,0 +1,42 @@
+{
+  "name": "sweep-the-dungeons",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "build:itch": "npm run build && npm run deploy:prepare",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "deploy:prepare": "node scripts/prepare-itch-build.js",
+    "deploy:itch": "npm run build:itch && tools\\butler.exe push dist sarah-nibs/sweep-the-dungeons:html --userversion-file dist/version.txt",
+    "butler:login": "tools\\butler.exe login",
+    "butler:status": "tools\\butler.exe status"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.15.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.14",
+    "globals": "^15.12.0",
+    "jsdom": "^27.0.0",
+    "terser": "^5.44.0",
+    "typescript": "~5.6.2",
+    "typescript-eslint": "^8.15.0",
+    "vite": "^6.0.1",
+    "vitest": "^3.2.4"
+  }
+}

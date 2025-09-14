@@ -1,4 +1,4 @@
-import { Tile as TileType, TileAnnotation, ClueResult } from '../types'
+import { Tile as TileType } from '../types'
 import { useGameStore } from '../store'
 import { useState } from 'react'
 
@@ -98,7 +98,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
       
       // Render clue pips (top-left area) - each clue gets its own row based on play order
       if (clueResultsAnnotation?.clueResults) {
-        clueResultsAnnotation.clueResults.forEach((clueResult, clueIndex) => {
+        clueResultsAnnotation.clueResults.forEach((clueResult) => {
           const strength = clueResult.strengthForThisTile
           const isThisClueHovered = hoveredClueId === clueResult.id
           const rowPosition = clueResult.clueOrder - 1 // Convert 1-based to 0-based for positioning

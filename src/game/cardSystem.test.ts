@@ -92,7 +92,9 @@ describe('Card System', () => {
         board: createBoard(),
         currentPlayer: 'player',
         pendingCardEffect: null,
-        eventQueue: []
+        eventQueue: [],
+        hoveredClueId: null,
+        clueCounter: 0
       }
     })
 
@@ -119,7 +121,9 @@ describe('Card System', () => {
         board: createBoard(),
         currentPlayer: 'player',
         pendingCardEffect: null,
-        eventQueue: []
+        eventQueue: [],
+        hoveredClueId: null,
+        clueCounter: 0
       }
 
       const newState = drawCards(stateWithEmptyDeck, 1)
@@ -147,7 +151,9 @@ describe('Card System', () => {
         board: createBoard(),
         currentPlayer: 'player',
         pendingCardEffect: null,
-        eventQueue: []
+        eventQueue: [],
+        hoveredClueId: null,
+        clueCounter: 0
       }
     })
 
@@ -189,7 +195,9 @@ describe('Card System', () => {
         board: createBoard(),
         currentPlayer: 'player',
         pendingCardEffect: null,
-        eventQueue: []
+        eventQueue: [],
+        hoveredClueId: null,
+        clueCounter: 0
       }
 
       const newState = discardHand(gameState)
@@ -217,7 +225,9 @@ describe('Card System', () => {
         board: createBoard(),
         currentPlayer: 'player',
         pendingCardEffect: null,
-        eventQueue: []
+        eventQueue: [],
+        hoveredClueId: null,
+        clueCounter: 0
       }
     })
 
@@ -254,7 +264,9 @@ describe('Card System', () => {
         board: createBoard(),
         currentPlayer: 'player',
         pendingCardEffect: null,
-        eventQueue: []
+        eventQueue: [],
+        hoveredClueId: null,
+        clueCounter: 0
       }
     })
 
@@ -301,7 +313,9 @@ describe('Card System', () => {
         board: createBoard(),
         currentPlayer: 'player',
         pendingCardEffect: null,
-        eventQueue: []
+        eventQueue: [],
+        hoveredClueId: null,
+        clueCounter: 0
       }
 
       const newState = startNewTurn(gameState)
@@ -325,7 +339,9 @@ describe('Card System', () => {
         board: createBoard(),
         currentPlayer: 'player',
         pendingCardEffect: null,
-        eventQueue: []
+        eventQueue: [],
+        hoveredClueId: null,
+        clueCounter: 0
       }
 
       const newState = startNewTurn(gameState)

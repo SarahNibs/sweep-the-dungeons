@@ -2,6 +2,7 @@ import { Board as BoardType, Tile as TileType, Position } from '../types'
 import { Tile } from './Tile'
 import { TileCountInfo } from './TileCountInfo'
 import { positionToKey } from '../game/boardSystem'
+import { useGameStore } from '../store'
 
 interface BoardProps {
   board: BoardType
@@ -10,6 +11,8 @@ interface BoardProps {
 }
 
 export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
+  const { enemyAnimation } = useGameStore()
+  
   const renderTiles = () => {
     const tiles: JSX.Element[] = []
     
@@ -24,6 +27,10 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
             positionToKey(pos) === key
           ) || false
           
+          const isEnemyHighlighted = !!(enemyAnimation?.highlightedTile && 
+            enemyAnimation.highlightedTile.x === tile.position.x && 
+            enemyAnimation.highlightedTile.y === tile.position.y)
+          
           tiles.push(
             <Tile
               key={key}
@@ -31,6 +38,7 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
               onClick={onTileClick}
               isTargeting={isTargeting && !tile.revealed}
               isSelected={isSelected}
+              isEnemyHighlighted={isEnemyHighlighted}
             />
           )
         }

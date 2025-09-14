@@ -13,15 +13,17 @@ export type CardEffect =
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
-  cardType: 'solid_clue' | 'stretch_clue'
+  cardType: 'solid_clue' | 'stretch_clue' | 'enemy_clue'
   strengthForThisTile: number // How many pips this clue contributed to this specific tile
   allAffectedTiles: Position[] // All tiles that got pips from this clue
   clueOrder: number // Order in which this clue was played (1st, 2nd, 3rd...)
+  clueRowPosition: number // Row position for this clue type (player/enemy separate)
 }
 
 export interface TileAnnotation {
-  type: 'safe' | 'unsafe' | 'enemy' | 'clue_results'
+  type: 'safe' | 'unsafe' | 'enemy' | 'clue_results' | 'owner_subset'
   clueResults?: ClueResult[] // For clue strength annotations
+  ownerSubset?: Set<'player' | 'enemy' | 'neutral' | 'assassin'> // For subset annotations
 }
 
 export type GameEvent = 
@@ -61,6 +63,14 @@ export interface GameState {
   eventQueue: GameEvent[]
   hoveredClueId: string | null // For highlighting related clue pips and tiles
   clueCounter: number // Counter for clue order (1st, 2nd, 3rd...)
+  playerClueCounter: number // Counter for player clue rows
+  enemyClueCounter: number // Counter for enemy clue rows
+  enemyAnimation: {
+    isActive: boolean
+    highlightedTile: Position | null
+    revealsRemaining: Tile[]
+    currentRevealIndex: number
+  } | null
 }
 
 export type CardZone = 'deck' | 'hand' | 'discard'

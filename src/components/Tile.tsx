@@ -1,17 +1,39 @@
 import { Tile as TileType } from '../types'
 import { useGameStore } from '../store'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface TileProps {
   tile: TileType
   onClick: (tile: TileType) => void
   isTargeting?: boolean
   isSelected?: boolean
+  isEnemyHighlighted?: boolean
 }
 
-export function Tile({ tile, onClick, isTargeting = false, isSelected = false }: TileProps) {
+export function Tile({ tile, onClick, isTargeting = false, isSelected = false, isEnemyHighlighted = false }: TileProps) {
   const { hoveredClueId, setHoveredClueId } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
+  
+  // Add pulse animation styles when component mounts
+  useEffect(() => {
+    if (!document.getElementById('pulse-animation')) {
+      const style = document.createElement('style')
+      style.id = 'pulse-animation'
+      style.textContent = `
+        @keyframes pulse {
+          0%, 100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.05);
+            opacity: 0.8;
+          }
+        }
+      `
+      document.head.appendChild(style)
+    }
+  }, [])
   
   const handleClick = () => {
     onClick(tile)
@@ -93,42 +115,78 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
       
       // Group annotations by type
       const clueResultsAnnotation = tile.annotations.find(a => a.type === 'clue_results')
+      const subsetAnnotations = tile.annotations.filter(a => a.type === 'owner_subset')
+      // Legacy annotations - keeping for backward compatibility
       const safetyAnnotations = tile.annotations.filter(a => a.type === 'safe' || a.type === 'unsafe')
       const enemyAnnotations = tile.annotations.filter(a => a.type === 'enemy')
       
-      // Render clue pips (top-left area) - each clue gets its own row based on play order
+      // Render clue pips - player clues (top-left) and enemy clues (bottom-left) 
       if (clueResultsAnnotation?.clueResults) {
+        
         clueResultsAnnotation.clueResults.forEach((clueResult) => {
           const strength = clueResult.strengthForThisTile
           const isThisClueHovered = hoveredClueId === clueResult.id
-          const rowPosition = clueResult.clueOrder - 1 // Convert 1-based to 0-based for positioning
+          const isEnemyClue = clueResult.cardType === 'enemy_clue'
+          
+          // Position based on clue row position (already separated by player/enemy)
+          // Fallback to clueOrder if clueRowPosition is not available (backward compatibility)
+          const rowPosition = (clueResult.clueRowPosition || clueResult.clueOrder || 1) - 1
           
           for (let i = 0; i < Math.min(strength, 6); i++) {
-            elements.push(
-              <div
-                key={`pip-${clueResult.id}-${i}`}
-                style={{
-                  position: 'absolute',
-                  top: `${4 + rowPosition * 8}px`,
-                  left: `${4 + i * 8}px`,
-                  width: '4px',
-                  height: '4px',
-                  backgroundColor: isThisClueHovered ? '#22c55e' : '#16a34a',
-                  borderRadius: '50%',
-                  border: '0.5px solid black',
-                  cursor: 'pointer',
-                  transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
-                  transition: 'all 0.15s ease',
-                  boxShadow: isThisClueHovered ? '0 1px 3px rgba(40, 167, 69, 0.5)' : 'none'
-                }}
-                onMouseEnter={() => {
-                  setHoveredClueId(clueResult.id)
-                }}
-                onMouseLeave={() => {
-                  setHoveredClueId(null)
-                }}
-              />
-            )
+            if (isEnemyClue) {
+              // Enemy Xs: bottom-left, going up and right
+              elements.push(
+                <div
+                  key={`pip-${clueResult.id}-${i}`}
+                  style={{
+                    position: 'absolute',
+                    bottom: `${2 + rowPosition * 6}px`,
+                    left: `${2 + i * 6}px`,
+                    color: '#000000',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={() => {
+                    setHoveredClueId(clueResult.id)
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredClueId(null)
+                  }}
+                >
+                  ×
+                </div>
+              )
+            } else {
+              // Player pips: top-left, going down and right
+              elements.push(
+                <div
+                  key={`pip-${clueResult.id}-${i}`}
+                  style={{
+                    position: 'absolute',
+                    top: `${2 + rowPosition * 6}px`,
+                    left: `${2 + i * 6}px`,
+                    width: '4px',
+                    height: '4px',
+                    borderRadius: '50%',
+                    backgroundColor: isThisClueHovered ? '#22c55e' : '#16a34a',
+                    border: '0.5px solid black',
+                    cursor: 'pointer',
+                    transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
+                    transition: 'all 0.15s ease',
+                    boxShadow: isThisClueHovered ? '0 1px 3px rgba(40, 167, 69, 0.5)' : 'none'
+                  }}
+                  onMouseEnter={() => {
+                    setHoveredClueId(clueResult.id)
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredClueId(null)
+                  }}
+                />
+              )
+            }
           }
         })
       }
@@ -166,7 +224,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
         )
       }
       
-      // Render enemy annotations (bottom-right)
+      // Legacy enemy annotations - keeping for backward compatibility but Report now uses subset system
       if (enemyAnnotations.length > 0) {
         elements.push(
           <div
@@ -175,7 +233,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
             style={{
               position: 'absolute',
               bottom: '2px',
-              right: '2px',
+              right: '18px', // Moved left to avoid conflict with subset annotations
               width: '16px',
               height: '16px',
               backgroundColor: '#dc3545',
@@ -194,6 +252,44 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
         )
       }
       
+      // Render subset annotations (bottom-right) as 2x2 grid of small squares
+      if (subsetAnnotations.length > 0) {
+        const latestSubset = subsetAnnotations[subsetAnnotations.length - 1]
+        const ownerSubset = latestSubset.ownerSubset || new Set()
+        
+        // Define owner colors and positions in 2x2 grid (positioned from bottom-right)
+        const ownerInfo = [
+          { owner: 'player' as const, color: '#81b366', position: { top: 4, left: 8 }, name: 'Player' },
+          { owner: 'enemy' as const, color: '#c65757', position: { top: 4, left: 4 }, name: 'Enemy' },
+          { owner: 'neutral' as const, color: '#d4aa5a', position: { top: 0, left: 8 }, name: 'Neutral' },
+          { owner: 'assassin' as const, color: '#8b6ba8', position: { top: 0, left: 4 }, name: 'Assassin' }
+        ]
+        
+        const includedOwners = ownerInfo.filter(info => ownerSubset.has(info.owner))
+        const tooltipText = includedOwners.length === 1 
+          ? `Tile is ${includedOwners[0].name.toLowerCase()}`
+          : `Tile is ${includedOwners.map(info => info.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ', or $1')}`
+        
+        // Render the squares that are included in the subset
+        includedOwners.forEach(info => {
+          elements.push(
+            <div
+              key={`subset-${info.owner}`}
+              title={tooltipText}
+              style={{
+                position: 'absolute',
+                bottom: `${2 + info.position.top}px`,
+                right: `${2 + info.position.left}px`,
+                width: '3px',
+                height: '3px',
+                backgroundColor: info.color,
+                border: '0.5px solid black'
+              }}
+            />
+          )
+        })
+      }
+      
       return <>{elements}</>
     }
 
@@ -210,6 +306,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
         backgroundColor: getTileColor(),
         border: isSelected ? '3px solid #ffc107' : 
                 isTargeting ? '2px solid #007bff' : 
+                isEnemyHighlighted ? '3px solid #dc3545' :
                 isClueHighlighted() ? '2px solid #40c057' : 
                 '2px solid #333',
         borderRadius: '4px',
@@ -223,9 +320,11 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
         transition: 'all 0.2s ease',
         userSelect: 'none',
         transform: (isHovered && !tile.revealed) ? 'scale(1.05)' : 'scale(1)',
-        boxShadow: isClueHighlighted() ? '0 0 8px rgba(64, 192, 87, 0.4)' :
+        boxShadow: isEnemyHighlighted ? '0 0 12px rgba(220, 53, 69, 0.6)' :
+                   isClueHighlighted() ? '0 0 8px rgba(64, 192, 87, 0.4)' :
                    (isHovered && !tile.revealed) ? '0 2px 4px rgba(0,0,0,0.3)' : 
-                   'none'
+                   'none',
+        animation: isEnemyHighlighted ? 'pulse 1s ease-in-out infinite' : 'none'
       }}
       onMouseEnter={() => {
         setIsHovered(true)

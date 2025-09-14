@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import { GameState, Tile, Position, CardEffect, Board } from './types'
-import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil } from './game/cardSystem'
-import { revealTile, performEnemyTurn, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
-import { executeCardEffect, getTargetingInfo } from './game/cardEffects'
+import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand } from './game/cardSystem'
+import { revealTile, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
+import { executeCardEffect, getTargetingInfo, executeEnemyClueEffect, selectEnemyTilesToReveal } from './game/cardeffects'
 
 interface GameStore extends GameState {
   playCard: (cardId: string) => void
@@ -15,6 +15,8 @@ interface GameStore extends GameState {
   cancelCardTargeting: () => void
   getTargetingInfo: () => { count: number; description: string; selected: Position[] } | null
   setHoveredClueId: (clueId: string | null) => void
+  startEnemyTurn: (board: Board) => void
+  performNextEnemyReveal: () => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -39,18 +41,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
   
   performTurnEnd: (board: Board) => {
     const currentState = get()
-    
-    // End player turn and start enemy turn
-    const enemyBoard = performEnemyTurn(board)
-    const newTurnState = startNewTurn({
+    // Discard hand immediately when player's turn ends
+    const discardedState = discardHand({
       ...currentState,
-      board: enemyBoard
+      board
     })
-    
-    set({
-      ...newTurnState,
-      currentPlayer: 'player'
-    })
+    // Update state with discarded hand, then start enemy turn
+    set(discardedState)
+    get().startEnemyTurn(discardedState.board)
   },
   
   resetGame: () => {
@@ -93,6 +91,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   targetTileForCard: (position: Position) => {
     const currentState = get()
     if (!currentState.pendingCardEffect) return
+    if (!currentState.selectedCardName) return
+    if (currentState.currentPlayer !== 'player') return
     
     const tile = currentState.board.tiles.get(positionToKey(position))
     if (!tile || tile.revealed) return
@@ -120,18 +120,54 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const effectState = executeCardEffect(currentState, newEffect)
       
       // Remove the card from hand and add to discard
-      const cardName = currentState.selectedCardName!
-      const card = currentState.hand.find(c => c.name === cardName)!
+      const cardName = currentState.selectedCardName
+      const card = currentState.hand.find(c => c.name === cardName)
+      if (!card) {
+        // Card not found in hand, clear targeting state and return
+        set({
+          ...currentState,
+          pendingCardEffect: null,
+          selectedCardName: null
+        })
+        return
+      }
+      
       const newHand = currentState.hand.filter(c => c.id !== card.id)
       const newDiscard = [...effectState.discard, card]
       
-      set({
+      const finalState = {
         ...effectState,
         hand: newHand,
         discard: newDiscard,
         energy: effectState.energy - card.cost,
         pendingCardEffect: null
-      })
+      }
+      
+      // Check if the effect revealed a tile that should end the turn (e.g., quantum)
+      if (newEffect.type === 'quantum') {
+        // Find the revealed tile and check if turn should end
+        const [pos1, pos2] = newEffect.targets
+        const tile1 = currentState.board.tiles.get(positionToKey(pos1))
+        const tile2 = currentState.board.tiles.get(positionToKey(pos2))
+        
+        // Check which tile was revealed by comparing board states
+        const newTile1 = effectState.board.tiles.get(positionToKey(pos1))
+        const newTile2 = effectState.board.tiles.get(positionToKey(pos2))
+        
+        let revealedTile: typeof tile1 = undefined
+        if (tile1 && newTile1 && !tile1.revealed && newTile1.revealed) {
+          revealedTile = newTile1
+        } else if (tile2 && newTile2 && !tile2.revealed && newTile2.revealed) {
+          revealedTile = newTile2
+        }
+        
+        if (revealedTile && shouldEndPlayerTurn(revealedTile)) {
+          get().performTurnEnd(finalState.board)
+          return
+        }
+      }
+      
+      set(finalState)
     } else if (newEffect) {
       set({
         ...currentState,
@@ -175,5 +211,136 @@ export const useGameStore = create<GameStore>((set, get) => ({
       ...state,
       hoveredClueId: clueId
     }))
+  },
+
+  startEnemyTurn: (board: Board) => {
+    const currentState = get()
+    
+    // Clear any pending card targeting state
+    const clearedState = {
+      ...currentState,
+      board,
+      pendingCardEffect: null,
+      selectedCardName: null
+    }
+    
+    // First, generate enemy clue
+    const stateWithEnemyClue = executeEnemyClueEffect(clearedState)
+    
+    // Then, select tiles to reveal based on AI logic
+    const tilesToReveal = selectEnemyTilesToReveal(stateWithEnemyClue)
+    
+    if (tilesToReveal.length === 0) {
+      // No tiles to reveal, end enemy turn immediately
+      const newTurnState = startNewTurn(stateWithEnemyClue)
+      set({
+        ...newTurnState,
+        currentPlayer: 'player'
+      })
+      return
+    }
+    
+    // Check if we're in a test environment (no window.requestAnimationFrame typically)
+    const isTestEnvironment = typeof window === 'undefined' || !window.requestAnimationFrame
+    
+    if (isTestEnvironment) {
+      // In tests, run enemy turn synchronously
+      let boardState = stateWithEnemyClue.board
+      for (const tile of tilesToReveal) {
+        boardState = revealTile(boardState, tile.position, 'enemy')
+        if (tile.owner !== 'enemy') break // Stop if non-enemy tile revealed
+      }
+      
+      const newTurnState = startNewTurn({
+        ...stateWithEnemyClue,
+        board: boardState
+      })
+      set({
+        ...newTurnState,
+        currentPlayer: 'player'
+      })
+      return
+    }
+    
+    // Start the animation sequence
+    set({
+      ...stateWithEnemyClue,
+      currentPlayer: 'enemy',
+      enemyAnimation: {
+        isActive: true,
+        highlightedTile: null,
+        revealsRemaining: tilesToReveal,
+        currentRevealIndex: 0
+      }
+    })
+    
+    // Start the first reveal after a short delay
+    setTimeout(() => {
+      get().performNextEnemyReveal()
+    }, 500)
+  },
+
+  performNextEnemyReveal: () => {
+    const currentState = get()
+    const animation = currentState.enemyAnimation
+    
+    if (!animation || !animation.isActive) return
+    
+    const { revealsRemaining, currentRevealIndex } = animation
+    
+    if (currentRevealIndex >= revealsRemaining.length) {
+      // Animation complete, end enemy turn
+      const newTurnState = startNewTurn(currentState)
+      set({
+        ...newTurnState,
+        currentPlayer: 'player',
+        enemyAnimation: null
+      })
+      return
+    }
+    
+    const tileToReveal = revealsRemaining[currentRevealIndex]
+    
+    // Highlight the tile
+    set({
+      ...currentState,
+      enemyAnimation: {
+        ...animation,
+        highlightedTile: tileToReveal.position
+      }
+    })
+    
+    // After highlighting delay, reveal the tile
+    setTimeout(() => {
+      const state = get()
+      const newBoard = revealTile(state.board, tileToReveal.position, 'enemy')
+      const shouldContinue = tileToReveal.owner === 'enemy' // Continue if enemy tile
+      
+      set({
+        ...state,
+        board: newBoard,
+        enemyAnimation: {
+          ...state.enemyAnimation!,
+          highlightedTile: null,
+          currentRevealIndex: state.enemyAnimation!.currentRevealIndex + 1
+        }
+      })
+      
+      if (shouldContinue && state.enemyAnimation!.currentRevealIndex + 1 < revealsRemaining.length) {
+        // Continue with next reveal after delay
+        setTimeout(() => {
+          get().performNextEnemyReveal()
+        }, 800)
+      } else {
+        // End enemy turn
+        const finalState = get()
+        const newTurnState = startNewTurn(finalState)
+        set({
+          ...newTurnState,
+          currentPlayer: 'player',
+          enemyAnimation: null
+        })
+      }
+    }, 1000) // Highlighting duration
   }
 }))

@@ -1,6 +1,6 @@
 import { Card, GameState } from '../types'
 import { createBoard } from './boardSystem'
-import { executeCardEffect, requiresTargeting } from './cardEffects'
+import { executeCardEffect, requiresTargeting } from './cardeffects'
 
 export function createCard(name: string, cost: number): Card {
   return {
@@ -116,7 +116,8 @@ export function discardHand(state: GameState): GameState {
     ...state,
     hand: [],
     discard: [...state.discard, ...state.hand],
-    selectedCardName: null
+    selectedCardName: null,
+    pendingCardEffect: null
   }
 }
 
@@ -144,7 +145,10 @@ export function createInitialState(): GameState {
     pendingCardEffect: null,
     eventQueue: [],
     hoveredClueId: null,
-    clueCounter: 0
+    clueCounter: 0,
+    playerClueCounter: 0,
+    enemyClueCounter: 0,
+    enemyAnimation: null
   }
   
   return drawCards(initialState, 5)

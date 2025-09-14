@@ -139,49 +139,78 @@ export function executeReportEffect(state: GameState): GameState {
   return addTileAnnotation(state, targetTile.position, annotation)
 }
 
-export function executeSolidClueEffect(state: GameState): GameState {
+interface ClueParameters {
+  cardType: 'solid_clue' | 'stretch_clue'
+  chosenPlayerTiles: number          // How many player tiles to choose initially
+  guaranteedPlayerTiles: number      // How many of the chosen player tiles get guaranteed draws
+  randomTilesForBag: number
+  totalPips: number
+  playerTileBagCopies: number
+  randomTileBagCopies: number
+}
+
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
+function executeParameterizedClueEffect(state: GameState, params: ClueParameters): GameState {
   const unrevealedTiles = getUnrevealedTiles(state)
   const playerTiles = unrevealedTiles.filter(tile => tile.owner === 'player')
-  const otherTiles = unrevealedTiles.filter(tile => tile.owner !== 'player')
   
-  // Choose up to 2 player tiles for guaranteed draws
-  const chosenPlayerTiles = playerTiles.slice(0, 2)
+  if (unrevealedTiles.length === 0) return state
   
-  // Choose up to 6 other tiles for the bag
-  const chosenOtherTiles = otherTiles.slice(0, 6)
+  // Step 1: Randomly choose player tiles (fix slice bug!)
+  const shuffledPlayerTiles = shuffleArray(playerTiles)
+  const chosenPlayerTiles = shuffledPlayerTiles.slice(0, params.chosenPlayerTiles)
   
-  if (chosenPlayerTiles.length === 0 && chosenOtherTiles.length === 0) return state
+  // Step 2: Randomly choose remaining tiles for bag (fix slice bug!)
+  const remainingTiles = unrevealedTiles.filter(tile => 
+    !chosenPlayerTiles.some(chosen => 
+      chosen.position.x === tile.position.x && chosen.position.y === tile.position.y
+    )
+  )
+  const shuffledRemainingTiles = shuffleArray(remainingTiles)
+  const chosenRandomTiles = shuffledRemainingTiles.slice(0, params.randomTilesForBag)
   
-  const picked = []
+  const picked: Tile[] = []
   
-  // Step 1: Guarantee draws from the chosen player tiles (2 draws)
-  const guaranteedDraws = Math.min(2, chosenPlayerTiles.length)
+  // Step 3: Guarantee draws from first N chosen player tiles
+  const guaranteedDraws = Math.min(params.guaranteedPlayerTiles, chosenPlayerTiles.length)
   for (let i = 0; i < guaranteedDraws; i++) {
     picked.push(chosenPlayerTiles[i])
   }
   
-  // Step 2: Create the bag with all chosen tiles
+  // Step 4: Create the bag with chosen tiles
   const bag: Tile[] = []
   
-  // Add player tiles to bag with 12 copies each
+  // Add chosen player tiles to bag
   for (const tile of chosenPlayerTiles) {
-    const copies = chosenPlayerTiles.length < 2 ? Math.floor(24 / chosenPlayerTiles.length) : 12
+    const copies = chosenPlayerTiles.length < params.chosenPlayerTiles ? 
+      Math.floor((params.playerTileBagCopies * params.chosenPlayerTiles) / chosenPlayerTiles.length) : 
+      params.playerTileBagCopies
     for (let j = 0; j < copies; j++) {
       bag.push(tile)
     }
   }
   
-  // Add other tiles to bag with 4 copies each  
-  for (const tile of chosenOtherTiles) {
-    const copies = chosenOtherTiles.length < 6 ? Math.floor(24 / chosenOtherTiles.length) : 4
+  // Add random tiles to bag
+  for (const tile of chosenRandomTiles) {
+    const copies = chosenRandomTiles.length < params.randomTilesForBag ?
+      Math.floor((params.randomTileBagCopies * params.randomTilesForBag) / chosenRandomTiles.length) :
+      params.randomTileBagCopies
     for (let j = 0; j < copies; j++) {
       bag.push(tile)
     }
   }
   
-  // Step 3: Draw remaining 8 items randomly from bag
+  // Step 5: Draw remaining items randomly from bag
   const bagCopy = [...bag]
-  const remainingDraws = 10 - guaranteedDraws
+  const remainingDraws = params.totalPips - guaranteedDraws
   
   for (let i = 0; i < Math.min(remainingDraws, bagCopy.length); i++) {
     const randomIndex = Math.floor(Math.random() * bagCopy.length)
@@ -218,7 +247,7 @@ export function executeSolidClueEffect(state: GameState): GameState {
     }
     const tileClueResult: ClueResult = {
       id: clueId,
-      cardType: 'solid_clue',
+      cardType: params.cardType,
       strengthForThisTile: count,
       allAffectedTiles: affectedTiles,
       clueOrder: currentClueOrder
@@ -229,94 +258,28 @@ export function executeSolidClueEffect(state: GameState): GameState {
   return newState
 }
 
+export function executeSolidClueEffect(state: GameState): GameState {
+  return executeParameterizedClueEffect(state, {
+    cardType: 'solid_clue',
+    chosenPlayerTiles: 2,           // Choose 2 player tiles
+    guaranteedPlayerTiles: 2,       // Guarantee all 2 chosen tiles
+    randomTilesForBag: 6,
+    totalPips: 10,
+    playerTileBagCopies: 12,
+    randomTileBagCopies: 4
+  })
+}
+
 export function executeStretchClueEffect(state: GameState): GameState {
-  const unrevealedTiles = getUnrevealedTiles(state)
-  const playerTiles = unrevealedTiles.filter(tile => tile.owner === 'player')
-  const otherTiles = unrevealedTiles.filter(tile => tile.owner !== 'player')
-  
-  // Choose up to 5 player tiles for guaranteed draws (use 3) and bag
-  const chosenPlayerTiles = playerTiles.slice(0, 5)
-  
-  // Choose up to 14 other tiles for the bag
-  const chosenOtherTiles = otherTiles.slice(0, 14)
-  
-  if (chosenPlayerTiles.length === 0 && chosenOtherTiles.length === 0) return state
-  
-  const picked = []
-  
-  // Step 1: Guarantee draws from the first 3 chosen player tiles
-  const guaranteedDraws = Math.min(3, chosenPlayerTiles.length)
-  for (let i = 0; i < guaranteedDraws; i++) {
-    picked.push(chosenPlayerTiles[i])
-  }
-  
-  // Step 2: Create the bag with all chosen tiles
-  const bag: Tile[] = []
-  
-  // Add player tiles to bag with 4 copies each
-  for (const tile of chosenPlayerTiles) {
-    const copies = chosenPlayerTiles.length < 5 ? Math.floor(20 / chosenPlayerTiles.length) : 4
-    for (let j = 0; j < copies; j++) {
-      bag.push(tile)
-    }
-  }
-  
-  // Add other tiles to bag with 2 copies each
-  for (const tile of chosenOtherTiles) {
-    const copies = chosenOtherTiles.length < 14 ? Math.floor(28 / chosenOtherTiles.length) : 2
-    for (let j = 0; j < copies; j++) {
-      bag.push(tile)
-    }
-  }
-  
-  // Step 3: Draw remaining 7 items randomly from bag
-  const bagCopy = [...bag]
-  const remainingDraws = 10 - guaranteedDraws
-  
-  for (let i = 0; i < Math.min(remainingDraws, bagCopy.length); i++) {
-    const randomIndex = Math.floor(Math.random() * bagCopy.length)
-    picked.push(bagCopy[randomIndex])
-    bagCopy.splice(randomIndex, 1)
-  }
-  
-  // Count occurrences and create clue result
-  const counts = new Map<string, number>()
-  for (const tile of picked) {
-    const key = positionToKey(tile.position)
-    counts.set(key, (counts.get(key) || 0) + 1)
-  }
-  
-  const affectedTiles: Position[] = []
-  for (const [posKey, count] of counts) {
-    if (count > 0) {
-      affectedTiles.push({ 
-        x: parseInt(posKey.split(',')[0]), 
-        y: parseInt(posKey.split(',')[1]) 
-      })
-    }
-  }
-  
-  // Create clue results for each affected tile
-  const clueId = crypto.randomUUID()
-  const currentClueOrder = state.clueCounter + 1
-  let newState = { ...state, clueCounter: currentClueOrder }
-  
-  for (const [posKey, count] of counts) {
-    const position = { 
-      x: parseInt(posKey.split(',')[0]), 
-      y: parseInt(posKey.split(',')[1]) 
-    }
-    const tileClueResult: ClueResult = {
-      id: clueId,
-      cardType: 'stretch_clue',
-      strengthForThisTile: count,
-      allAffectedTiles: affectedTiles,
-      clueOrder: currentClueOrder
-    }
-    newState = addClueResult(newState, position, tileClueResult)
-  }
-  
-  return newState
+  return executeParameterizedClueEffect(state, {
+    cardType: 'stretch_clue',
+    chosenPlayerTiles: 5,           // Choose 5 player tiles
+    guaranteedPlayerTiles: 3,       // Guarantee only 3 of the 5 chosen tiles
+    randomTilesForBag: 14,
+    totalPips: 10,
+    playerTileBagCopies: 4,
+    randomTileBagCopies: 2
+  })
 }
 
 export function executeCardEffect(state: GameState, effect: CardEffect): GameState {

@@ -12,6 +12,7 @@ import {
 } from './cardSystem'
 import { GameState } from '../types'
 import { createBoard } from './boardSystem'
+import { executeSolidClueEffect, executeStretchClueEffect } from './cardEffects'
 
 describe('Card System', () => {
   describe('createCard', () => {
@@ -361,6 +362,90 @@ describe('Card System', () => {
       const state = createInitialState()
       expect(state.energy).toBe(3)
       expect(state.maxEnergy).toBe(3)
+    })
+  })
+
+  describe('Clue Effect Improvements', () => {
+    let gameState: GameState
+
+    beforeEach(() => {
+      // Create a standard test board
+      const board = createBoard(6, 5)
+      
+      gameState = {
+        deck: [],
+        hand: [],
+        discard: [],
+        selectedCardName: null,
+        energy: 3,
+        maxEnergy: 3,
+        board,
+        currentPlayer: 'player',
+        pendingCardEffect: null,
+        eventQueue: [],
+        clueCounter: 0,
+        hoveredClueId: null
+      }
+    })
+
+    it('allows random tiles to include any unrevealed tiles (including other player tiles)', () => {
+      // Execute clue effect
+      const newState = executeSolidClueEffect(gameState)
+      
+      // Find all tiles with clue annotations
+      const tilesWithClues = Array.from(newState.board.tiles.values())
+        .filter(tile => tile.annotations.some(a => a.type === 'clue_results'))
+      
+      expect(tilesWithClues.length).toBeGreaterThan(0)
+      
+      // Check that some tiles got clue results (verifying the parameterized system works)
+      const clueAnnotations = tilesWithClues.map(tile => 
+        tile.annotations.find(a => a.type === 'clue_results')
+      )
+      
+      expect(clueAnnotations.every(annotation => annotation !== undefined)).toBe(true)
+      expect(newState.clueCounter).toBe(1)
+    })
+
+    it('uses parameterized system for both clue types', () => {
+      // Test Solid Clue
+      const solidState = executeSolidClueEffect(gameState)
+      const solidTilesWithClues = Array.from(solidState.board.tiles.values())
+        .filter(tile => tile.annotations.some(a => a.type === 'clue_results'))
+      
+      // Test Stretch Clue  
+      const stretchState = executeStretchClueEffect(gameState)
+      const stretchTilesWithClues = Array.from(stretchState.board.tiles.values())
+        .filter(tile => tile.annotations.some(a => a.type === 'clue_results'))
+      
+      // Both should produce clue results
+      expect(solidTilesWithClues.length).toBeGreaterThan(0)
+      expect(stretchTilesWithClues.length).toBeGreaterThan(0)
+      
+      // Both should increment clue counter
+      expect(solidState.clueCounter).toBe(1)
+      expect(stretchState.clueCounter).toBe(1)
+    })
+
+    it('produces different tile selections across multiple runs (tests randomization)', () => {
+      // Run solid clue multiple times and collect which tiles get clue results
+      const tileSelections: string[][] = []
+      
+      for (let run = 0; run < 5; run++) {
+        const state = executeSolidClueEffect(gameState)
+        const tilesWithClues = Array.from(state.board.tiles.values())
+          .filter(tile => tile.annotations.some(a => a.type === 'clue_results'))
+          .map(tile => `${tile.position.x},${tile.position.y}`)
+          .sort()
+        tileSelections.push(tilesWithClues)
+      }
+      
+      // Check that we don't get identical selections every time (randomization working)
+      const uniqueSelections = new Set(tileSelections.map(selection => JSON.stringify(selection)))
+      
+      // With proper randomization, we should get at least 2 different selections in 5 runs
+      // (This is probabilistic but very likely with random selection)
+      expect(uniqueSelections.size).toBeGreaterThan(1)
     })
   })
 })

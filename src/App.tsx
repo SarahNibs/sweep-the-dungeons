@@ -29,17 +29,16 @@ function App() {
       backgroundColor: '#2d3436',
       padding: '20px'
     }}>
-      <GameStats />
+      <GameStats onResetGame={resetGame} />
       
       <PromptWidget targetingInfo={getTargetingInfo()} />
       
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '16px',
-        margin: '20px 0'
-      }}>
-        {getTargetingInfo() && (
+      {getTargetingInfo() && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          margin: '20px 0'
+        }}>
           <button
             onClick={cancelCardTargeting}
             style={{
@@ -54,22 +53,8 @@ function App() {
           >
             Cancel
           </button>
-        )}
-        <button
-          onClick={resetGame}
-          style={{
-            padding: '12px 24px',
-            fontSize: '16px',
-            backgroundColor: '#dc3545',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Reset Game
-        </button>
-      </div>
+        </div>
+      )}
 
       <Board board={board} onTileClick={revealTile} targetingInfo={getTargetingInfo()} />
 

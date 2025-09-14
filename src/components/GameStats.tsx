@@ -1,4 +1,84 @@
-export function GameStats() {
+import { useState, useRef, useEffect } from 'react'
+
+interface GameStatsProps {
+  onResetGame: () => void
+}
+
+export function GameStats({ onResetGame }: GameStatsProps) {
+  const [isPressed, setIsPressed] = useState(false)
+  const [animationProgress, setAnimationProgress] = useState(0)
+  const animationRef = useRef<number>()
+  const startTimeRef = useRef<number>()
+  const pressTimeoutRef = useRef<number>()
+
+  const ANIMATION_DURATION = 2000 // 2 seconds
+
+  const startAnimation = () => {
+    startTimeRef.current = Date.now()
+    setIsPressed(true)
+    setAnimationProgress(0)
+    
+    const animate = () => {
+      if (!startTimeRef.current || !isPressed) return
+      
+      const elapsed = Date.now() - startTimeRef.current
+      const progress = Math.min(elapsed / ANIMATION_DURATION, 1)
+      
+      // Easing function: slow start, fast finish
+      const easedProgress = progress * progress * (3 - 2 * progress)
+      setAnimationProgress(easedProgress)
+      
+      if (progress >= 1) {
+        // Animation complete - reset game
+        onResetGame()
+        resetAnimation()
+      } else {
+        animationRef.current = requestAnimationFrame(animate)
+      }
+    }
+    
+    animationRef.current = requestAnimationFrame(animate)
+  }
+
+  const resetAnimation = () => {
+    setIsPressed(false)
+    setAnimationProgress(0)
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
+    }
+    if (pressTimeoutRef.current) {
+      clearTimeout(pressTimeoutRef.current)
+    }
+  }
+
+  const handleMouseDown = () => {
+    startAnimation()
+  }
+
+  const handleMouseUp = () => {
+    resetAnimation()
+  }
+
+  const handleMouseLeave = () => {
+    resetAnimation()
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      resetAnimation()
+    }
+  }, [])
+
+  // Stop animation if isPressed becomes false
+  useEffect(() => {
+    if (!isPressed && animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
+    }
+  }, [isPressed])
+
+  const slideDistance = 100 // percentage
+
   return (
     <div style={{
       display: 'flex',
@@ -12,7 +92,49 @@ export function GameStats() {
       maxWidth: '600px',
       width: 'fit-content'
     }}>
-      <h1 style={{ margin: '0', color: '#4a4a4a', fontSize: '24px' }}>Sweep The Dungeons</h1>
+      <div
+        title="Click and hold for new game"
+        style={{
+          position: 'relative',
+          overflow: 'hidden',
+          cursor: 'pointer',
+          userSelect: 'none',
+          margin: '0',
+          fontSize: '24px',
+          color: '#4a4a4a'
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+      >
+        {/* Original text */}
+        <h1 style={{
+          margin: '0',
+          fontSize: '24px',
+          color: '#4a4a4a',
+          transform: `translateX(${isPressed ? animationProgress * slideDistance : 0}%)`,
+          transition: isPressed ? 'none' : 'transform 0.2s ease',
+          opacity: isPressed ? 1 - animationProgress * 0.3 : 1
+        }}>
+          Sweep The Dungeons
+        </h1>
+        
+        {/* New text sliding in */}
+        {isPressed && (
+          <h1 style={{
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            margin: '0',
+            fontSize: '24px',
+            color: '#4a4a4a',
+            transform: `translateX(${-slideDistance + animationProgress * slideDistance}%)`,
+            opacity: animationProgress
+          }}>
+            Sweep The Dungeons
+          </h1>
+        )}
+      </div>
     </div>
   )
 }

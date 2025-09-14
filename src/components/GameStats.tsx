@@ -7,6 +7,7 @@ interface GameStatsProps {
 export function GameStats({ onResetGame }: GameStatsProps) {
   const [isPressed, setIsPressed] = useState(false)
   const [animationProgress, setAnimationProgress] = useState(0)
+  const [allowTransition, setAllowTransition] = useState(true)
   const animationRef = useRef<number>()
   const startTimeRef = useRef<number>()
   const isAnimatingRef = useRef<boolean>(false)
@@ -18,6 +19,7 @@ export function GameStats({ onResetGame }: GameStatsProps) {
     isAnimatingRef.current = true
     setIsPressed(true)
     setAnimationProgress(0)
+    setAllowTransition(false)
     
     const animate = () => {
       if (!startTimeRef.current || !isAnimatingRef.current) {
@@ -32,9 +34,17 @@ export function GameStats({ onResetGame }: GameStatsProps) {
       setAnimationProgress(easedProgress)
       
       if (progress >= 1) {
-        // Animation complete - reset game
+        // Animation complete - reset animation state first, then reset game
+        isAnimatingRef.current = false
+        setIsPressed(false)
+        setAnimationProgress(0)
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current)
+        }
+        // Reset game after state is cleared
         onResetGame()
-        resetAnimation()
+        // Re-enable transitions after a brief delay
+        setTimeout(() => setAllowTransition(true), 100)
       } else {
         animationRef.current = requestAnimationFrame(animate)
       }
@@ -47,6 +57,7 @@ export function GameStats({ onResetGame }: GameStatsProps) {
     isAnimatingRef.current = false
     setIsPressed(false)
     setAnimationProgress(0)
+    setAllowTransition(true)
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current)
     }
@@ -108,12 +119,14 @@ export function GameStats({ onResetGame }: GameStatsProps) {
         <h1 style={{
           margin: '0',
           fontSize: '24px',
-          color: isPressed ? '#ff0000' : '#4a4a4a', // Red when pressed for debugging
+          color: '#4a4a4a',
           transform: `translateX(${isPressed ? animationProgress * slideDistance : 0}%)`,
-          transition: isPressed ? 'none' : 'transform 0.2s ease',
-          opacity: isPressed ? 1 - animationProgress * 0.3 : 1
+          transition: allowTransition && !isPressed ? 'transform 0.2s ease' : 'none',
+          opacity: isPressed ? 1 - animationProgress * 0.3 : 1,
+          width: '100%',
+          whiteSpace: 'nowrap'
         }}>
-          Sweep The Dungeons {isPressed ? `(${Math.round(animationProgress * 100)}%)` : ''}
+          Sweep The Dungeons
         </h1>
         
         {/* New text sliding in */}
@@ -126,7 +139,9 @@ export function GameStats({ onResetGame }: GameStatsProps) {
             fontSize: '24px',
             color: '#4a4a4a',
             transform: `translateX(${-slideDistance + animationProgress * slideDistance}%)`,
-            opacity: animationProgress
+            opacity: animationProgress,
+            width: '100%',
+            whiteSpace: 'nowrap'
           }}>
             Sweep The Dungeons
           </h1>

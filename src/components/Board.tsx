@@ -49,20 +49,6 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
     }}>
       <TileCountInfo board={board} />
       
-      {targetingInfo && (
-        <div style={{
-          padding: '8px 16px',
-          backgroundColor: '#007bff',
-          color: 'white',
-          borderRadius: '4px',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          marginBottom: '8px'
-        }}>
-          {targetingInfo.description} ({targetingInfo.selected.length}/{targetingInfo.count})
-        </div>
-      )}
-      
       <div 
         style={{
           display: 'grid',

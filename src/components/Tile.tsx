@@ -137,12 +137,13 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
       if (safetyAnnotations.length > 0) {
         const annotation = safetyAnnotations[safetyAnnotations.length - 1] // Show latest
         const display = annotation.type === 'safe' 
-          ? { text: '✓', color: '#ffc107' }
-          : { text: '!', color: '#dc3545' }
+          ? { text: '✓', color: '#ffc107', tooltip: 'Tile is either yours or neutral' }
+          : { text: '!', color: '#dc3545', tooltip: 'Tile is either enemy\'s or assassin' }
         
         elements.push(
           <div
             key="safety"
+            title={display.tooltip}
             style={{
               position: 'absolute',
               top: '2px',
@@ -170,6 +171,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
         elements.push(
           <div
             key="enemy"
+            title="Tile is enemy's"
             style={{
               position: 'absolute',
               bottom: '2px',

@@ -9,10 +9,10 @@ export function TileCountInfo({ board }: TileCountInfoProps) {
   const counts = getUnrevealedCounts(board)
   
   const tileColors = {
-    player: '#28a745',
-    enemy: '#dc3545', 
-    neutral: '#ffc107',
-    assassin: '#6f42c1'
+    player: '#81b366',
+    enemy: '#c65757', 
+    neutral: '#d4aa5a',
+    assassin: '#8b6ba8'
   }
   
   return (
@@ -25,17 +25,18 @@ export function TileCountInfo({ board }: TileCountInfoProps) {
     }}>
       {Object.entries(counts).map(([type, count]) => (
         <div key={type} style={{
+          minWidth: '32px',
+          height: '20px',
+          backgroundColor: tileColors[type as keyof typeof tileColors],
+          borderRadius: '2px',
           display: 'flex',
           alignItems: 'center',
-          gap: '4px'
+          justifyContent: 'center',
+          color: 'black',
+          fontSize: '12px',
+          fontWeight: 'bold'
         }}>
-          <div style={{
-            width: '12px',
-            height: '12px',
-            backgroundColor: tileColors[type as keyof typeof tileColors],
-            borderRadius: '2px'
-          }} />
-          <span>{count}</span>
+          {count}
         </div>
       ))}
     </div>

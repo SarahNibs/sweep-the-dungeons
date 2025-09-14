@@ -19,7 +19,8 @@ export function createTile(position: Position, owner: Tile['owner']): Tile {
     owner,
     revealed: false,
     revealedBy: null,
-    adjacencyCount: null
+    adjacencyCount: null,
+    annotations: []
   }
 }
 
@@ -145,4 +146,46 @@ export function getUnrevealedCounts(board: Board): Record<Tile['owner'], number>
   }
   
   return counts
+}
+
+export function getUnrevealedEnemyTiles(board: Board): Tile[] {
+  const enemyTiles: Tile[] = []
+  
+  for (const tile of board.tiles.values()) {
+    if (!tile.revealed && tile.owner === 'enemy') {
+      enemyTiles.push(tile)
+    }
+  }
+  
+  return enemyTiles
+}
+
+export function performEnemyTurn(board: Board): Board {
+  const unrevealedEnemyTiles = getUnrevealedEnemyTiles(board)
+  
+  if (unrevealedEnemyTiles.length === 0) {
+    return board
+  }
+  
+  // Reveal up to 2 random enemy tiles
+  const tilesToReveal = Math.min(2, unrevealedEnemyTiles.length)
+  const shuffled = [...unrevealedEnemyTiles]
+  
+  // Simple shuffle
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  
+  let newBoard = board
+  for (let i = 0; i < tilesToReveal; i++) {
+    newBoard = revealTile(newBoard, shuffled[i].position, 'enemy')
+  }
+  
+  return newBoard
+}
+
+export function shouldEndPlayerTurn(tile: Tile): boolean {
+  // Player turn ends if they reveal a tile that's not theirs
+  return tile.owner !== 'player'
 }

@@ -12,11 +12,14 @@ function App() {
     energy,
     maxEnergy,
     board,
+    currentPlayer,
     playCard, 
     endTurn, 
     resetGame,
     canPlayCard,
-    revealTile
+    revealTile,
+    getTargetingInfo,
+    cancelCardTargeting
   } = useGameStore()
 
   return (
@@ -27,6 +30,7 @@ function App() {
     }}>
       <GameStats
         selectedCardName={selectedCardName}
+        currentPlayer={currentPlayer}
       />
       
       <div style={{
@@ -35,20 +39,22 @@ function App() {
         gap: '16px',
         margin: '20px 0'
       }}>
-        <button
-          onClick={endTurn}
-          style={{
-            padding: '12px 24px',
-            fontSize: '16px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          End Turn
-        </button>
+        {getTargetingInfo() && (
+          <button
+            onClick={cancelCardTargeting}
+            style={{
+              padding: '12px 24px',
+              fontSize: '16px',
+              backgroundColor: '#ffc107',
+              color: 'black',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Cancel
+          </button>
+        )}
         <button
           onClick={resetGame}
           style={{
@@ -65,7 +71,7 @@ function App() {
         </button>
       </div>
 
-      <Board board={board} onTileClick={revealTile} />
+      <Board board={board} onTileClick={revealTile} targetingInfo={getTargetingInfo()} />
 
       <Hand 
         cards={hand} 
@@ -75,6 +81,7 @@ function App() {
         discardCount={discard.length}
         energy={energy}
         maxEnergy={maxEnergy}
+        onEndTurn={endTurn}
       />
     </div>
   )

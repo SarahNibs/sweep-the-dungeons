@@ -40,12 +40,11 @@ describe('Card System', () => {
       const deck = createStartingDeck()
       const cardNames = deck.map(card => card.name)
       
-      expect(cardNames.filter(name => name === 'Scout')).toHaveLength(2)
-      expect(cardNames.filter(name => name === 'Major Clue')).toHaveLength(2)
-      expect(cardNames.filter(name => name === 'Elimination')).toHaveLength(2)
-      expect(cardNames.filter(name => name === 'Quantum Choice')).toHaveLength(2)
-      expect(cardNames.filter(name => name === 'Insight')).toHaveLength(1)
-      expect(cardNames.filter(name => name === 'Focus')).toHaveLength(1)
+      expect(cardNames.filter(name => name === 'Scout')).toHaveLength(4)
+      expect(cardNames.filter(name => name === 'Solid Clue')).toHaveLength(2)
+      expect(cardNames.filter(name => name === 'Stretch Clue')).toHaveLength(1)
+      expect(cardNames.filter(name => name === 'Report')).toHaveLength(2)
+      expect(cardNames.filter(name => name === 'Quantum')).toHaveLength(1)
     })
   })
 
@@ -89,7 +88,10 @@ describe('Card System', () => {
         selectedCardName: null,
         energy: 3,
         maxEnergy: 3,
-        board: createBoard()
+        board: createBoard(),
+        currentPlayer: 'player',
+        pendingCardEffect: null,
+        eventQueue: []
       }
     })
 
@@ -113,7 +115,10 @@ describe('Card System', () => {
         selectedCardName: null,
         energy: 3,
         maxEnergy: 3,
-        board: createBoard()
+        board: createBoard(),
+        currentPlayer: 'player',
+        pendingCardEffect: null,
+        eventQueue: []
       }
 
       const newState = drawCards(stateWithEmptyDeck, 1)
@@ -138,7 +143,10 @@ describe('Card System', () => {
         selectedCardName: null,
         energy: 3,
         maxEnergy: 3,
-        board: createBoard()
+        board: createBoard(),
+        currentPlayer: 'player',
+        pendingCardEffect: null,
+        eventQueue: []
       }
     })
 
@@ -177,7 +185,10 @@ describe('Card System', () => {
         selectedCardName: 'Some Card',
         energy: 3,
         maxEnergy: 3,
-        board: createBoard()
+        board: createBoard(),
+        currentPlayer: 'player',
+        pendingCardEffect: null,
+        eventQueue: []
       }
 
       const newState = discardHand(gameState)
@@ -202,7 +213,10 @@ describe('Card System', () => {
         selectedCardName: null,
         energy: 2,
         maxEnergy: 3,
-        board: createBoard()
+        board: createBoard(),
+        currentPlayer: 'player',
+        pendingCardEffect: null,
+        eventQueue: []
       }
     })
 
@@ -236,7 +250,10 @@ describe('Card System', () => {
         selectedCardName: null,
         energy: 2,
         maxEnergy: 3,
-        board: createBoard()
+        board: createBoard(),
+        currentPlayer: 'player',
+        pendingCardEffect: null,
+        eventQueue: []
       }
     })
 
@@ -280,7 +297,10 @@ describe('Card System', () => {
         selectedCardName: 'Some Card',
         energy: 0, // Empty energy
         maxEnergy: 3,
-        board: createBoard()
+        board: createBoard(),
+        currentPlayer: 'player',
+        pendingCardEffect: null,
+        eventQueue: []
       }
 
       const newState = startNewTurn(gameState)
@@ -301,7 +321,10 @@ describe('Card System', () => {
         selectedCardName: null,
         energy: 1,
         maxEnergy: 3,
-        board: createBoard()
+        board: createBoard(),
+        currentPlayer: 'player',
+        pendingCardEffect: null,
+        eventQueue: []
       }
 
       const newState = startNewTurn(gameState)

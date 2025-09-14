@@ -1,5 +1,6 @@
 import { Card, GameState } from '../types'
 import { createBoard } from './boardSystem'
+import { executeCardEffect, requiresTargeting } from './cardEffects'
 
 export function createCard(name: string, cost: number): Card {
   return {
@@ -11,16 +12,16 @@ export function createCard(name: string, cost: number): Card {
 
 export function createStartingDeck(): Card[] {
   return [
+    createCard('Solid Clue', 2),
+    createCard('Solid Clue', 2),
+    createCard('Stretch Clue', 2),
     createCard('Scout', 1),
     createCard('Scout', 1),
-    createCard('Major Clue', 2),
-    createCard('Major Clue', 2),
-    createCard('Elimination', 1),
-    createCard('Elimination', 1),
-    createCard('Quantum Choice', 1),
-    createCard('Quantum Choice', 1),
-    createCard('Insight', 1),
-    createCard('Focus', 2)
+    createCard('Scout', 1),
+    createCard('Scout', 1),
+    createCard('Report', 1),
+    createCard('Report', 1),
+    createCard('Quantum', 1)
   ]
 }
 
@@ -75,15 +76,38 @@ export function playCard(state: GameState, cardId: string): GameState {
   // Check if we have enough energy
   if (state.energy < card.cost) return state
 
-  const newHand = state.hand.filter((_, index) => index !== cardIndex)
-  const newDiscard = [...state.discard, card]
+  // If card requires targeting, set up pending effect
+  if (requiresTargeting(card.name)) {
+    return {
+      ...state,
+      selectedCardName: card.name,
+      pendingCardEffect: { type: card.name.toLowerCase().replace(' ', '_') as any }
+    }
+  }
+
+  // Execute immediate effect cards
+  let newState = state
+  switch (card.name) {
+    case 'Report':
+      newState = executeCardEffect(state, { type: 'report' })
+      break
+    case 'Solid Clue':
+      newState = executeCardEffect(state, { type: 'solid_clue' })
+      break
+    case 'Stretch Clue':
+      newState = executeCardEffect(state, { type: 'stretch_clue' })
+      break
+  }
+
+  const newHand = newState.hand.filter((_, index) => index !== cardIndex)
+  const newDiscard = [...newState.discard, card]
 
   return {
-    ...state,
+    ...newState,
     hand: newHand,
     discard: newDiscard,
     selectedCardName: card.name,
-    energy: state.energy - card.cost
+    energy: newState.energy - card.cost
   }
 }
 
@@ -115,7 +139,10 @@ export function createInitialState(): GameState {
     selectedCardName: null,
     energy: 3,
     maxEnergy: 3,
-    board: createBoard()
+    board: createBoard(),
+    currentPlayer: 'player',
+    pendingCardEffect: null,
+    eventQueue: []
   }
   
   return drawCards(initialState, 5)

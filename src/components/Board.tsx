@@ -1,13 +1,15 @@
-import { Board as BoardType, Tile as TileType } from '../types'
+import { Board as BoardType, Tile as TileType, Position } from '../types'
 import { Tile } from './Tile'
 import { TileCountInfo } from './TileCountInfo'
+import { positionToKey } from '../game/boardSystem'
 
 interface BoardProps {
   board: BoardType
   onTileClick: (tile: TileType) => void
+  targetingInfo?: { count: number; description: string; selected: Position[] } | null
 }
 
-export function Board({ board, onTileClick }: BoardProps) {
+export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
   const renderTiles = () => {
     const tiles: JSX.Element[] = []
     
@@ -17,11 +19,18 @@ export function Board({ board, onTileClick }: BoardProps) {
         const tile = board.tiles.get(key)
         
         if (tile) {
+          const isTargeting = targetingInfo !== null
+          const isSelected = targetingInfo?.selected.some(pos => 
+            positionToKey(pos) === key
+          ) || false
+          
           tiles.push(
             <Tile
               key={key}
               tile={tile}
               onClick={onTileClick}
+              isTargeting={isTargeting && !tile.revealed}
+              isSelected={isSelected}
             />
           )
         }
@@ -39,6 +48,21 @@ export function Board({ board, onTileClick }: BoardProps) {
       margin: '20px 0'
     }}>
       <TileCountInfo board={board} />
+      
+      {targetingInfo && (
+        <div style={{
+          padding: '8px 16px',
+          backgroundColor: '#007bff',
+          color: 'white',
+          borderRadius: '4px',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          marginBottom: '8px'
+        }}>
+          {targetingInfo.description} ({targetingInfo.selected.length}/{targetingInfo.count})
+        </div>
+      )}
+      
       <div 
         style={{
           display: 'grid',

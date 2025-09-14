@@ -35,13 +35,13 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
     
     switch (tile.owner) {
       case 'player':
-        return '#28a745' // Green for player
+        return '#81b366' // Muted green for player
       case 'enemy':
-        return '#dc3545' // Red for enemy
+        return '#c65757' // Muted red for enemy
       case 'neutral':
-        return '#ffc107' // Yellow for neutral
+        return '#d4aa5a' // Muted yellow for neutral
       case 'assassin':
-        return '#6f42c1' // Purple for assassin
+        return '#8b6ba8' // Muted purple for assassin
       default:
         return '#6c757d'
     }
@@ -75,7 +75,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
           justifyContent: 'center',
           fontSize: '12px',
           fontWeight: 'bold',
-          border: '1px solid white'
+          border: '1px solid black'
         }}>
           {tile.adjacencyCount}
         </div>
@@ -108,9 +108,9 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
                   left: `${4 + i * 8}px`,
                   width: '4px',
                   height: '4px',
-                  backgroundColor: isThisClueHovered ? '#40c057' : '#28a745',
+                  backgroundColor: isThisClueHovered ? '#6fbe6f' : '#81b366',
                   borderRadius: '50%',
-                  border: '0.5px solid white',
+                  border: '0.5px solid black',
                   cursor: 'pointer',
                   transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
                   transition: 'all 0.15s ease',
@@ -132,7 +132,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
       if (safetyAnnotations.length > 0) {
         const annotation = safetyAnnotations[safetyAnnotations.length - 1] // Show latest
         const display = annotation.type === 'safe' 
-          ? { text: '✓', color: '#28a745' }
+          ? { text: '✓', color: '#ffc107' }
           : { text: '!', color: '#dc3545' }
         
         elements.push(
@@ -152,7 +152,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
               justifyContent: 'center',
               fontSize: '10px',
               fontWeight: 'bold',
-              border: '1px solid white'
+              border: '1px solid black'
             }}
           >
             {display.text}
@@ -179,7 +179,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
               justifyContent: 'center',
               fontSize: '10px',
               fontWeight: 'bold',
-              border: '1px solid white'
+              border: '1px solid black'
             }}
           >
             E

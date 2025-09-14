@@ -1,5 +1,29 @@
 import { Card as CardType } from '../types'
 
+// Card images (using emojis/symbols for now)
+const getCardImage = (cardName: string) => {
+  switch (cardName) {
+    case 'Scout': return '👁️'
+    case 'Quantum': return '⚡'
+    case 'Report': return '📋'
+    case 'Solid Clue': return '🔍'
+    case 'Stretch Clue': return '🔎'
+    default: return '❓'
+  }
+}
+
+// Card descriptions
+const getCardDescription = (cardName: string) => {
+  switch (cardName) {
+    case 'Scout': return 'Click on an unrevealed tile to see if it\'s safe or dangerous'
+    case 'Quantum': return 'Click on two unrevealed tiles - the safer one will be revealed'
+    case 'Report': return 'Mark a random enemy tile with an enemy indicator'
+    case 'Solid Clue': return 'Guarantee 2 player tiles + 8 random draws for strength indicators'
+    case 'Stretch Clue': return 'Guarantee 3 player tiles + 7 random draws for strength indicators'
+    default: return 'Unknown card effect'
+  }
+}
+
 interface CardProps {
   card: CardType
   onClick: (cardId: string) => void
@@ -16,25 +40,27 @@ export function Card({ card, onClick, isPlayable }: CardProps) {
   return (
     <div
       onClick={handleClick}
+      title={getCardDescription(card.name)}
       style={{
         width: '80px',
         height: '100px',
-        border: `2px solid ${isPlayable ? '#333' : '#ccc'}`,
+        border: `2px solid ${isPlayable ? '#5a5a5a' : '#8a8a8a'}`,
         borderRadius: '6px',
         padding: '4px',
         margin: '2px',
-        backgroundColor: isPlayable ? '#f5f5f5' : '#e9e9e9',
+        backgroundColor: isPlayable ? '#e8e8e8' : '#d5d5d5',
         cursor: isPlayable ? 'pointer' : 'not-allowed',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
+        alignItems: 'center',
         transition: 'transform 0.1s, box-shadow 0.1s',
         opacity: isPlayable ? 1 : 0.6
       }}
       onMouseEnter={(e) => {
         if (isPlayable) {
           e.currentTarget.style.transform = 'translateY(-2px)'
-          e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)'
+          e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)'
         }
       }}
       onMouseLeave={(e) => {
@@ -44,18 +70,28 @@ export function Card({ card, onClick, isPlayable }: CardProps) {
         }
       }}
     >
-      <div>
+      <div style={{ textAlign: 'center' }}>
         <h3 style={{ 
           margin: '0 0 4px 0', 
-          fontSize: '10px', 
+          fontSize: '12px', 
           fontWeight: 'bold',
-          lineHeight: '1.1'
+          lineHeight: '1.1',
+          color: isPlayable ? '#2d3436' : '#636e72'
         }}>
           {card.name}
         </h3>
       </div>
+      
       <div style={{
-        backgroundColor: isPlayable ? '#007bff' : '#6c757d',
+        fontSize: '24px',
+        lineHeight: '1',
+        userSelect: 'none'
+      }}>
+        {getCardImage(card.name)}
+      </div>
+      
+      <div style={{
+        backgroundColor: isPlayable ? '#74b9ff' : '#a0a0a0',
         color: 'white',
         borderRadius: '50%',
         width: '18px',
@@ -64,8 +100,7 @@ export function Card({ card, onClick, isPlayable }: CardProps) {
         alignItems: 'center',
         justifyContent: 'center',
         fontSize: '10px',
-        fontWeight: 'bold',
-        alignSelf: 'flex-end'
+        fontWeight: 'bold'
       }}>
         {card.cost}
       </div>

@@ -6,11 +6,11 @@ export function GameStats() {
       alignItems: 'center',
       gap: '16px',
       padding: '20px',
-      backgroundColor: '#f8f9fa',
+      backgroundColor: '#e5e5e5',
       borderRadius: '8px',
       margin: '20px'
     }}>
-      <h1 style={{ margin: '0', color: '#333' }}>Sweep The Dungeons</h1>
+      <h1 style={{ margin: '0', color: '#4a4a4a' }}>Sweep The Dungeons</h1>
     </div>
   )
 }

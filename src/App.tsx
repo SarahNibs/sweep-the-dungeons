@@ -2,6 +2,7 @@ import { useGameStore } from './store'
 import { GameStats } from './components/GameStats'
 import { Hand } from './components/Hand'
 import { Board } from './components/Board'
+import { PromptWidget } from './components/PromptWidget'
 
 function App() {
   const { 
@@ -25,10 +26,12 @@ function App() {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#e9ecef',
+      backgroundColor: '#2d3436',
       padding: '20px'
     }}>
       <GameStats />
+      
+      <PromptWidget targetingInfo={getTargetingInfo()} />
       
       <div style={{
         display: 'flex',

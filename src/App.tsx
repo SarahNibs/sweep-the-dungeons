@@ -28,10 +28,7 @@ function App() {
       backgroundColor: '#e9ecef',
       padding: '20px'
     }}>
-      <GameStats
-        selectedCardName={selectedCardName}
-        currentPlayer={currentPlayer}
-      />
+      <GameStats />
       
       <div style={{
         display: 'flex',

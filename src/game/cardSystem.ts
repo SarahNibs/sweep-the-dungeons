@@ -142,7 +142,9 @@ export function createInitialState(): GameState {
     board: createBoard(),
     currentPlayer: 'player',
     pendingCardEffect: null,
-    eventQueue: []
+    eventQueue: [],
+    hoveredClueId: null,
+    clueCounter: 0
   }
   
   return drawCards(initialState, 5)

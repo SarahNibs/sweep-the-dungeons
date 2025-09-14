@@ -14,6 +14,7 @@ interface GameStore extends GameState {
   targetTileForCard: (position: Position) => void
   cancelCardTargeting: () => void
   getTargetingInfo: () => { count: number; description: string; selected: Position[] } | null
+  setHoveredClueId: (clueId: string | null) => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -167,5 +168,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       description: info.description,
       selected
     }
+  },
+
+  setHoveredClueId: (clueId: string | null) => {
+    set(state => ({
+      ...state,
+      hoveredClueId: clueId
+    }))
   }
 }))

@@ -1,4 +1,6 @@
-import { Tile as TileType, TileAnnotation } from '../types'
+import { Tile as TileType, TileAnnotation, ClueResult } from '../types'
+import { useGameStore } from '../store'
+import { useState } from 'react'
 
 interface TileProps {
   tile: TileType
@@ -8,8 +10,22 @@ interface TileProps {
 }
 
 export function Tile({ tile, onClick, isTargeting = false, isSelected = false }: TileProps) {
+  const { hoveredClueId, setHoveredClueId } = useGameStore()
+  const [isHovered, setIsHovered] = useState(false)
+  
   const handleClick = () => {
     onClick(tile)
+  }
+  
+  // Check if this tile should be highlighted due to clue hover
+  const isClueHighlighted = () => {
+    if (!hoveredClueId || tile.revealed) return false
+    
+    const clueResultsAnnotation = tile.annotations.find(a => a.type === 'clue_results')
+    if (!clueResultsAnnotation?.clueResults) return false
+    
+    // Check if this tile has a clue result with the hovered clue ID
+    return clueResultsAnnotation.clueResults.some(result => result.id === hoveredClueId)
   }
 
   const getTileColor = () => {
@@ -75,37 +91,40 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
       const safetyAnnotations = tile.annotations.filter(a => a.type === 'safe' || a.type === 'unsafe')
       const enemyAnnotations = tile.annotations.filter(a => a.type === 'enemy')
       
-      // Render clue pips (top-left area) - each clue gets its own row
+      // Render clue pips (top-left area) - each clue gets its own row based on play order
       if (clueResultsAnnotation?.clueResults) {
-        let currentRow = 0
-        
         clueResultsAnnotation.clueResults.forEach((clueResult, clueIndex) => {
           const strength = clueResult.strengthForThisTile
+          const isThisClueHovered = hoveredClueId === clueResult.id
+          const rowPosition = clueResult.clueOrder - 1 // Convert 1-based to 0-based for positioning
+          
           for (let i = 0; i < Math.min(strength, 6); i++) {
             elements.push(
               <div
                 key={`pip-${clueResult.id}-${i}`}
                 style={{
                   position: 'absolute',
-                  top: `${4 + currentRow * 8}px`,
+                  top: `${4 + rowPosition * 8}px`,
                   left: `${4 + i * 8}px`,
                   width: '4px',
                   height: '4px',
-                  backgroundColor: '#28a745',
+                  backgroundColor: isThisClueHovered ? '#40c057' : '#28a745',
                   borderRadius: '50%',
                   border: '0.5px solid white',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
+                  transition: 'all 0.15s ease',
+                  boxShadow: isThisClueHovered ? '0 1px 3px rgba(40, 167, 69, 0.5)' : 'none'
                 }}
                 onMouseEnter={() => {
-                  // TODO: Implement hover highlighting
+                  setHoveredClueId(clueResult.id)
                 }}
                 onMouseLeave={() => {
-                  // TODO: Clear hover highlighting
+                  setHoveredClueId(null)
                 }}
               />
             )
           }
-          currentRow++
         })
       }
       
@@ -182,7 +201,10 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
         width: '56px',
         height: '56px',
         backgroundColor: getTileColor(),
-        border: isSelected ? '3px solid #ffc107' : isTargeting ? '2px solid #007bff' : '2px solid #333',
+        border: isSelected ? '3px solid #ffc107' : 
+                isTargeting ? '2px solid #007bff' : 
+                isClueHighlighted() ? '2px solid #40c057' : 
+                '2px solid #333',
         borderRadius: '4px',
         display: 'flex',
         alignItems: 'center',
@@ -192,19 +214,17 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
         fontWeight: 'bold',
         color: tile.revealed ? 'white' : '#ddd',
         transition: 'all 0.2s ease',
-        userSelect: 'none'
+        userSelect: 'none',
+        transform: (isHovered && !tile.revealed) ? 'scale(1.05)' : 'scale(1)',
+        boxShadow: isClueHighlighted() ? '0 0 8px rgba(64, 192, 87, 0.4)' :
+                   (isHovered && !tile.revealed) ? '0 2px 4px rgba(0,0,0,0.3)' : 
+                   'none'
       }}
-      onMouseEnter={(e) => {
-        if (!tile.revealed) {
-          e.currentTarget.style.transform = 'scale(1.05)'
-          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)'
-        }
+      onMouseEnter={() => {
+        setIsHovered(true)
       }}
-      onMouseLeave={(e) => {
-        if (!tile.revealed) {
-          e.currentTarget.style.transform = 'scale(1)'
-          e.currentTarget.style.boxShadow = 'none'
-        }
+      onMouseLeave={() => {
+        setIsHovered(false)
       }}
     >
       {getOverlay()}

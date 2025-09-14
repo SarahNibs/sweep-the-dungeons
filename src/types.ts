@@ -16,6 +16,7 @@ export interface ClueResult {
   cardType: 'solid_clue' | 'stretch_clue'
   strengthForThisTile: number // How many pips this clue contributed to this specific tile
   allAffectedTiles: Position[] // All tiles that got pips from this clue
+  clueOrder: number // Order in which this clue was played (1st, 2nd, 3rd...)
 }
 
 export interface TileAnnotation {
@@ -58,6 +59,8 @@ export interface GameState {
   currentPlayer: 'player' | 'enemy'
   pendingCardEffect: CardEffect | null
   eventQueue: GameEvent[]
+  hoveredClueId: string | null // For highlighting related clue pips and tiles
+  clueCounter: number // Counter for clue order (1st, 2nd, 3rd...)
 }
 
 export type CardZone = 'deck' | 'hand' | 'discard'

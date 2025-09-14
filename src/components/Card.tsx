@@ -18,8 +18,8 @@ const getCardDescription = (cardName: string) => {
     case 'Scout': return 'Click on an unrevealed tile to see if it\'s safe or dangerous'
     case 'Quantum': return 'Click on two unrevealed tiles - the safer one will be revealed'
     case 'Report': return 'Mark a random enemy tile with an enemy indicator'
-    case 'Solid Clue': return 'Guarantee 2 player tiles + 8 random draws for strength indicators'
-    case 'Stretch Clue': return 'Guarantee 3 player tiles + 7 random draws for strength indicators'
+    case 'Solid Clue': return 'Strong evidence of two of your tiles'
+    case 'Stretch Clue': return 'Evidence of five of your tiles'
     default: return 'Unknown card effect'
   }
 }

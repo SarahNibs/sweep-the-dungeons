@@ -29,8 +29,13 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
   }
 
   const getTileColor = () => {
+    // If clue highlighted and unrevealed, use darker background 
+    if (!tile.revealed && isClueHighlighted()) {
+      return '#6c757d' // Darker gray when highlighted (original unrevealed color)
+    }
+    
     if (!tile.revealed) {
-      return '#6c757d' // Gray for unrevealed
+      return '#9ca3af' // Lighter gray for unrevealed
     }
     
     switch (tile.owner) {
@@ -67,7 +72,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
           transform: 'translate(-50%, -50%)',
           backgroundColor: getAdjacencyColor(),
           color: 'white',
-          borderRadius: '3px',
+          borderRadius: tile.revealedBy === 'player' ? '50%' : '3px',
           minWidth: '20px',
           height: '20px',
           display: 'flex',
@@ -108,7 +113,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false }:
                   left: `${4 + i * 8}px`,
                   width: '4px',
                   height: '4px',
-                  backgroundColor: isThisClueHovered ? '#6fbe6f' : '#81b366',
+                  backgroundColor: isThisClueHovered ? '#22c55e' : '#16a34a',
                   borderRadius: '50%',
                   border: '0.5px solid black',
                   cursor: 'pointer',

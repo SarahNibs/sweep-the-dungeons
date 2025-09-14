@@ -9,17 +9,20 @@ export function GameStats({ onResetGame }: GameStatsProps) {
   const [animationProgress, setAnimationProgress] = useState(0)
   const animationRef = useRef<number>()
   const startTimeRef = useRef<number>()
-  const pressTimeoutRef = useRef<number>()
+  const isAnimatingRef = useRef<boolean>(false)
 
   const ANIMATION_DURATION = 2000 // 2 seconds
 
   const startAnimation = () => {
     startTimeRef.current = Date.now()
+    isAnimatingRef.current = true
     setIsPressed(true)
     setAnimationProgress(0)
     
     const animate = () => {
-      if (!startTimeRef.current || !isPressed) return
+      if (!startTimeRef.current || !isAnimatingRef.current) {
+        return
+      }
       
       const elapsed = Date.now() - startTimeRef.current
       const progress = Math.min(elapsed / ANIMATION_DURATION, 1)
@@ -41,17 +44,16 @@ export function GameStats({ onResetGame }: GameStatsProps) {
   }
 
   const resetAnimation = () => {
+    isAnimatingRef.current = false
     setIsPressed(false)
     setAnimationProgress(0)
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current)
     }
-    if (pressTimeoutRef.current) {
-      clearTimeout(pressTimeoutRef.current)
-    }
   }
 
-  const handleMouseDown = () => {
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
     startAnimation()
   }
 
@@ -69,13 +71,6 @@ export function GameStats({ onResetGame }: GameStatsProps) {
       resetAnimation()
     }
   }, [])
-
-  // Stop animation if isPressed becomes false
-  useEffect(() => {
-    if (!isPressed && animationRef.current) {
-      cancelAnimationFrame(animationRef.current)
-    }
-  }, [isPressed])
 
   const slideDistance = 100 // percentage
 
@@ -101,7 +96,9 @@ export function GameStats({ onResetGame }: GameStatsProps) {
           userSelect: 'none',
           margin: '0',
           fontSize: '24px',
-          color: '#4a4a4a'
+          color: '#4a4a4a',
+          minWidth: '200px',
+          minHeight: '30px'
         }}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
@@ -111,12 +108,12 @@ export function GameStats({ onResetGame }: GameStatsProps) {
         <h1 style={{
           margin: '0',
           fontSize: '24px',
-          color: '#4a4a4a',
+          color: isPressed ? '#ff0000' : '#4a4a4a', // Red when pressed for debugging
           transform: `translateX(${isPressed ? animationProgress * slideDistance : 0}%)`,
           transition: isPressed ? 'none' : 'transform 0.2s ease',
           opacity: isPressed ? 1 - animationProgress * 0.3 : 1
         }}>
-          Sweep The Dungeons
+          Sweep The Dungeons {isPressed ? `(${Math.round(animationProgress * 100)}%)` : ''}
         </h1>
         
         {/* New text sliding in */}

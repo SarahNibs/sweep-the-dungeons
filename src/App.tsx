@@ -13,13 +13,15 @@ function App() {
     maxEnergy,
     board,
     gameStatus,
+    currentLevel,
     playCard, 
     endTurn, 
     resetGame,
     canPlayCard,
     revealTile,
     getTargetingInfo,
-    cancelCardTargeting
+    cancelCardTargeting,
+    advanceToNextLevel
   } = useGameStore()
 
   return (
@@ -42,6 +44,8 @@ function App() {
           targetingInfo={getTargetingInfo()} 
           onCancel={cancelCardTargeting}
           gameStatus={gameStatus}
+          currentLevel={currentLevel}
+          onAdvanceLevel={advanceToNextLevel}
         />
 
         <Board board={board} onTileClick={revealTile} targetingInfo={getTargetingInfo()} />

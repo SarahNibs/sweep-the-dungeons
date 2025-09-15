@@ -8,7 +8,8 @@ import {
   discardHand, 
   createInitialState,
   canPlayCard,
-  startNewTurn
+  startNewTurn,
+  advanceToNextLevel
 } from './cardSystem'
 import { GameState } from '../types'
 import { createBoard } from './boardSystem'
@@ -462,6 +463,47 @@ describe('Card System', () => {
       // With proper randomization, we should get at least 2 different selections in 5 runs
       // (This is probabilistic but very likely with random selection)
       expect(uniqueSelections.size).toBeGreaterThan(1)
+    })
+  })
+
+  describe('Level System', () => {
+    it('starts at level 1 by default', () => {
+      const state = createInitialState()
+      expect(state.currentLevel).toBe(1)
+    })
+
+    it('can create state at specific level', () => {
+      const state = createInitialState(3)
+      expect(state.currentLevel).toBe(3)
+    })
+
+    it('level 1 does not reveal enemy tiles at start', () => {
+      const state = createInitialState(1)
+      const revealedTiles = Array.from(state.board.tiles.values()).filter(tile => tile.revealed)
+      expect(revealedTiles.length).toBe(0)
+    })
+
+    it('level 2+ reveals one enemy tile at start', () => {
+      const state = createInitialState(2)
+      const revealedTiles = Array.from(state.board.tiles.values()).filter(tile => tile.revealed)
+      expect(revealedTiles.length).toBe(1)
+      expect(revealedTiles[0].owner).toBe('enemy')
+      expect(revealedTiles[0].revealedBy).toBe('enemy')
+    })
+
+    it('advances to next level correctly', () => {
+      const state1 = createInitialState(2)
+      const state2 = advanceToNextLevel(state1)
+      
+      expect(state2.currentLevel).toBe(3)
+      expect(state2.energy).toBe(3) // Fresh energy
+      expect(state2.hand.length).toBe(5) // Fresh hand
+      expect(state2.gameStatus.status).toBe('playing') // Reset game status
+      
+      // Should have one revealed enemy tile for level 3+
+      const revealedTiles = Array.from(state2.board.tiles.values()).filter(tile => tile.revealed)
+      expect(revealedTiles.length).toBe(1)
+      expect(revealedTiles[0].owner).toBe('enemy')
     })
   })
 })

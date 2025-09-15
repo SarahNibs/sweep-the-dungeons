@@ -56,6 +56,16 @@ export interface Board {
   tiles: Map<string, Tile>
 }
 
+export interface LevelConfig {
+  level: number
+  revealEnemyTileAtStart: boolean
+  // Future level customizations can go here:
+  // boardSize?: { width: number, height: number }
+  // startingEnergy?: number
+  // specialCards?: string[]
+  // enemyBehavior?: 'normal' | 'aggressive' | 'defensive'
+}
+
 export interface GameState {
   deck: Card[]
   hand: Card[]
@@ -72,6 +82,7 @@ export interface GameState {
   clueCounter: number // Counter for clue order (1st, 2nd, 3rd...)
   playerClueCounter: number // Counter for player clue rows
   enemyClueCounter: number // Counter for enemy clue rows
+  currentLevel: number
   enemyAnimation: {
     isActive: boolean
     highlightedTile: Position | null

@@ -1,6 +1,27 @@
-import { Card, GameState } from '../types'
-import { createBoard } from './boardSystem'
+import { Card, GameState, LevelConfig } from '../types'
+import { createBoard, revealTile } from './boardSystem'
 import { executeCardEffect, requiresTargeting } from './cardeffects'
+
+export function getLevelConfig(level: number): LevelConfig {
+  switch (level) {
+    case 1:
+      return {
+        level: 1,
+        revealEnemyTileAtStart: false
+      }
+    case 2:
+      return {
+        level: 2,
+        revealEnemyTileAtStart: true
+      }
+    default:
+      // For levels 3+, we'll apply level 2 rules for now
+      return {
+        level,
+        revealEnemyTileAtStart: true
+      }
+  }
+}
 
 export function createCard(name: string, cost: number): Card {
   return {
@@ -131,8 +152,22 @@ export function startNewTurn(state: GameState): GameState {
   }
 }
 
-export function createInitialState(): GameState {
+export function createInitialState(level: number = 1): GameState {
   const deck = shuffleDeck(createStartingDeck())
+  const levelConfig = getLevelConfig(level)
+  
+  let board = createBoard()
+  
+  // Apply level-specific modifications
+  if (levelConfig.revealEnemyTileAtStart) {
+    // Find all enemy tiles and reveal one at random
+    const enemyTiles = Array.from(board.tiles.values()).filter(tile => tile.owner === 'enemy')
+    if (enemyTiles.length > 0) {
+      const randomEnemyTile = enemyTiles[Math.floor(Math.random() * enemyTiles.length)]
+      board = revealTile(board, randomEnemyTile.position, 'enemy')
+    }
+  }
+  
   const initialState: GameState = {
     deck,
     hand: [],
@@ -140,7 +175,7 @@ export function createInitialState(): GameState {
     selectedCardName: null,
     energy: 3,
     maxEnergy: 3,
-    board: createBoard(),
+    board,
     currentPlayer: 'player',
     gameStatus: { status: 'playing' },
     pendingCardEffect: null,
@@ -149,8 +184,14 @@ export function createInitialState(): GameState {
     clueCounter: 0,
     playerClueCounter: 0,
     enemyClueCounter: 0,
+    currentLevel: level,
     enemyAnimation: null
   }
   
   return drawCards(initialState, 5)
+}
+
+export function advanceToNextLevel(state: GameState): GameState {
+  const nextLevel = state.currentLevel + 1
+  return createInitialState(nextLevel)
 }

@@ -4,9 +4,11 @@ interface PromptWidgetProps {
   targetingInfo: { count: number; description: string; selected: Position[] } | null
   onCancel: () => void
   gameStatus: GameStatusInfo
+  currentLevel: number
+  onAdvanceLevel?: () => void
 }
 
-export function PromptWidget({ targetingInfo, onCancel, gameStatus }: PromptWidgetProps) {
+export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel, onAdvanceLevel }: PromptWidgetProps) {
   const getDisplayText = () => {
     if (gameStatus.status === 'player_won') {
       const enemyLeft = gameStatus.enemyTilesLeft || 0
@@ -21,7 +23,7 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus }: PromptWidg
     } else if (targetingInfo) {
       return `${targetingInfo.description} (${targetingInfo.selected.length}/${targetingInfo.count})`
     } else {
-      return "sweep, sweep"
+      return `Level ${currentLevel}: sweep, sweep`
     }
   }
   
@@ -45,11 +47,11 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus }: PromptWidg
       minHeight: '48px',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: (targetingInfo && gameStatus.status === 'playing') ? 'space-between' : 'center',
+      justifyContent: (targetingInfo && gameStatus.status === 'playing') || (gameStatus.status === 'player_won') ? 'space-between' : 'center',
       margin: '20px 0',
       width: '100%',
       border: '2px solid #74b9ff',
-      gap: (targetingInfo && gameStatus.status === 'playing') ? '20px' : '0'
+      gap: (targetingInfo && gameStatus.status === 'playing') || (gameStatus.status === 'player_won') ? '20px' : '0'
     }}>
       <div style={{ flex: 1 }}>
         {displayText}
@@ -70,6 +72,24 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus }: PromptWidg
           }}
         >
           Cancel
+        </button>
+      )}
+      
+      {gameStatus.status === 'player_won' && onAdvanceLevel && (
+        <button
+          onClick={onAdvanceLevel}
+          style={{
+            padding: '8px 16px',
+            fontSize: '14px',
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: 'bold'
+          }}
+        >
+          Next Level
         </button>
       )}
     </div>

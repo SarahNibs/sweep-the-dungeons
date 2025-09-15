@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { GameState, Tile, Position, CardEffect, Board } from './types'
-import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand } from './game/cardSystem'
+import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, advanceToNextLevel } from './game/cardSystem'
 import { revealTile, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, executeEnemyClueEffect, selectEnemyTilesToReveal, checkGameStatus } from './game/cardeffects'
 
@@ -18,6 +18,7 @@ interface GameStore extends GameState {
   startEnemyTurn: (board: Board) => void
   performNextEnemyReveal: () => void
   togglePlayerSlash: (position: Position) => void
+  advanceToNextLevel: () => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -424,5 +425,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         tiles: newTiles
       }
     })
+  },
+
+  advanceToNextLevel: () => {
+    const currentState = get()
+    const nextLevelState = advanceToNextLevel(currentState)
+    set(nextLevelState)
   }
 }))

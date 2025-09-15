@@ -1,4 +1,4 @@
-import { GameState, CardEffect, Position, Tile, TileAnnotation, ClueResult } from '../types'
+import { GameState, CardEffect, Position, Tile, TileAnnotation, ClueResult, GameStatusInfo } from '../types'
 import { positionToKey, getTile, revealTile } from './boardSystem'
 
 export function getUnrevealedTiles(state: GameState): Tile[] {
@@ -15,12 +15,87 @@ export function getUnrevealedTilesByOwner(state: GameState, owner: Tile['owner']
   return getUnrevealedTiles(state).filter(tile => tile.owner === owner)
 }
 
+function combineOwnerSubsets(
+  existing: Set<'player' | 'enemy' | 'neutral' | 'mine'>, 
+  incoming: Set<'player' | 'enemy' | 'neutral' | 'mine'>
+): Set<'player' | 'enemy' | 'neutral' | 'mine'> {
+  // Intersection: only owners that are possible according to BOTH sets
+  const combined = new Set<'player' | 'enemy' | 'neutral' | 'mine'>()
+  
+  for (const owner of existing) {
+    if (incoming.has(owner)) {
+      combined.add(owner)
+    }
+  }
+  
+  return combined
+}
+
+export function addOwnerSubsetAnnotation(
+  state: GameState, 
+  position: Position, 
+  newOwnerSubset: Set<'player' | 'enemy' | 'neutral' | 'mine'>
+): GameState {
+  const key = positionToKey(position)
+  const tile = state.board.tiles.get(key)
+  
+  if (!tile) return state
+  
+  const newTiles = new Map(state.board.tiles)
+  
+  // Find existing subset annotation if any
+  const existingSubsetAnnotation = tile.annotations.find(a => a.type === 'owner_subset')
+  const otherAnnotations = tile.annotations.filter(a => 
+    a.type !== 'owner_subset' && a.type !== 'safe' && a.type !== 'unsafe' && a.type !== 'enemy'
+  )
+  
+  let finalOwnerSubset: Set<'player' | 'enemy' | 'neutral' | 'mine'>
+  
+  if (existingSubsetAnnotation?.ownerSubset) {
+    // Combine with existing subset through intersection
+    finalOwnerSubset = combineOwnerSubsets(existingSubsetAnnotation.ownerSubset, newOwnerSubset)
+  } else {
+    // No existing subset, use the new one
+    finalOwnerSubset = new Set(newOwnerSubset)
+  }
+  
+  // Only add annotation if the subset is non-empty
+  const finalAnnotations = [...otherAnnotations]
+  if (finalOwnerSubset.size > 0) {
+    finalAnnotations.push({
+      type: 'owner_subset',
+      ownerSubset: finalOwnerSubset
+    })
+  }
+  
+  const annotatedTile: Tile = {
+    ...tile,
+    annotations: finalAnnotations
+  }
+  
+  newTiles.set(key, annotatedTile)
+  
+  return {
+    ...state,
+    board: {
+      ...state.board,
+      tiles: newTiles
+    }
+  }
+}
+
 export function addTileAnnotation(state: GameState, position: Position, annotation: TileAnnotation): GameState {
   const key = positionToKey(position)
   const tile = state.board.tiles.get(key)
   
   if (!tile) return state
   
+  // Use new combining logic for owner_subset annotations
+  if (annotation.type === 'owner_subset' && annotation.ownerSubset) {
+    return addOwnerSubsetAnnotation(state, position, annotation.ownerSubset)
+  }
+  
+  // Legacy logic for non-subset annotations
   const newTiles = new Map(state.board.tiles)
   let existingAnnotations = [...tile.annotations]
   
@@ -87,11 +162,11 @@ export function executeScoutEffect(state: GameState, target: Position): GameStat
   if (!tile || tile.revealed) return state
   
   const isSafe = tile.owner === 'player' || tile.owner === 'neutral'
-  const annotation: TileAnnotation = {
-    type: isSafe ? 'safe' : 'unsafe'
-  }
+  const ownerSubset = isSafe 
+    ? new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['player', 'neutral'])
+    : new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['enemy', 'mine'])
   
-  return addTileAnnotation(state, target, annotation)
+  return addOwnerSubsetAnnotation(state, target, ownerSubset)
 }
 
 export function executeQuantumEffect(state: GameState, targets: [Position, Position]): GameState {
@@ -107,7 +182,7 @@ export function executeQuantumEffect(state: GameState, targets: [Position, Posit
       case 'player': return 4
       case 'neutral': return 3  
       case 'enemy': return 2
-      case 'assassin': return 1
+      case 'mine': return 1
       default: return 0
     }
   }
@@ -115,15 +190,39 @@ export function executeQuantumEffect(state: GameState, targets: [Position, Posit
   const safety1 = getSafety(tile1)
   const safety2 = getSafety(tile2)
   
-  const saferPos = safety1 >= safety2 ? pos1 : pos2
+  let saferPos: Position
   
-  // Reveal the safer tile using the proper reveal function
+  if (safety1 === safety2) {
+    // Same safety level (same owner), choose randomly
+    saferPos = Math.random() < 0.5 ? pos1 : pos2
+  } else {
+    // Different safety levels, choose safer one
+    saferPos = safety1 > safety2 ? pos1 : pos2
+  }
+  
+  // Reveal the chosen tile using the proper reveal function
   const newBoard = revealTile(state.board, saferPos, 'player')
   
-  return {
+  // Add annotation to the non-revealed tile
+  const nonRevealedPos = saferPos === pos1 ? pos2 : pos1
+  const revealedTile = saferPos === pos1 ? tile1 : tile2
+  
+  // Quantum reveals the safer tile, so unrevealed tile is AT MOST as safe as revealed tile
+  const revealedSafety = getSafety(revealedTile)
+  const possibleOwners = new Set<'player' | 'enemy' | 'neutral' | 'mine'>()
+  
+  // Add all owner types that are at most as safe as the revealed tile
+  if (revealedSafety >= 1) possibleOwners.add('mine')   // mine = 1
+  if (revealedSafety >= 2) possibleOwners.add('enemy')      // enemy = 2  
+  if (revealedSafety >= 3) possibleOwners.add('neutral')    // neutral = 3
+  if (revealedSafety >= 4) possibleOwners.add('player')     // player = 4
+  
+  const stateWithAnnotation = addOwnerSubsetAnnotation({
     ...state,
     board: newBoard
-  }
+  }, nonRevealedPos, possibleOwners)
+  
+  return stateWithAnnotation
 }
 
 export function executeReportEffect(state: GameState): GameState {
@@ -135,8 +234,8 @@ export function executeReportEffect(state: GameState): GameState {
   const randomIndex = Math.floor(Math.random() * enemyTiles.length)
   const targetTile = enemyTiles[randomIndex]
   
-  const annotation: TileAnnotation = { type: 'enemy' }
-  return addTileAnnotation(state, targetTile.position, annotation)
+  const ownerSubset = new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['enemy'])
+  return addOwnerSubsetAnnotation(state, targetTile.position, ownerSubset)
 }
 
 interface ClueParameters {
@@ -238,7 +337,12 @@ function executeParameterizedClueEffect(state: GameState, params: ClueParameters
   // Create clue results for each affected tile
   const clueId = crypto.randomUUID()
   const currentClueOrder = state.clueCounter + 1
-  let newState = { ...state, clueCounter: currentClueOrder }
+  const currentPlayerClueRow = state.playerClueCounter + 1
+  let newState = { 
+    ...state, 
+    clueCounter: currentClueOrder,
+    playerClueCounter: currentPlayerClueRow
+  }
   
   for (const [posKey, count] of counts) {
     const position = { 
@@ -250,7 +354,8 @@ function executeParameterizedClueEffect(state: GameState, params: ClueParameters
       cardType: params.cardType,
       strengthForThisTile: count,
       allAffectedTiles: affectedTiles,
-      clueOrder: currentClueOrder
+      clueOrder: currentClueOrder,
+      clueRowPosition: currentPlayerClueRow
     }
     newState = addClueResult(newState, position, tileClueResult)
   }
@@ -280,6 +385,259 @@ export function executeStretchClueEffect(state: GameState): GameState {
     playerTileBagCopies: 4,
     randomTileBagCopies: 2
   })
+}
+
+export function executeEnemyClueEffect(state: GameState): GameState {
+  const unrevealedTiles = getUnrevealedTiles(state)
+  const enemyTiles = unrevealedTiles.filter(tile => tile.owner === 'enemy')
+  
+  if (unrevealedTiles.length === 0) return state
+  
+  // Enemy clue parameters (similar to Solid Clue but for enemy tiles)
+  const chosenEnemyTiles = 2
+  const guaranteedEnemyTiles = 2
+  const randomTilesForBag = 6
+  const totalPips = 10
+  const enemyTileBagCopies = 12
+  const randomTileBagCopies = 4
+  
+  // Step 1: Randomly choose enemy tiles
+  const shuffledEnemyTiles = shuffleArray(enemyTiles)
+  const chosenEnemyTilesArray = shuffledEnemyTiles.slice(0, chosenEnemyTiles)
+  
+  // Step 2: Randomly choose remaining tiles for bag
+  const remainingTiles = unrevealedTiles.filter(tile => 
+    !chosenEnemyTilesArray.some(chosen => 
+      chosen.position.x === tile.position.x && chosen.position.y === tile.position.y
+    )
+  )
+  const shuffledRemainingTiles = shuffleArray(remainingTiles)
+  const chosenRandomTiles = shuffledRemainingTiles.slice(0, randomTilesForBag)
+  
+  const picked: Tile[] = []
+  
+  // Step 3: Guarantee draws from chosen enemy tiles
+  const guaranteedDraws = Math.min(guaranteedEnemyTiles, chosenEnemyTilesArray.length)
+  for (let i = 0; i < guaranteedDraws; i++) {
+    picked.push(chosenEnemyTilesArray[i])
+  }
+  
+  // Step 4: Create the bag with chosen tiles
+  const bag: Tile[] = []
+  
+  // Add chosen enemy tiles to bag
+  for (const tile of chosenEnemyTilesArray) {
+    const copies = chosenEnemyTilesArray.length < chosenEnemyTiles ? 
+      Math.floor((enemyTileBagCopies * chosenEnemyTiles) / chosenEnemyTilesArray.length) : 
+      enemyTileBagCopies
+    for (let j = 0; j < copies; j++) {
+      bag.push(tile)
+    }
+  }
+  
+  // Add random tiles to bag
+  for (const tile of chosenRandomTiles) {
+    const copies = chosenRandomTiles.length < randomTilesForBag ?
+      Math.floor((randomTileBagCopies * randomTilesForBag) / chosenRandomTiles.length) :
+      randomTileBagCopies
+    for (let j = 0; j < copies; j++) {
+      bag.push(tile)
+    }
+  }
+  
+  // Step 5: Draw remaining items randomly from bag
+  const bagCopy = [...bag]
+  const remainingDraws = totalPips - guaranteedDraws
+  
+  for (let i = 0; i < Math.min(remainingDraws, bagCopy.length); i++) {
+    const randomIndex = Math.floor(Math.random() * bagCopy.length)
+    picked.push(bagCopy[randomIndex])
+    bagCopy.splice(randomIndex, 1)
+  }
+  
+  // Count occurrences and create clue result
+  const counts = new Map<string, number>()
+  for (const tile of picked) {
+    const key = positionToKey(tile.position)
+    counts.set(key, (counts.get(key) || 0) + 1)
+  }
+  
+  const affectedTiles: Position[] = []
+  for (const [posKey, count] of counts) {
+    if (count > 0) {
+      affectedTiles.push({ 
+        x: parseInt(posKey.split(',')[0]), 
+        y: parseInt(posKey.split(',')[1]) 
+      })
+    }
+  }
+  
+  // Create enemy clue results for each affected tile
+  const clueId = crypto.randomUUID()
+  const currentClueOrder = state.clueCounter + 1
+  const currentEnemyClueRow = state.enemyClueCounter + 1
+  let newState = { 
+    ...state, 
+    clueCounter: currentClueOrder,
+    enemyClueCounter: currentEnemyClueRow
+  }
+  
+  for (const [posKey, count] of counts) {
+    const position = { 
+      x: parseInt(posKey.split(',')[0]), 
+      y: parseInt(posKey.split(',')[1]) 
+    }
+    const tileClueResult: ClueResult = {
+      id: clueId,
+      cardType: 'enemy_clue',
+      strengthForThisTile: count,
+      allAffectedTiles: affectedTiles,
+      clueOrder: currentClueOrder,
+      clueRowPosition: currentEnemyClueRow
+    }
+    newState = addClueResult(newState, position, tileClueResult)
+  }
+  
+  return newState
+}
+
+interface TilePriority {
+  tile: Tile
+  priorityScore: number
+  enemyPips: number
+  playerPips: number
+  mostRecentEnemyClue: number
+  totalEnemyPips: number
+}
+
+function calculateTilePriority(tile: Tile, _state: GameState): TilePriority {
+  // Get all clue results for this tile
+  const clueAnnotation = tile.annotations.find(a => a.type === 'clue_results')
+  const clueResults = clueAnnotation?.clueResults || []
+  
+  // Calculate enemy and player pips
+  let enemyPips = 0
+  let playerPips = 0
+  let mostRecentEnemyClue = 0
+  let totalEnemyPips = 0
+  
+  for (const clue of clueResults) {
+    if (clue.cardType === 'enemy_clue') {
+      enemyPips += clue.strengthForThisTile
+      totalEnemyPips += clue.strengthForThisTile
+      mostRecentEnemyClue = Math.max(mostRecentEnemyClue, clue.strengthForThisTile)
+    } else {
+      playerPips += clue.strengthForThisTile
+    }
+  }
+  
+  // Priority calculation: enemy pips - max(0, player pips - 1)
+  const priorityScore = enemyPips - Math.max(0, playerPips - 1)
+  
+  return {
+    tile,
+    priorityScore,
+    enemyPips,
+    playerPips,
+    mostRecentEnemyClue,
+    totalEnemyPips
+  }
+}
+
+function sortTilesByPriority(tiles: Tile[], state: GameState): Tile[] {
+  const tilePriorities = tiles.map(tile => calculateTilePriority(tile, state))
+  
+  // Sort by priority rules with tiebreaking
+  tilePriorities.sort((a, b) => {
+    // Primary: highest priority score
+    if (a.priorityScore !== b.priorityScore) {
+      return b.priorityScore - a.priorityScore
+    }
+    
+    // Tiebreaker 1: most enemy pips from most recent enemy clue
+    if (a.mostRecentEnemyClue !== b.mostRecentEnemyClue) {
+      return b.mostRecentEnemyClue - a.mostRecentEnemyClue
+    }
+    
+    // Tiebreaker 2: most enemy pips total
+    if (a.totalEnemyPips !== b.totalEnemyPips) {
+      return b.totalEnemyPips - a.totalEnemyPips
+    }
+    
+    // Tiebreaker 3: random (maintain original order for equal elements)
+    return Math.random() - 0.5
+  })
+  
+  return tilePriorities.map(tp => tp.tile)
+}
+
+export function checkGameStatus(state: GameState): GameStatusInfo {
+  const board = state.board
+  
+  // Count tiles first for potential enemy tiles left calculation
+  let playerTilesRevealed = 0
+  let totalPlayerTiles = 0
+  let enemyTilesRevealed = 0
+  let totalEnemyTiles = 0
+  
+  for (const tile of board.tiles.values()) {
+    if (tile.owner === 'player') {
+      totalPlayerTiles++
+      if (tile.revealed) playerTilesRevealed++
+    } else if (tile.owner === 'enemy') {
+      totalEnemyTiles++
+      if (tile.revealed) enemyTilesRevealed++
+    }
+  }
+
+  // Check if mine was revealed
+  for (const tile of board.tiles.values()) {
+    if (tile.revealed && tile.owner === 'mine') {
+      return {
+        status: tile.revealedBy === 'player' ? 'player_lost' : 'player_won',
+        reason: tile.revealedBy === 'player' ? 'player_revealed_mine' : 'enemy_revealed_mine',
+        enemyTilesLeft: tile.revealedBy === 'enemy' ? totalEnemyTiles - enemyTilesRevealed : undefined
+      }
+    }
+  }
+  
+  // Check win conditions
+  if (playerTilesRevealed === totalPlayerTiles) {
+    return {
+      status: 'player_won',
+      reason: 'all_player_tiles_revealed',
+      enemyTilesLeft: totalEnemyTiles - enemyTilesRevealed
+    }
+  }
+  
+  if (enemyTilesRevealed === totalEnemyTiles) {
+    return {
+      status: 'player_lost',
+      reason: 'all_enemy_tiles_revealed'
+    }
+  }
+  
+  return { status: 'playing' }
+}
+
+export function selectEnemyTilesToReveal(state: GameState): Tile[] {
+  const unrevealedTiles = getUnrevealedTiles(state)
+  
+  // Sort tiles by priority
+  const sortedTiles = sortTilesByPriority(unrevealedTiles, state)
+  
+  const tilesToReveal: Tile[] = []
+  
+  for (const tile of sortedTiles) {
+    tilesToReveal.push(tile)
+    
+    // Stop if we reveal a tile that's not the enemy's
+    if (tile.owner !== 'enemy') {
+      break
+    }
+  }
+  
+  return tilesToReveal
 }
 
 export function executeCardEffect(state: GameState, effect: CardEffect): GameState {

@@ -1,10 +1,32 @@
 import { useState, useRef, useEffect } from 'react'
+import { GameStatusInfo } from '../types'
+
+// Inject CSS for pulse animation
+const pulseAnimation = `
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 5px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 25px currentColor;
+  }
+}
+`
+
+// Add CSS to document if not already present
+if (typeof document !== 'undefined' && !document.getElementById('pulse-glow-styles')) {
+  const style = document.createElement('style')
+  style.id = 'pulse-glow-styles'
+  style.textContent = pulseAnimation
+  document.head.appendChild(style)
+}
 
 interface GameStatsProps {
   onResetGame: () => void
+  gameStatus: GameStatusInfo
 }
 
-export function GameStats({ onResetGame }: GameStatsProps) {
+export function GameStats({ onResetGame, gameStatus }: GameStatsProps) {
   const [isPressed, setIsPressed] = useState(false)
   const [animationProgress, setAnimationProgress] = useState(0)
   const [allowTransition, setAllowTransition] = useState(true)
@@ -85,35 +107,52 @@ export function GameStats({ onResetGame }: GameStatsProps) {
 
   const slideDistance = 100 // percentage
 
+  const isGameEnded = gameStatus.status !== 'playing'
+  
+  const getPulseBorderColor = () => {
+    if (gameStatus.status === 'player_won') return '#28a745' // Green
+    if (gameStatus.status === 'player_lost') return '#dc3545' // Red
+    return 'transparent'
+  }
+
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: '16px',
-      padding: '12px 20px',
-      backgroundColor: '#e5e5e5',
-      borderRadius: '8px',
-      margin: '20px auto',
-      maxWidth: '600px',
-      width: 'fit-content'
-    }}>
-      <div
+    <div 
+      style={{
+        margin: '20px auto',
+        width: 'fit-content',
+        padding: '3px', // Space for the border to prevent layout shifts
+      }}
+    >
+      <div 
         title="Click and hold for new game"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px',
+          padding: '12px 20px',
+          backgroundColor: '#e5e5e5',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          userSelect: 'none',
+          border: isGameEnded ? `3px solid ${getPulseBorderColor()}` : '3px solid transparent',
+          animation: isGameEnded ? 'pulseGlow 1.5s ease-in-out infinite' : 'none',
+          color: getPulseBorderColor()
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+      >
+      <div
         style={{
           position: 'relative',
           overflow: 'hidden',
-          cursor: 'pointer',
-          userSelect: 'none',
           margin: '0',
           fontSize: '24px',
           color: '#4a4a4a',
           minWidth: '200px',
           minHeight: '30px'
         }}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
       >
         {/* Original text */}
         <h1 style={{
@@ -146,6 +185,7 @@ export function GameStats({ onResetGame }: GameStatsProps) {
             Sweep The Dungeons
           </h1>
         )}
+      </div>
       </div>
     </div>
   )

@@ -142,6 +142,7 @@ export function createInitialState(): GameState {
     maxEnergy: 3,
     board: createBoard(),
     currentPlayer: 'player',
+    gameStatus: { status: 'playing' },
     pendingCardEffect: null,
     eventQueue: [],
     hoveredClueId: null,

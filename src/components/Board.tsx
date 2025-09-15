@@ -53,7 +53,8 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      margin: '20px 0'
+      margin: '20px 0',
+      width: '100%' // Ensure full width
     }}>
       <TileCountInfo board={board} />
       

@@ -21,9 +21,15 @@ export interface ClueResult {
 }
 
 export interface TileAnnotation {
-  type: 'safe' | 'unsafe' | 'enemy' | 'clue_results' | 'owner_subset'
+  type: 'safe' | 'unsafe' | 'enemy' | 'clue_results' | 'owner_subset' | 'player_slash'
   clueResults?: ClueResult[] // For clue strength annotations
-  ownerSubset?: Set<'player' | 'enemy' | 'neutral' | 'assassin'> // For subset annotations
+  ownerSubset?: Set<'player' | 'enemy' | 'neutral' | 'mine'> // For subset annotations
+}
+
+export interface GameStatusInfo {
+  status: 'playing' | 'player_won' | 'player_lost'
+  reason?: 'player_revealed_mine' | 'enemy_revealed_mine' | 'all_player_tiles_revealed' | 'all_enemy_tiles_revealed'
+  enemyTilesLeft?: number
 }
 
 export type GameEvent = 
@@ -37,7 +43,7 @@ export interface Position {
 
 export interface Tile {
   position: Position
-  owner: 'player' | 'enemy' | 'neutral' | 'assassin'
+  owner: 'player' | 'enemy' | 'neutral' | 'mine'
   revealed: boolean
   revealedBy: 'player' | 'enemy' | null
   adjacencyCount: number | null
@@ -59,6 +65,7 @@ export interface GameState {
   maxEnergy: number
   board: Board
   currentPlayer: 'player' | 'enemy'
+  gameStatus: GameStatusInfo
   pendingCardEffect: CardEffect | null
   eventQueue: GameEvent[]
   hoveredClueId: string | null // For highlighting related clue pips and tiles

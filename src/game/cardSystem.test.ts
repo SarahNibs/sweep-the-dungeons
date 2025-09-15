@@ -12,7 +12,7 @@ import {
 } from './cardSystem'
 import { GameState } from '../types'
 import { createBoard } from './boardSystem'
-import { executeSolidClueEffect, executeStretchClueEffect } from './cardEffects'
+import { executeSolidClueEffect, executeStretchClueEffect } from './cardeffects'
 
 describe('Card System', () => {
   describe('createCard', () => {

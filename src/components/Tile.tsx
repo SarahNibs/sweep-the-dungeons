@@ -11,7 +11,7 @@ interface TileProps {
 }
 
 export function Tile({ tile, onClick, isTargeting = false, isSelected = false, isEnemyHighlighted = false }: TileProps) {
-  const { hoveredClueId, setHoveredClueId } = useGameStore()
+  const { hoveredClueId, setHoveredClueId, togglePlayerSlash } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
   
   // Add pulse animation styles when component mounts
@@ -37,6 +37,13 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
   
   const handleClick = () => {
     onClick(tile)
+  }
+  
+  const handleRightClick = (e: React.MouseEvent) => {
+    e.preventDefault() // Prevent context menu
+    if (!tile.revealed) {
+      togglePlayerSlash(tile.position)
+    }
   }
   
   // Check if this tile should be highlighted due to clue hover
@@ -67,8 +74,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         return '#c65757' // Muted red for enemy
       case 'neutral':
         return '#d4aa5a' // Muted yellow for neutral
-      case 'assassin':
-        return '#8b6ba8' // Muted purple for assassin
+      case 'mine':
+        return '#8b6ba8' // Muted purple for mine
       default:
         return '#6c757d'
     }
@@ -119,6 +126,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       // Legacy annotations - keeping for backward compatibility
       const safetyAnnotations = tile.annotations.filter(a => a.type === 'safe' || a.type === 'unsafe')
       const enemyAnnotations = tile.annotations.filter(a => a.type === 'enemy')
+      const playerSlashAnnotation = tile.annotations.find(a => a.type === 'player_slash')
       
       // Render clue pips - player clues (top-left) and enemy clues (bottom-left) 
       if (clueResultsAnnotation?.clueResults) {
@@ -196,7 +204,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         const annotation = safetyAnnotations[safetyAnnotations.length - 1] // Show latest
         const display = annotation.type === 'safe' 
           ? { text: '✓', color: '#ffc107', tooltip: 'Tile is either yours or neutral' }
-          : { text: '!', color: '#dc3545', tooltip: 'Tile is either enemy\'s or assassin' }
+          : { text: '!', color: '#dc3545', tooltip: 'Tile is either enemy or mine' }
         
         elements.push(
           <div
@@ -262,7 +270,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           { owner: 'player' as const, color: '#81b366', position: { top: 4, left: 8 }, name: 'Player' },
           { owner: 'enemy' as const, color: '#c65757', position: { top: 4, left: 4 }, name: 'Enemy' },
           { owner: 'neutral' as const, color: '#d4aa5a', position: { top: 0, left: 8 }, name: 'Neutral' },
-          { owner: 'assassin' as const, color: '#8b6ba8', position: { top: 0, left: 4 }, name: 'Assassin' }
+          { owner: 'mine' as const, color: '#8b6ba8', position: { top: 0, left: 4 }, name: 'Mine' }
         ]
         
         const includedOwners = ownerInfo.filter(info => ownerSubset.has(info.owner))
@@ -290,6 +298,36 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         })
       }
       
+      // Render player slash annotation (always on top)
+      if (playerSlashAnnotation) {
+        elements.push(
+          <div
+            key="player-slash"
+            style={{
+              position: 'absolute',
+              top: '0px',
+              left: '0px',
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              zIndex: 1000 // Ensure it's always on top
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: '2px',
+                left: '2px',
+                right: '2px',
+                bottom: '2px',
+                background: 'linear-gradient(135deg, transparent 47%, black 47%, black 53%, transparent 53%)',
+                pointerEvents: 'none'
+              }}
+            />
+          </div>
+        )
+      }
+      
       return <>{elements}</>
     }
 
@@ -299,6 +337,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
   return (
     <div
       onClick={handleClick}
+      onContextMenu={handleRightClick}
       style={{
         position: 'relative',
         width: '56px',

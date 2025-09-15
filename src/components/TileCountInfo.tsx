@@ -12,7 +12,7 @@ export function TileCountInfo({ board }: TileCountInfoProps) {
     player: '#81b366',
     enemy: '#c65757', 
     neutral: '#d4aa5a',
-    assassin: '#8b6ba8'
+    mine: '#8b6ba8'
   }
   
   return (
@@ -21,19 +21,20 @@ export function TileCountInfo({ board }: TileCountInfoProps) {
       justifyContent: 'center',
       gap: '12px',
       marginBottom: '8px',
-      fontSize: '12px'
+      fontSize: '12px',
+      width: '100%' // Use full container width
     }}>
       {Object.entries(counts).map(([type, count]) => (
         <div key={type} style={{
-          minWidth: '32px',
-          height: '20px',
+          minWidth: '40px',
+          height: '24px',
           backgroundColor: tileColors[type as keyof typeof tileColors],
-          borderRadius: '2px',
+          borderRadius: '4px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: 'black',
-          fontSize: '12px',
+          fontSize: '14px',
           fontWeight: 'bold'
         }}>
           {count}

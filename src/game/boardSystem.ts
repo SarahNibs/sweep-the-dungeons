@@ -27,12 +27,12 @@ export function createTile(position: Position, owner: Tile['owner']): Tile {
 export function createBoard(width: number = 6, height: number = 5): Board {
   const tiles = new Map<string, Tile>()
   
-  // Create exact counts: 12 player, 10 enemy, 7 neutral, 1 assassin (30 total)
+  // Create exact counts: 12 player, 10 enemy, 7 neutral, 1 mine (30 total)
   const tileTypes: Tile['owner'][] = [
     ...Array(12).fill('player'),
     ...Array(10).fill('enemy'),
     ...Array(7).fill('neutral'),
-    ...Array(1).fill('assassin')
+    ...Array(1).fill('mine')
   ]
   
   // Shuffle the array for random distribution
@@ -137,7 +137,7 @@ export function isValidPosition(board: Board, position: Position): boolean {
 }
 
 export function getUnrevealedCounts(board: Board): Record<Tile['owner'], number> {
-  const counts = { player: 0, enemy: 0, neutral: 0, assassin: 0 }
+  const counts = { player: 0, enemy: 0, neutral: 0, mine: 0 }
   
   for (const tile of board.tiles.values()) {
     if (!tile.revealed) {
@@ -161,28 +161,9 @@ export function getUnrevealedEnemyTiles(board: Board): Tile[] {
 }
 
 export function performEnemyTurn(board: Board): Board {
-  const unrevealedEnemyTiles = getUnrevealedEnemyTiles(board)
-  
-  if (unrevealedEnemyTiles.length === 0) {
-    return board
-  }
-  
-  // Reveal up to 2 random enemy tiles
-  const tilesToReveal = Math.min(2, unrevealedEnemyTiles.length)
-  const shuffled = [...unrevealedEnemyTiles]
-  
-  // Simple shuffle
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-  }
-  
-  let newBoard = board
-  for (let i = 0; i < tilesToReveal; i++) {
-    newBoard = revealTile(newBoard, shuffled[i].position, 'enemy')
-  }
-  
-  return newBoard
+  // This function is now deprecated - the store handles enemy turns with animation
+  // Keeping it for backward compatibility but it should not be used for the new AI system
+  return board
 }
 
 export function shouldEndPlayerTurn(tile: Tile): boolean {

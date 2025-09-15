@@ -12,6 +12,7 @@ function App() {
     energy,
     maxEnergy,
     board,
+    gameStatus,
     playCard, 
     endTurn, 
     resetGame,
@@ -27,25 +28,35 @@ function App() {
       backgroundColor: '#2d3436',
       padding: '20px'
     }}>
-      <GameStats onResetGame={resetGame} />
-      
-      <PromptWidget 
-        targetingInfo={getTargetingInfo()} 
-        onCancel={cancelCardTargeting}
-      />
+      {/* Main game container with consistent width */}
+      <div style={{
+        maxWidth: '650px', // Slightly wider than info box
+        margin: '0 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}>
+        <GameStats onResetGame={resetGame} gameStatus={gameStatus} />
+        
+        <PromptWidget 
+          targetingInfo={getTargetingInfo()} 
+          onCancel={cancelCardTargeting}
+          gameStatus={gameStatus}
+        />
 
-      <Board board={board} onTileClick={revealTile} targetingInfo={getTargetingInfo()} />
+        <Board board={board} onTileClick={revealTile} targetingInfo={getTargetingInfo()} />
 
-      <Hand 
-        cards={hand} 
-        onCardClick={playCard} 
-        canPlayCard={canPlayCard}
-        deckCount={deck.length}
-        discardCount={discard.length}
-        energy={energy}
-        maxEnergy={maxEnergy}
-        onEndTurn={endTurn}
-      />
+        <Hand 
+          cards={hand} 
+          onCardClick={playCard} 
+          canPlayCard={canPlayCard}
+          deckCount={deck.length}
+          discardCount={discard.length}
+          energy={energy}
+          maxEnergy={maxEnergy}
+          onEndTurn={endTurn}
+        />
+      </div>
     </div>
   )
 }

@@ -16,18 +16,50 @@ const getCardImage = (cardName: string) => {
 }
 
 // Card descriptions
-const getCardDescription = (cardName: string) => {
+const getCardDescription = (cardName: string, cost: number) => {
+  const baseCost = `Cost: ${cost} energy. `
   switch (cardName) {
-    case 'Spritz': return 'Click on an unrevealed tile to see if it\'s safe or dangerous'
-    case 'Easiest': return 'Click on two unrevealed tiles - the safer one will be revealed'
-    case 'Tingle': return 'Mark a random enemy tile with an enemy indicator'
-    case 'Imperious Orders': return 'Strong evidence of two of your tiles'
-    case 'Vague Orders': return 'Evidence of five of your tiles'
-    case 'Energized': return 'Gain 2 energy. Exhaust (remove from deck after use)'
-    case 'Options': return 'Draw 3 cards'
-    case 'Brush': return 'Select center of 3x3 area - exclude random owners from each tile'
-    default: return 'Unknown card effect'
+    case 'Spritz': return baseCost + 'Click on an unrevealed tile to see if it\'s safe or dangerous'
+    case 'Easiest': return baseCost + 'Click on two unrevealed tiles - the safer one will be revealed'
+    case 'Tingle': return baseCost + 'Mark a random enemy tile with an enemy indicator'
+    case 'Imperious Orders': return baseCost + 'Strong evidence of two of your tiles'
+    case 'Vague Orders': return baseCost + 'Evidence of five of your tiles'
+    case 'Energized': return baseCost + 'Gain 2 energy. Exhaust (remove from deck after use)'
+    case 'Options': return baseCost + 'Draw 3 cards'
+    case 'Brush': return baseCost + 'Select center of 3x3 area - exclude random owners from each tile'
+    default: return baseCost + 'Unknown card effect'
   }
+}
+
+// Energy pips display
+const renderEnergyPips = (cost: number, isPlayable: boolean) => {
+  const pips = []
+  const pipColor = isPlayable ? '#74b9ff' : '#a0a0a0'
+  
+  for (let i = 0; i < cost; i++) {
+    pips.push(
+      <div key={i} style={{
+        width: '6px',
+        height: '6px',
+        borderRadius: '50%',
+        backgroundColor: pipColor,
+        margin: '1px'
+      }} />
+    )
+  }
+  
+  return (
+    <div style={{
+      display: 'flex',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '2px',
+      maxWidth: '20px'
+    }}>
+      {pips}
+    </div>
+  )
 }
 
 interface CardProps {
@@ -56,7 +88,7 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
   return (
     <div
       onClick={handleClick}
-      title={getCardDescription(card.name)}
+      title={getCardDescription(card.name, card.cost)}
       style={{
         position: 'relative',
         width: '80px',
@@ -82,24 +114,14 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
         onHover?.(false)
       }}
     >
-      {/* Energy cost - positioned in top-left corner */}
+      {/* Energy cost pips - positioned in top-left corner */}
       <div style={{
         position: 'absolute',
-        top: '2px',
-        left: '2px',
-        backgroundColor: isPlayable ? '#74b9ff' : '#a0a0a0',
-        color: 'white',
-        borderRadius: '50%',
-        width: '26px',
-        height: '26px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '14px',
-        fontWeight: 'bold',
+        top: '4px',
+        left: '4px',
         zIndex: 1
       }}>
-        {card.cost}
+        {renderEnergyPips(card.cost, isPlayable)}
       </div>
       
       {/* Card content */}

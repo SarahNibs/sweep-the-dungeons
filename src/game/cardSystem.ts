@@ -108,18 +108,35 @@ export function playCard(state: GameState, cardId: string): GameState {
 
   // If card requires targeting, set up pending effect
   if (requiresTargeting(card.name)) {
+    // Map card names to their effect types
+    let effectType: string
+    switch (card.name) {
+      case 'Spritz':
+        effectType = 'scout'
+        break
+      case 'Easiest':
+        effectType = 'quantum'
+        break
+      case 'Brush':
+        effectType = 'brush'
+        break
+      default:
+        effectType = card.name.toLowerCase().replace(' ', '_')
+    }
+    
     return {
       ...state,
       selectedCardName: card.name,
-      pendingCardEffect: { type: card.name.toLowerCase().replace(' ', '_') as any }
+      pendingCardEffect: { type: effectType as any }
     }
   }
 
-  // Execute immediate effect cards
+  // Execute immediate effect cards (except Tingle which needs animation)
   let newState = state
   switch (card.name) {
     case 'Tingle':
-      newState = executeCardEffect(state, { type: 'report' })
+      // Don't execute immediately - let the store handle the animation
+      newState = state
       break
     case 'Imperious Orders':
       newState = executeCardEffect(state, { type: 'solid_clue' })
@@ -202,6 +219,8 @@ export function createInitialState(level: number = 1): GameState {
     enemyClueCounter: 0,
     currentLevel: level,
     gamePhase: 'playing',
+    enemyHiddenClues: [],
+    tingleAnimation: null,
     enemyAnimation: null
   }
   

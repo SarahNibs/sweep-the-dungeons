@@ -11,14 +11,14 @@ interface TileProps {
 }
 
 export function Tile({ tile, onClick, isTargeting = false, isSelected = false, isEnemyHighlighted = false }: TileProps) {
-  const { hoveredClueId, setHoveredClueId, togglePlayerSlash } = useGameStore()
+  const { hoveredClueId, setHoveredClueId, togglePlayerSlash, tingleAnimation } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
   
-  // Add pulse animation styles when component mounts
+  // Add animation styles when component mounts
   useEffect(() => {
-    if (!document.getElementById('pulse-animation')) {
+    if (!document.getElementById('tile-animations')) {
       const style = document.createElement('style')
-      style.id = 'pulse-animation'
+      style.id = 'tile-animations'
       style.textContent = `
         @keyframes pulse {
           0%, 100% {
@@ -34,6 +34,15 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       document.head.appendChild(style)
     }
   }, [])
+  
+  // Check if this tile should be emphasized due to Tingle animation
+  const isTingleEmphasized = () => {
+    return tingleAnimation && 
+           tingleAnimation.targetTile &&
+           tingleAnimation.targetTile.x === tile.position.x &&
+           tingleAnimation.targetTile.y === tile.position.y &&
+           tingleAnimation.isEmphasized
+  }
   
   const handleClick = () => {
     onClick(tile)
@@ -131,7 +140,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       // Render clue pips - player clues (top-left) and enemy clues (bottom-left) 
       if (clueResultsAnnotation?.clueResults) {
         
-        clueResultsAnnotation.clueResults.forEach((clueResult) => {
+        clueResultsAnnotation.clueResults.forEach((clueResult, clueIndex) => {
           const strength = clueResult.strengthForThisTile
           const isThisClueHovered = hoveredClueId === clueResult.id
           const isEnemyClue = clueResult.cardType === 'enemy_clue'
@@ -145,7 +154,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
               // Enemy Xs: bottom-left, going up and right
               elements.push(
                 <div
-                  key={`pip-${clueResult.id}-${i}`}
+                  key={`pip-${clueResult.id}-${clueIndex}-${i}`}
                   style={{
                     position: 'absolute',
                     bottom: `${2 + rowPosition * 6}px`,
@@ -171,7 +180,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
               // Player pips: top-left, going down and right
               elements.push(
                 <div
-                  key={`pip-${clueResult.id}-${i}`}
+                  key={`pip-${clueResult.id}-${clueIndex}-${i}`}
                   style={{
                     position: 'absolute',
                     top: `${2 + rowPosition * 6}px`,
@@ -345,7 +354,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         backgroundColor: getTileColor(),
         border: isSelected ? '3px solid #ffc107' : 
                 isTargeting ? '2px solid #007bff' : 
-                isEnemyHighlighted ? '3px solid #dc3545' :
+                isEnemyHighlighted || isTingleEmphasized() ? '3px solid #dc3545' :
                 isClueHighlighted() ? '2px solid #40c057' : 
                 '2px solid #333',
         borderRadius: '4px',
@@ -359,11 +368,12 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         transition: 'all 0.2s ease',
         userSelect: 'none',
         transform: (isHovered && !tile.revealed) ? 'scale(1.05)' : 'scale(1)',
-        boxShadow: isEnemyHighlighted ? '0 0 12px rgba(220, 53, 69, 0.6)' :
+        boxShadow: isEnemyHighlighted || isTingleEmphasized() ? '0 0 12px rgba(220, 53, 69, 0.6)' :
                    isClueHighlighted() ? '0 0 8px rgba(64, 192, 87, 0.4)' :
                    (isHovered && !tile.revealed) ? '0 2px 4px rgba(0,0,0,0.3)' : 
                    'none',
-        animation: isEnemyHighlighted ? 'pulse 1s ease-in-out infinite' : 'none'
+        animation: isEnemyHighlighted || isTingleEmphasized() ? 'pulse 1s ease-in-out infinite' : 
+                   'none'
       }}
       onMouseEnter={() => {
         setIsHovered(true)

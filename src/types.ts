@@ -89,6 +89,12 @@ export interface GameState {
   currentLevel: number
   gamePhase: 'playing' | 'card_selection' | 'transitioning'
   cardSelectionOptions?: Card[] // Three cards to choose from when advancing level
+  // Dual enemy clue system: visible clues (shown as X) vs AI clues (hidden)
+  enemyHiddenClues: ClueResult[] // AI-only clues for enemy decision making (not shown to player)
+  tingleAnimation: {
+    targetTile: Position | null
+    isEmphasized: boolean
+  } | null
   enemyAnimation: {
     isActive: boolean
     highlightedTile: Position | null

@@ -2,7 +2,8 @@ import { create } from 'zustand'
 import { GameState, Tile, Position, CardEffect, Board, Card as CardType } from './types'
 import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard } from './game/cardSystem'
 import { revealTile, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
-import { executeCardEffect, getTargetingInfo, executeEnemyClueEffect, selectEnemyTilesToReveal, checkGameStatus } from './game/cardeffects'
+import { executeCardEffect, getTargetingInfo, checkGameStatus, executeTargetedReportEffect, getUnrevealedTilesByOwner } from './game/cardeffects'
+import { processEnemyTurnWithDualClues } from './game/enemyAI'
 
 interface GameStore extends GameState {
   playCard: (cardId: string) => void
@@ -20,6 +21,7 @@ interface GameStore extends GameState {
   togglePlayerSlash: (position: Position) => void
   startCardSelection: () => void
   selectNewCard: (card: CardType) => void
+  executeTingleWithAnimation: (state: GameState) => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -28,8 +30,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   playCard: (cardId: string) => {
     const currentState = get()
     if (currentState.gameStatus.status !== 'playing') return
-    const newState = playCard(currentState, cardId)
-    set(newState)
+    
+    // Check if this is a Tingle card
+    const card = currentState.hand.find(c => c.id === cardId)
+    if (card?.name === 'Tingle') {
+      // Handle Tingle specially with animation
+      const basicState = playCard(currentState, cardId) // This won't execute the effect
+      get().executeTingleWithAnimation(basicState)
+    } else {
+      const newState = playCard(currentState, cardId)
+      set(newState)
+    }
   },
   
   endTurn: () => {
@@ -263,11 +274,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       selectedCardName: null
     }
     
-    // First, generate enemy clue
-    const stateWithEnemyClue = executeEnemyClueEffect(clearedState)
-    
-    // Then, select tiles to reveal based on AI logic
-    const tilesToReveal = selectEnemyTilesToReveal(stateWithEnemyClue)
+    // Process enemy turn with dual clue system
+    const enemyTurnResult = processEnemyTurnWithDualClues(clearedState)
+    const stateWithEnemyClue = {
+      ...enemyTurnResult.stateWithVisibleClues,
+      enemyHiddenClues: [...clearedState.enemyHiddenClues, ...enemyTurnResult.hiddenClues]
+    }
+    const tilesToReveal = enemyTurnResult.tilesToReveal
     
     if (tilesToReveal.length === 0) {
       // No tiles to reveal, end enemy turn immediately
@@ -442,5 +455,54 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const currentState = get()
     const nextLevelState = selectNewCard(currentState, card)
     set(nextLevelState)
+  },
+
+  executeTingleWithAnimation: (state: GameState) => {
+    // Find a random enemy tile to target
+    const enemyTiles = getUnrevealedTilesByOwner(state, 'enemy')
+    if (enemyTiles.length === 0) return
+
+    const randomTile = enemyTiles[Math.floor(Math.random() * enemyTiles.length)]
+
+    // Check if we're in a test environment
+    const isTestEnvironment = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
+    
+    if (isTestEnvironment) {
+      // In tests, execute immediately without animation
+      const effectState = executeTargetedReportEffect(state, randomTile.position)
+      set(effectState)
+      return
+    }
+
+    // Start the enemy-style emphasis animation
+    set({
+      ...state,
+      tingleAnimation: {
+        targetTile: randomTile.position,
+        isEmphasized: true
+      }
+    })
+
+    // After emphasis duration, fade back to normal
+    setTimeout(() => {
+      const currentState = get()
+      set({
+        ...currentState,
+        tingleAnimation: {
+          targetTile: randomTile.position,
+          isEmphasized: false
+        }
+      })
+      
+      // After fade duration, apply the effect and clear animation
+      setTimeout(() => {
+        const finalState = get()
+        const effectState = executeTargetedReportEffect(finalState, randomTile.position)
+        set({
+          ...effectState,
+          tingleAnimation: null
+        })
+      }, 300) // Fade back duration
+    }, 800) // Emphasis duration
   }
 }))

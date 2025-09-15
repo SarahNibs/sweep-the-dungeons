@@ -9,7 +9,9 @@ import {
   createInitialState,
   canPlayCard,
   startNewTurn,
-  advanceToNextLevel
+  startCardSelection,
+  selectNewCard,
+  createNewLevelCards
 } from './cardSystem'
 import { GameState } from '../types'
 import { createBoard } from './boardSystem'
@@ -42,11 +44,11 @@ describe('Card System', () => {
       const deck = createStartingDeck()
       const cardNames = deck.map(card => card.name)
       
-      expect(cardNames.filter(name => name === 'Scout')).toHaveLength(4)
-      expect(cardNames.filter(name => name === 'Solid Clue')).toHaveLength(2)
-      expect(cardNames.filter(name => name === 'Stretch Clue')).toHaveLength(1)
-      expect(cardNames.filter(name => name === 'Report')).toHaveLength(2)
-      expect(cardNames.filter(name => name === 'Quantum')).toHaveLength(1)
+      expect(cardNames.filter(name => name === 'Spritz')).toHaveLength(4)
+      expect(cardNames.filter(name => name === 'Imperious Orders')).toHaveLength(2)
+      expect(cardNames.filter(name => name === 'Vague Orders')).toHaveLength(1)
+      expect(cardNames.filter(name => name === 'Tingle')).toHaveLength(2)
+      expect(cardNames.filter(name => name === 'Easiest')).toHaveLength(1)
     })
   })
 
@@ -425,12 +427,12 @@ describe('Card System', () => {
     })
 
     it('uses parameterized system for both clue types', () => {
-      // Test Solid Clue
+      // Test Imperious Orders (formerly Solid Clue)
       const solidState = executeSolidClueEffect(gameState)
       const solidTilesWithClues = Array.from(solidState.board.tiles.values())
         .filter(tile => tile.annotations.some(a => a.type === 'clue_results'))
       
-      // Test Stretch Clue  
+      // Test Vague Orders (formerly Stretch Clue)  
       const stretchState = executeStretchClueEffect(gameState)
       const stretchTilesWithClues = Array.from(stretchState.board.tiles.values())
         .filter(tile => tile.annotations.some(a => a.type === 'clue_results'))
@@ -491,19 +493,53 @@ describe('Card System', () => {
       expect(revealedTiles[0].revealedBy).toBe('enemy')
     })
 
-    it('advances to next level correctly', () => {
+    it('advances to card selection correctly', () => {
+      const state1 = createInitialState(1)
+      const cardSelectionState = startCardSelection(state1)
+      
+      expect(cardSelectionState.gamePhase).toBe('card_selection')
+      expect(cardSelectionState.cardSelectionOptions).toBeDefined()
+      expect(cardSelectionState.cardSelectionOptions?.length).toBe(3)
+    })
+
+    it('selects new card and advances level correctly', () => {
       const state1 = createInitialState(2)
-      const state2 = advanceToNextLevel(state1)
+      const cardOptions = createNewLevelCards()
+      const selectedCard = cardOptions[0] // Energized
+      const state2 = selectNewCard(state1, selectedCard)
       
       expect(state2.currentLevel).toBe(3)
       expect(state2.energy).toBe(3) // Fresh energy
       expect(state2.hand.length).toBe(5) // Fresh hand
       expect(state2.gameStatus.status).toBe('playing') // Reset game status
+      expect(state2.gamePhase).toBe('playing') // Back to playing phase
       
       // Should have one revealed enemy tile for level 3+
       const revealedTiles = Array.from(state2.board.tiles.values()).filter(tile => tile.revealed)
       expect(revealedTiles.length).toBe(1)
       expect(revealedTiles[0].owner).toBe('enemy')
+      
+      // Should have selected card in deck
+      expect(state2.deck.some(card => card.name === selectedCard.name)).toBe(true)
+    })
+
+    it('creates new level cards correctly', () => {
+      const cards = createNewLevelCards()
+      expect(cards.length).toBe(3)
+      
+      const energized = cards.find(c => c.name === 'Energized')
+      const options = cards.find(c => c.name === 'Options')
+      const brush = cards.find(c => c.name === 'Brush')
+      
+      expect(energized).toBeDefined()
+      expect(energized?.exhaust).toBe(true)
+      expect(energized?.cost).toBe(1)
+      
+      expect(options).toBeDefined()
+      expect(options?.cost).toBe(1)
+      
+      expect(brush).toBeDefined()
+      expect(brush?.cost).toBe(1)
     })
   })
 })

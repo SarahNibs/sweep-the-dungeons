@@ -652,22 +652,145 @@ export function executeCardEffect(state: GameState, effect: CardEffect): GameSta
       return executeSolidClueEffect(state)
     case 'stretch_clue':
       return executeStretchClueEffect(state)
+    case 'energized':
+      return executeEnergizedEffect(state)
+    case 'options':
+      return executeOptionsEffect(state)
+    case 'brush':
+      return executeBrushEffect(state, effect.target)
     default:
       return state
   }
 }
 
 export function requiresTargeting(cardName: string): boolean {
-  return cardName === 'Scout' || cardName === 'Quantum'
+  return cardName === 'Spritz' || cardName === 'Easiest' || cardName === 'Brush'
 }
 
 export function getTargetingInfo(cardName: string): { count: number; description: string } | null {
   switch (cardName) {
-    case 'Scout':
+    case 'Spritz':
       return { count: 1, description: 'Click on an unrevealed tile to scout' }
-    case 'Quantum':
+    case 'Easiest':
       return { count: 2, description: 'Click on two unrevealed tiles - the safer will be revealed' }
+    case 'Brush':
+      return { count: 1, description: 'Click center of 3x3 area to exclude random owners' }
     default:
       return null
+  }
+}
+
+// New card effects
+export function executeEnergizedEffect(state: GameState): GameState {
+  // Gain 2 energy (no maximum limit)
+  return {
+    ...state,
+    energy: state.energy + 2
+  }
+}
+
+export function executeOptionsEffect(state: GameState): GameState {
+  // Draw 3 cards
+  return drawCards(state, 3)
+}
+
+function drawCards(state: GameState, count: number): GameState {
+  let { deck, hand, discard } = state
+  const newHand = [...hand]
+  let newDeck = [...deck]
+  let newDiscard = [...discard]
+
+  for (let i = 0; i < count; i++) {
+    if (newDeck.length === 0) {
+      if (newDiscard.length === 0) break
+      // Reshuffle discard into deck
+      const shuffled = [...newDiscard]
+      for (let j = shuffled.length - 1; j > 0; j--) {
+        const k = Math.floor(Math.random() * (j + 1))
+        ;[shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]]
+      }
+      newDeck = shuffled
+      newDiscard = []
+    }
+    
+    if (newDeck.length > 0) {
+      const drawnCard = newDeck.pop()!
+      newHand.push(drawnCard)
+    }
+  }
+
+  return {
+    ...state,
+    deck: newDeck,
+    hand: newHand,
+    discard: newDiscard
+  }
+}
+
+export function executeBrushEffect(state: GameState, target: Position): GameState {
+  // Get 3x3 area around target position
+  const centerX = target.x
+  const centerY = target.y
+  
+  const newTiles = new Map(state.board.tiles)
+  
+  // For each tile in 3x3 area
+  for (let x = centerX - 1; x <= centerX + 1; x++) {
+    for (let y = centerY - 1; y <= centerY + 1; y++) {
+      const pos = { x, y }
+      const key = positionToKey(pos)
+      const tile = newTiles.get(key)
+      
+      // Only affect unrevealed tiles that are within board bounds
+      if (tile && !tile.revealed) {
+        // Pick one of the three non-owners at random to exclude
+        const allOwners: ('player' | 'enemy' | 'neutral' | 'mine')[] = ['player', 'enemy', 'neutral', 'mine']
+        const nonOwners = allOwners.filter(owner => owner !== tile.owner)
+        
+        if (nonOwners.length > 0) {
+          // Pick 1 random owner to exclude from possibilities
+          const excludedOwner = nonOwners[Math.floor(Math.random() * nonOwners.length)]
+          const possibleOwners = new Set(allOwners.filter(owner => owner !== excludedOwner))
+          
+          // Add or update owner subset annotation
+          const existingSubsetAnnotation = tile.annotations.find(a => a.type === 'owner_subset')
+          const otherAnnotations = tile.annotations.filter(a => a.type !== 'owner_subset')
+          
+          let finalOwnerSet = possibleOwners
+          if (existingSubsetAnnotation && existingSubsetAnnotation.ownerSubset) {
+            // Combine with existing subset (intersection)
+            finalOwnerSet = new Set()
+            for (const owner of existingSubsetAnnotation.ownerSubset) {
+              if (possibleOwners.has(owner)) {
+                finalOwnerSet.add(owner)
+              }
+            }
+          }
+          
+          const newAnnotations: TileAnnotation[] = [
+            ...otherAnnotations,
+            {
+              type: 'owner_subset',
+              ownerSubset: finalOwnerSet
+            }
+          ]
+          
+          const updatedTile = {
+            ...tile,
+            annotations: newAnnotations
+          }
+          
+          newTiles.set(key, updatedTile)
+        }
+      }
+    }
+  }
+  
+  return {
+    ...state,
+    board: {
+      ...state.board,
+      tiles: newTiles
+    }
   }
 }

@@ -23,26 +23,35 @@ export function getLevelConfig(level: number): LevelConfig {
   }
 }
 
-export function createCard(name: string, cost: number): Card {
+export function createCard(name: string, cost: number, exhaust?: boolean): Card {
   return {
     id: crypto.randomUUID(),
     name,
-    cost
+    cost,
+    exhaust
   }
+}
+
+export function createNewLevelCards(): Card[] {
+  return [
+    createCard('Energized', 1, true), // Exhaust card - gain 2 energy
+    createCard('Options', 1),         // Draw 3 cards
+    createCard('Brush', 1)            // 3x3 area exclusion effect
+  ]
 }
 
 export function createStartingDeck(): Card[] {
   return [
-    createCard('Solid Clue', 2),
-    createCard('Solid Clue', 2),
-    createCard('Stretch Clue', 2),
-    createCard('Scout', 1),
-    createCard('Scout', 1),
-    createCard('Scout', 1),
-    createCard('Scout', 1),
-    createCard('Report', 1),
-    createCard('Report', 1),
-    createCard('Quantum', 1)
+    createCard('Imperious Orders', 2),
+    createCard('Imperious Orders', 2),
+    createCard('Vague Orders', 2),
+    createCard('Spritz', 1),
+    createCard('Spritz', 1),
+    createCard('Spritz', 1),
+    createCard('Spritz', 1),
+    createCard('Tingle', 1),
+    createCard('Tingle', 1),
+    createCard('Easiest', 1)
   ]
 }
 
@@ -109,19 +118,26 @@ export function playCard(state: GameState, cardId: string): GameState {
   // Execute immediate effect cards
   let newState = state
   switch (card.name) {
-    case 'Report':
+    case 'Tingle':
       newState = executeCardEffect(state, { type: 'report' })
       break
-    case 'Solid Clue':
+    case 'Imperious Orders':
       newState = executeCardEffect(state, { type: 'solid_clue' })
       break
-    case 'Stretch Clue':
+    case 'Vague Orders':
       newState = executeCardEffect(state, { type: 'stretch_clue' })
+      break
+    case 'Energized':
+      newState = executeCardEffect(state, { type: 'energized' })
+      break
+    case 'Options':
+      newState = executeCardEffect(state, { type: 'options' })
       break
   }
 
   const newHand = newState.hand.filter((_, index) => index !== cardIndex)
-  const newDiscard = [...newState.discard, card]
+  // If card has exhaust, don't put it in discard (it's removed from game)
+  const newDiscard = card.exhaust ? newState.discard : [...newState.discard, card]
 
   return {
     ...newState,
@@ -185,13 +201,29 @@ export function createInitialState(level: number = 1): GameState {
     playerClueCounter: 0,
     enemyClueCounter: 0,
     currentLevel: level,
+    gamePhase: 'playing',
     enemyAnimation: null
   }
   
   return drawCards(initialState, 5)
 }
 
-export function advanceToNextLevel(state: GameState): GameState {
+export function startCardSelection(state: GameState): GameState {
+  const cardOptions = createNewLevelCards()
+  return {
+    ...state,
+    gamePhase: 'card_selection',
+    cardSelectionOptions: cardOptions
+  }
+}
+
+export function selectNewCard(state: GameState, selectedCard: Card): GameState {
   const nextLevel = state.currentLevel + 1
-  return createInitialState(nextLevel)
+  const newLevelState = createInitialState(nextLevel)
+  
+  // Add the selected card to the new deck
+  return {
+    ...newLevelState,
+    deck: [...newLevelState.deck, selectedCard]
+  }
 }

@@ -3,11 +3,14 @@ import { Card as CardType } from '../types'
 // Card images (using emojis/symbols for now)
 const getCardImage = (cardName: string) => {
   switch (cardName) {
-    case 'Scout': return '👁️'
-    case 'Quantum': return '⚡'
-    case 'Report': return '📋'
-    case 'Solid Clue': return '🔍'
-    case 'Stretch Clue': return '🔎'
+    case 'Spritz': return '👁️'
+    case 'Easiest': return '⚡'
+    case 'Tingle': return '📋'
+    case 'Imperious Orders': return '🔍'
+    case 'Vague Orders': return '🔎'
+    case 'Energized': return '⚡'
+    case 'Options': return '🃏'
+    case 'Brush': return '🖌️'
     default: return '❓'
   }
 }
@@ -15,11 +18,14 @@ const getCardImage = (cardName: string) => {
 // Card descriptions
 const getCardDescription = (cardName: string) => {
   switch (cardName) {
-    case 'Scout': return 'Click on an unrevealed tile to see if it\'s safe or dangerous'
-    case 'Quantum': return 'Click on two unrevealed tiles - the safer one will be revealed'
-    case 'Report': return 'Mark a random enemy tile with an enemy indicator'
-    case 'Solid Clue': return 'Strong evidence of two of your tiles'
-    case 'Stretch Clue': return 'Evidence of five of your tiles'
+    case 'Spritz': return 'Click on an unrevealed tile to see if it\'s safe or dangerous'
+    case 'Easiest': return 'Click on two unrevealed tiles - the safer one will be revealed'
+    case 'Tingle': return 'Mark a random enemy tile with an enemy indicator'
+    case 'Imperious Orders': return 'Strong evidence of two of your tiles'
+    case 'Vague Orders': return 'Evidence of five of your tiles'
+    case 'Energized': return 'Gain 2 energy. Exhaust (remove from deck after use)'
+    case 'Options': return 'Draw 3 cards'
+    case 'Brush': return 'Select center of 3x3 area - exclude random owners from each tile'
     default: return 'Unknown card effect'
   }
 }
@@ -79,17 +85,17 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
       {/* Energy cost - positioned in top-left corner */}
       <div style={{
         position: 'absolute',
-        top: '4px',
-        left: '4px',
+        top: '2px',
+        left: '2px',
         backgroundColor: isPlayable ? '#74b9ff' : '#a0a0a0',
         color: 'white',
         borderRadius: '50%',
-        width: '18px',
-        height: '18px',
+        width: '26px',
+        height: '26px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '10px',
+        fontSize: '14px',
         fontWeight: 'bold',
         zIndex: 1
       }}>

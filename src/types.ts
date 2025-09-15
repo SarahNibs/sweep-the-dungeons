@@ -2,6 +2,7 @@ export interface Card {
   id: string
   name: string
   cost: number
+  exhaust?: boolean // If true, card is removed from deck after use
 }
 
 export type CardEffect = 
@@ -10,6 +11,9 @@ export type CardEffect =
   | { type: 'report' }
   | { type: 'solid_clue' }
   | { type: 'stretch_clue' }
+  | { type: 'energized' }
+  | { type: 'options' }
+  | { type: 'brush'; target: Position }
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
@@ -83,6 +87,8 @@ export interface GameState {
   playerClueCounter: number // Counter for player clue rows
   enemyClueCounter: number // Counter for enemy clue rows
   currentLevel: number
+  gamePhase: 'playing' | 'card_selection' | 'transitioning'
+  cardSelectionOptions?: Card[] // Three cards to choose from when advancing level
   enemyAnimation: {
     isActive: boolean
     highlightedTile: Position | null

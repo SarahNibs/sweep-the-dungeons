@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import { GameState, Tile, Position, CardEffect, Board } from './types'
-import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, advanceToNextLevel } from './game/cardSystem'
+import { GameState, Tile, Position, CardEffect, Board, Card as CardType } from './types'
+import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard } from './game/cardSystem'
 import { revealTile, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, executeEnemyClueEffect, selectEnemyTilesToReveal, checkGameStatus } from './game/cardeffects'
 
@@ -18,7 +18,8 @@ interface GameStore extends GameState {
   startEnemyTurn: (board: Board) => void
   performNextEnemyReveal: () => void
   togglePlayerSlash: (position: Position) => void
-  advanceToNextLevel: () => void
+  startCardSelection: () => void
+  selectNewCard: (card: CardType) => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -147,6 +148,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         // First target for quantum
         newEffect = { type: 'quantum', target: position } as any
       }
+    } else if (effect.type === 'brush') {
+      newEffect = { type: 'brush', target: position }
+      shouldExecute = true
     }
     
     if (shouldExecute && newEffect) {
@@ -167,7 +171,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
       
       const newHand = currentState.hand.filter(c => c.id !== card.id)
-      const newDiscard = [...effectState.discard, card]
+      // If card has exhaust, don't put it in discard (it's removed from game)
+      const newDiscard = card.exhaust ? effectState.discard : [...effectState.discard, card]
       
       const finalState = {
         ...effectState,
@@ -427,9 +432,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
     })
   },
 
-  advanceToNextLevel: () => {
+  startCardSelection: () => {
     const currentState = get()
-    const nextLevelState = advanceToNextLevel(currentState)
+    const cardSelectionState = startCardSelection(currentState)
+    set(cardSelectionState)
+  },
+
+  selectNewCard: (card: CardType) => {
+    const currentState = get()
+    const nextLevelState = selectNewCard(currentState, card)
     set(nextLevelState)
   }
 }))

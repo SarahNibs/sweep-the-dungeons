@@ -3,6 +3,7 @@ import { GameStats } from './components/GameStats'
 import { Hand } from './components/Hand'
 import { Board } from './components/Board'
 import { PromptWidget } from './components/PromptWidget'
+import { CardSelectionScreen } from './components/CardSelectionScreen'
 
 function App() {
   const { 
@@ -14,6 +15,8 @@ function App() {
     board,
     gameStatus,
     currentLevel,
+    gamePhase,
+    cardSelectionOptions,
     playCard, 
     endTurn, 
     resetGame,
@@ -21,7 +24,8 @@ function App() {
     revealTile,
     getTargetingInfo,
     cancelCardTargeting,
-    advanceToNextLevel
+    startCardSelection,
+    selectNewCard
   } = useGameStore()
 
   return (
@@ -45,7 +49,7 @@ function App() {
           onCancel={cancelCardTargeting}
           gameStatus={gameStatus}
           currentLevel={currentLevel}
-          onAdvanceLevel={advanceToNextLevel}
+          onAdvanceLevel={startCardSelection}
         />
 
         <Board board={board} onTileClick={revealTile} targetingInfo={getTargetingInfo()} />
@@ -61,6 +65,15 @@ function App() {
           onEndTurn={endTurn}
         />
       </div>
+
+      {/* Card Selection Screen */}
+      {gamePhase === 'card_selection' && cardSelectionOptions && (
+        <CardSelectionScreen
+          cards={cardSelectionOptions}
+          onCardSelect={selectNewCard}
+          currentLevel={currentLevel}
+        />
+      )}
     </div>
   )
 }

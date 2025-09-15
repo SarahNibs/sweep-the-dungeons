@@ -24,24 +24,35 @@ describe('Game Store', () => {
   it('plays a card correctly', () => {
     const { result } = renderHook(() => useGameStore())
     
-    // Find a non-targeting card (Report, Solid Clue, or Stretch Clue)
+    // Find a non-targeting, non-special card (Tingle, Imperious Orders, or Vague Orders)
     const cardToPlay = result.current.hand.find(card => 
-      ['Report', 'Solid Clue', 'Stretch Clue'].includes(card.name)
+      ['Tingle', 'Imperious Orders', 'Vague Orders'].includes(card.name)
     ) || result.current.hand[0] // Fallback to first card
     
     const originalEnergy = result.current.energy
+    const originalHandSize = result.current.hand.length
     
     act(() => {
       result.current.playCard(cardToPlay.id)
     })
     
     // If it's a targeting card, it won't be discarded immediately
-    if (['Scout', 'Quantum'].includes(cardToPlay.name)) {
-      expect(result.current.hand).toHaveLength(5) // Still in hand
+    if (['Spritz', 'Easiest', 'Brush'].includes(cardToPlay.name)) {
+      expect(result.current.hand).toHaveLength(originalHandSize) // Still in hand
       expect(result.current.discard).toHaveLength(0)
       expect(result.current.pendingCardEffect).toBeTruthy()
+    } else if (cardToPlay.name === 'Options') {
+      // Options draws 3 cards, so hand size increases by 2 (removed 1, added 3)
+      expect(result.current.hand.length).toBeGreaterThanOrEqual(originalHandSize + 2)
+      expect(result.current.energy).toBe(originalEnergy - cardToPlay.cost)
+    } else if (cardToPlay.name === 'Energized') {
+      // Energized gives energy and exhausts (removed from game)
+      expect(result.current.hand).toHaveLength(originalHandSize - 1)
+      expect(result.current.discard).toHaveLength(0) // Exhausted, not discarded
+      expect(result.current.energy).toBe(originalEnergy - cardToPlay.cost + 2) // -1 cost +2 energy
     } else {
-      expect(result.current.hand).toHaveLength(4)
+      // Normal cards
+      expect(result.current.hand).toHaveLength(originalHandSize - 1)
       expect(result.current.discard).toHaveLength(1)
       expect(result.current.energy).toBe(originalEnergy - cardToPlay.cost)
     }

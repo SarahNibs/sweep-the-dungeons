@@ -1,0 +1,211 @@
+{
+  "levels": [
+    {
+      "levelNumber": 1,
+      "dimensions": {
+        "columns": 6,
+        "rows": 5
+      },
+      "tileCounts": {
+        "player": 9,
+        "enemy": 8,
+        "neutral": 6,
+        "mine": 1
+      },
+      "unusedLocations": [
+        "// Coordinate system: (column, row) where (0,0) is top-left",
+        "// For a 7x7 grid with center removed: (3, 3)",
+        "// Example: Remove corners from this level",
+        "// [0, 0], [5, 0], [0, 4], [5, 4]"
+      ],
+      "specialTiles": {
+        "unimplemented": true,
+        "tiles": [
+          {
+            "type": "explosive",
+            "count": 2,
+            "placement": "random"
+          },
+          {
+            "type": "barrier", 
+            "count": 1,
+            "placement": {
+              "owner": ["neutral"]
+            }
+          }
+        ]
+      },
+      "specialBehaviors": {
+        "adjacencyRule": "default",
+        "turnLimit": null,
+        "startingEnergy": 3,
+        "startingHandSize": 5
+      }
+    },
+    {
+      "levelNumber": 2,
+      "dimensions": {
+        "columns": 7,
+        "rows": 6
+      },
+      "tileCounts": {
+        "player": 10,
+        "enemy": 9,
+        "neutral": 7,
+        "mine": 2
+      },
+      "unusedLocations": [],
+      "specialTiles": {
+        "unimplemented": false,
+        "tiles": []
+      },
+      "specialBehaviors": {
+        "adjacencyRule": "default",
+        "turnLimit": 12,
+        "startingEnergy": 3,
+        "startingHandSize": 5
+      }
+    },
+    {
+      "levelNumber": 7,
+      "dimensions": {
+        "columns": 7,
+        "rows": 7
+      },
+      "tileCounts": {
+        "player": 12,
+        "enemy": 11,
+        "neutral": 8,
+        "mine": 2
+      },
+      "unusedLocations": [
+        [3, 3]
+      ],
+      "specialTiles": {
+        "unimplemented": true,
+        "tiles": [
+          {
+            "type": "teleporter",
+            "count": 2,
+            "placement": "random"
+          }
+        ]
+      },
+      "specialBehaviors": {
+        "adjacencyRule": "manhattan-2",
+        "turnLimit": null,
+        "startingEnergy": 4,
+        "startingHandSize": 6,
+        "customRules": [
+          "adjacency counts tiles at exactly Manhattan distance 2",
+          "tiles at distance 1 are ignored for adjacency calculation"
+        ]
+      }
+    },
+    {
+      "levelNumber": 15,
+      "dimensions": {
+        "columns": 8,
+        "rows": 8
+      },
+      "tileCounts": {
+        "player": 16,
+        "enemy": 14,
+        "neutral": 10,
+        "mine": 3
+      },
+      "unusedLocations": [
+        [0, 0], [1, 0], [6, 0], [7, 0],
+        [0, 1], [7, 1],
+        [0, 6], [7, 6],
+        [0, 7], [1, 7], [6, 7], [7, 7]
+      ],
+      "specialTiles": {
+        "unimplemented": true,
+        "tiles": [
+          {
+            "type": "decoy",
+            "count": 3,
+            "placement": {
+              "owner": ["player", "enemy"]
+            }
+          },
+          {
+            "type": "amplifier",
+            "count": 1,
+            "placement": {
+              "owner": ["neutral"]
+            }
+          }
+        ]
+      },
+      "specialBehaviors": {
+        "adjacencyRule": "default",
+        "turnLimit": 20,
+        "startingEnergy": 3,
+        "startingHandSize": 5,
+        "customRules": [
+          "first reveal each turn is free (costs 0 energy)",
+          "mines explode in 3x3 area when revealed"
+        ]
+      }
+    }
+  ],
+  "coordinateSystem": {
+    "description": "Grid uses (column, row) coordinates with (0,0) at top-left",
+    "example": {
+      "gridSize": "7x7",
+      "topLeft": [0, 0],
+      "topRight": [6, 0], 
+      "bottomLeft": [0, 6],
+      "bottomRight": [6, 6],
+      "center": [3, 3],
+      "exampleUnusedCenter": "To remove center square from 7x7 grid, use: [3, 3]"
+    }
+  },
+  "specialTileTypes": {
+    "explosive": {
+      "description": "Explodes when revealed, affecting adjacent tiles",
+      "implemented": false
+    },
+    "barrier": {
+      "description": "Blocks adjacency calculations through it",
+      "implemented": false
+    },
+    "teleporter": {
+      "description": "Pairs of tiles that affect each other's adjacency",
+      "implemented": false
+    },
+    "decoy": {
+      "description": "Shows false adjacency numbers",
+      "implemented": false
+    },
+    "amplifier": {
+      "description": "Doubles adjacency count when revealed",
+      "implemented": false
+    }
+  },
+  "specialBehaviorTypes": {
+    "adjacencyRule": {
+      "default": "Standard 8-directional adjacency",
+      "manhattan-1": "Only orthogonal neighbors (4-directional)",
+      "manhattan-2": "Tiles at exactly Manhattan distance 2",
+      "knight": "L-shaped moves like chess knight",
+      "diagonal": "Only diagonal neighbors"
+    },
+    "customRules": {
+      "description": "Array of strings describing special level mechanics",
+      "examples": [
+        "first reveal each turn is free",
+        "mines explode in 3x3 area",
+        "energy carries over between turns",
+        "hand size increases with each reveal"
+      ]
+    }
+  },
+  "placementOptions": {
+    "random": "Place randomly on any valid tile",
+    "owner": "Place on tiles owned by specific teams",
+    "explicit": "Place at specific coordinates (not shown in examples)"
+  }
+}

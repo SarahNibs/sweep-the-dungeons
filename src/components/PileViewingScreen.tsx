@@ -7,15 +7,7 @@ interface PileViewingScreenProps {
   onClose: () => void
 }
 
-export function PileViewingScreen({ pileType, cards, onClose }: PileViewingScreenProps) {
-  const getPileTitle = () => {
-    switch (pileType) {
-      case 'deck': return 'Draw Pile'
-      case 'discard': return 'Discard Pile'
-      case 'exhaust': return 'Exhaust Pile'
-      default: return 'Cards'
-    }
-  }
+export function PileViewingScreen({ cards, onClose }: PileViewingScreenProps) {
 
   return (
     <div style={{
@@ -34,8 +26,8 @@ export function PileViewingScreen({ pileType, cards, onClose }: PileViewingScree
         backgroundColor: '#2d3436',
         borderRadius: '12px',
         padding: '30px',
-        maxWidth: '90vw',
-        maxHeight: '90vh',
+        width: '95vw',
+        height: '90vh',
         overflow: 'auto',
         position: 'relative'
       }}>
@@ -60,15 +52,6 @@ export function PileViewingScreen({ pileType, cards, onClose }: PileViewingScree
           ×
         </button>
 
-        <h2 style={{
-          color: 'white',
-          textAlign: 'center',
-          marginBottom: '30px',
-          marginTop: '10px'
-        }}>
-          {getPileTitle()} ({cards.length} cards)
-        </h2>
-
         {cards.length === 0 ? (
           <div style={{
             color: '#999',
@@ -76,30 +59,30 @@ export function PileViewingScreen({ pileType, cards, onClose }: PileViewingScree
             fontSize: '18px',
             padding: '40px'
           }}>
-            No cards in {getPileTitle().toLowerCase()}
+            No cards
           </div>
         ) : (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '5px'
+            gap: '15px',
+            alignItems: 'center'
           }}>
             {Array.from({ length: Math.ceil(cards.length / 15) }).map((_, rowIndex) => (
               <div key={rowIndex} style={{
                 display: 'flex',
                 justifyContent: 'center',
                 position: 'relative',
-                height: '40px',
-                marginBottom: rowIndex === Math.ceil(cards.length / 15) - 1 ? '0' : '20px'
+                height: '80px'
               }}>
                 {cards.slice(rowIndex * 15, (rowIndex + 1) * 15).map((card, cardIndex) => (
                   <div
                     key={`${card.name}-${rowIndex}-${cardIndex}`}
                     style={{
                       position: 'absolute',
-                      left: `${cardIndex * 15}px`,
+                      left: `${cardIndex * 20}px`,
                       zIndex: cardIndex,
-                      transform: 'scale(0.6)',
+                      transform: 'scale(0.8)',
                       transformOrigin: 'center center'
                     }}
                   >

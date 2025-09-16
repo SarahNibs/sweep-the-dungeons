@@ -207,6 +207,12 @@ export function executeQuantumEffect(state: GameState, targets: [Position, Posit
   // Reveal the chosen tile using the proper reveal function
   const newBoard = revealTile(state.board, saferPos, 'player')
   
+  // Use proper game status checking like regular reveals
+  const gameStatus = checkGameStatus({
+    ...state,
+    board: newBoard
+  })
+  
   // Add annotation to the non-revealed tile
   const nonRevealedPos = saferPos === pos1 ? pos2 : pos1
   const revealedTile = saferPos === pos1 ? tile1 : tile2
@@ -223,7 +229,8 @@ export function executeQuantumEffect(state: GameState, targets: [Position, Posit
   
   const stateWithAnnotation = addOwnerSubsetAnnotation({
     ...state,
-    board: newBoard
+    board: newBoard,
+    gameStatus
   }, nonRevealedPos, possibleOwners)
   
   return stateWithAnnotation

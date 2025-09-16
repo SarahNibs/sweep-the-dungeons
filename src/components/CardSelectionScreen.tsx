@@ -104,23 +104,35 @@ export function CardSelectionScreen({ cards, onCardSelect, onSkip, currentDeck }
         </h3>
         <div style={{
           display: 'flex',
-          flexWrap: 'wrap',
-          gap: '8px',
-          justifyContent: 'center'
+          flexDirection: 'column',
+          gap: '15px',
+          alignItems: 'center'
         }}>
-          {currentDeck.map((card, index) => (
-            <div 
-              key={`${card.name}-${index}`}
-              style={{
-                transform: 'scale(0.6)',
-                transformOrigin: 'center'
-              }}
-            >
-              <Card 
-                card={card}
-                onClick={() => {}} // No-op for deck display
-                isPlayable={true}
-              />
+          {Array.from({ length: Math.ceil(currentDeck.length / 15) }).map((_, rowIndex) => (
+            <div key={rowIndex} style={{
+              display: 'flex',
+              justifyContent: 'center',
+              position: 'relative',
+              height: '80px'
+            }}>
+              {currentDeck.slice(rowIndex * 15, (rowIndex + 1) * 15).map((card, cardIndex) => (
+                <div
+                  key={`${card.name}-${rowIndex}-${cardIndex}`}
+                  style={{
+                    position: 'absolute',
+                    left: `${cardIndex * 20}px`,
+                    zIndex: cardIndex,
+                    transform: 'scale(0.8)',
+                    transformOrigin: 'center center'
+                  }}
+                >
+                  <Card 
+                    card={card}
+                    onClick={() => {}}
+                    isPlayable={true}
+                  />
+                </div>
+              ))}
             </div>
           ))}
         </div>

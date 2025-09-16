@@ -14,6 +14,17 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
   const { hoveredClueId, setHoveredClueId, togglePlayerSlash, tingleAnimation } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
   
+  // Don't render anything for empty tiles (holes in the grid)
+  if (tile.owner === 'empty') {
+    return (
+      <div style={{
+        width: '56px',
+        height: '56px',
+        backgroundColor: 'transparent'
+      }} />
+    )
+  }
+  
   // Add animation styles when component mounts
   useEffect(() => {
     if (!document.getElementById('tile-animations')) {

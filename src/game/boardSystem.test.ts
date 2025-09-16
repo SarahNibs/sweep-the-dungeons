@@ -291,4 +291,72 @@ describe('Board System', () => {
       expect(playerAdjacency).toBe(2) // Two adjacent players at (1,1) and (2,2)
     })
   })
+
+  describe('Holes in Grid (Empty Tiles)', () => {
+    it('creates empty tiles for unusedLocations', () => {
+      const board = createBoard(
+        3, 3,
+        { player: 2, enemy: 2, neutral: 2, mine: 1 },
+        [[1, 1]] // Center hole
+      )
+      
+      const centerTile = getTile(board, { x: 1, y: 1 })
+      expect(centerTile?.owner).toBe('empty')
+      expect(centerTile?.revealed).toBe(false)
+    })
+
+    it('empty tiles do not participate in adjacency calculation', () => {
+      const board = createBoard(
+        3, 3,
+        { player: 8, enemy: 0, neutral: 0, mine: 0 },
+        [[1, 1]] // Center hole - all other tiles are player tiles
+      )
+      
+      // Reveal a corner tile (should count adjacent player tiles, not empty)
+      const revealedBoard = revealTile(board, { x: 0, y: 0 }, 'player')
+      const cornerTile = getTile(revealedBoard, { x: 0, y: 0 })
+      
+      // Should count 2 adjacent player tiles (right and down), not the empty center
+      expect(cornerTile?.adjacencyCount).toBe(2)
+    })
+
+    it('empty tiles cannot be revealed', () => {
+      const board = createBoard(
+        3, 3,
+        { player: 2, enemy: 2, neutral: 2, mine: 1 },
+        [[1, 1]] // Center hole
+      )
+      
+      const originalBoard = board
+      const attemptedRevealBoard = revealTile(board, { x: 1, y: 1 }, 'player')
+      
+      // Board should be unchanged since empty tiles can't be revealed
+      expect(attemptedRevealBoard).toBe(originalBoard)
+      
+      const centerTile = getTile(attemptedRevealBoard, { x: 1, y: 1 })
+      expect(centerTile?.revealed).toBe(false)
+    })
+
+    it('creates correct tile counts with holes', () => {
+      const board = createBoard(
+        3, 3,
+        { player: 2, enemy: 2, neutral: 2, mine: 1 },
+        [[0, 0], [2, 2]] // Two corner holes
+      )
+      
+      const tiles = Array.from(board.tiles.values())
+      const emptyTiles = tiles.filter(t => t.owner === 'empty')
+      const playerTiles = tiles.filter(t => t.owner === 'player') 
+      const enemyTiles = tiles.filter(t => t.owner === 'enemy')
+      const neutralTiles = tiles.filter(t => t.owner === 'neutral')
+      const mineTiles = tiles.filter(t => t.owner === 'mine')
+      
+      expect(emptyTiles.length).toBe(2)
+      expect(playerTiles.length).toBe(2)
+      expect(enemyTiles.length).toBe(2)
+      expect(neutralTiles.length).toBe(2)
+      expect(mineTiles.length).toBe(1)
+      expect(tiles.length).toBe(9) // 3x3 grid still has 9 tiles total
+    })
+  })
 })

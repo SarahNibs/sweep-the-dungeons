@@ -53,21 +53,22 @@ export function createBoard(
     unusedLocations.map(([x, y]) => positionToKey({ x, y }))
   )
   
-  // Create tiles with shuffled owners, skipping unused locations
+  // Create tiles for the entire grid
   let tileIndex = 0
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const position = createPosition(x, y)
       const key = positionToKey(position)
       
-      // Skip unused locations (holes in the grid)
       if (unusedPositions.has(key)) {
-        continue
+        // Create empty tiles for holes in the grid
+        tiles.set(key, createTile(position, 'empty'))
+      } else {
+        // Create normal tiles with shuffled owners
+        const owner = tileTypes[tileIndex]
+        tiles.set(key, createTile(position, owner))
+        tileIndex++
       }
-      
-      const owner = tileTypes[tileIndex]
-      tiles.set(key, createTile(position, owner))
-      tileIndex++
     }
   }
   
@@ -103,7 +104,7 @@ export function revealTile(board: Board, position: Position, revealedBy: 'player
   const key = positionToKey(position)
   const tile = board.tiles.get(key)
   
-  if (!tile || tile.revealed) {
+  if (!tile || tile.revealed || tile.owner === 'empty') {
     return board
   }
   
@@ -154,7 +155,7 @@ export function isValidPosition(board: Board, position: Position): boolean {
 }
 
 export function getUnrevealedCounts(board: Board): Record<Tile['owner'], number> {
-  const counts = { player: 0, enemy: 0, neutral: 0, mine: 0 }
+  const counts = { player: 0, enemy: 0, neutral: 0, mine: 0, empty: 0 }
   
   for (const tile of board.tiles.values()) {
     if (!tile.revealed) {

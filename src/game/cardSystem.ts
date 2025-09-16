@@ -1,7 +1,7 @@
 import { Card, GameState } from '../types'
 import { createBoard } from './boardSystem'
 import { executeCardEffect, requiresTargeting } from './cardeffects'
-import { getLevelConfig as getLevelConfigFromSystem, adjustTileCountsForHoles, getNextLevelId } from './levelSystem'
+import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
 
 export function createCard(name: string, cost: number, exhaust?: boolean): Card {
   return {
@@ -190,11 +190,10 @@ export function createInitialState(levelId: string = 'intro', persistentDeck?: C
   
   if (levelConfig) {
     // Use level configuration
-    const adjustedTileCounts = adjustTileCountsForHoles(levelConfig)
     board = createBoard(
       levelConfig.dimensions.columns,
       levelConfig.dimensions.rows,
-      adjustedTileCounts,
+      levelConfig.tileCounts,
       levelConfig.unusedLocations
     )
   } else {

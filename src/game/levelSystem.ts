@@ -37,20 +37,4 @@ export function isWinningLevel(levelId: string): boolean {
   return level?.uponFinish.winTheGame || false
 }
 
-// Temporary helper: add neutral tiles to account for holes
-export function adjustTileCountsForHoles(levelConfig: LevelConfig): LevelConfig['tileCounts'] {
-  const holeCount = levelConfig.unusedLocations.length
-  const totalTiles = levelConfig.dimensions.columns * levelConfig.dimensions.rows - holeCount
-  const configuredTiles = levelConfig.tileCounts.player + levelConfig.tileCounts.enemy + 
-                         levelConfig.tileCounts.neutral + levelConfig.tileCounts.mine
-  
-  // If we have holes, add neutral tiles to make up the difference
-  if (holeCount > 0 && configuredTiles < totalTiles) {
-    return {
-      ...levelConfig.tileCounts,
-      neutral: levelConfig.tileCounts.neutral + (totalTiles - configuredTiles)
-    }
-  }
-  
-  return levelConfig.tileCounts
-}
+// No longer needed - we use proper empty tiles for holes

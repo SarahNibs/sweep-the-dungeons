@@ -50,7 +50,7 @@ export interface Position {
 
 export interface Tile {
   position: Position
-  owner: 'player' | 'enemy' | 'neutral' | 'mine'
+  owner: 'player' | 'enemy' | 'neutral' | 'mine' | 'empty'
   revealed: boolean
   revealedBy: 'player' | 'enemy' | null
   adjacencyCount: number | null

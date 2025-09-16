@@ -28,6 +28,7 @@ const getCardDescription = (cardName: string, cost: number) => {
     case 'Energized': return baseCost + 'Gain 2 energy. Exhaust (remove from deck after use)'
     case 'Options': return baseCost + 'Draw 3 cards'
     case 'Brush': return baseCost + 'Select center of 3x3 area - exclude random owners from each tile'
+    case 'Ramble': return baseCost + 'Disrupts enemy\'s next turn by removing their guaranteed bag pulls'
     default: return baseCost + 'Unknown card effect'
   }
 }

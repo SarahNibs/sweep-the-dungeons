@@ -108,21 +108,21 @@ export function CardSelectionScreen({ cards, onCardSelect, onSkip, currentDeck }
           gap: '15px',
           alignItems: 'center'
         }}>
-          {Array.from({ length: Math.ceil(currentDeck.length / 15) }).map((_, rowIndex) => (
+          {Array.from({ length: Math.ceil(currentDeck.length / 12) }).map((_, rowIndex) => (
             <div key={rowIndex} style={{
               display: 'flex',
               justifyContent: 'center',
               position: 'relative',
               height: '80px'
             }}>
-              {currentDeck.slice(rowIndex * 15, (rowIndex + 1) * 15).map((card, cardIndex) => (
+              {currentDeck.slice(rowIndex * 12, (rowIndex + 1) * 12).map((card, cardIndex) => (
                 <div
                   key={`${card.name}-${rowIndex}-${cardIndex}`}
                   style={{
                     position: 'absolute',
-                    left: `${cardIndex * 20}px`,
+                    left: `${cardIndex * 35}px`,
                     zIndex: cardIndex,
-                    transform: 'scale(0.8)',
+                    transform: 'scale(0.7)',
                     transformOrigin: 'center center'
                   }}
                 >

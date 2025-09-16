@@ -26,8 +26,9 @@ export function PileViewingScreen({ cards, onClose }: PileViewingScreenProps) {
         backgroundColor: '#2d3436',
         borderRadius: '12px',
         padding: '30px',
-        width: '95vw',
-        height: '90vh',
+        maxWidth: '650px',
+        maxHeight: '500px',
+        width: '90%',
         overflow: 'auto',
         position: 'relative'
       }}>
@@ -68,21 +69,21 @@ export function PileViewingScreen({ cards, onClose }: PileViewingScreenProps) {
             gap: '15px',
             alignItems: 'center'
           }}>
-            {Array.from({ length: Math.ceil(cards.length / 15) }).map((_, rowIndex) => (
+            {Array.from({ length: Math.ceil(cards.length / 12) }).map((_, rowIndex) => (
               <div key={rowIndex} style={{
                 display: 'flex',
                 justifyContent: 'center',
                 position: 'relative',
                 height: '80px'
               }}>
-                {cards.slice(rowIndex * 15, (rowIndex + 1) * 15).map((card, cardIndex) => (
+                {cards.slice(rowIndex * 12, (rowIndex + 1) * 12).map((card, cardIndex) => (
                   <div
                     key={`${card.name}-${rowIndex}-${cardIndex}`}
                     style={{
                       position: 'absolute',
-                      left: `${cardIndex * 20}px`,
+                      left: `${cardIndex * 35}px`,
                       zIndex: cardIndex,
-                      transform: 'scale(0.8)',
+                      transform: 'scale(0.7)',
                       transformOrigin: 'center center'
                     }}
                   >

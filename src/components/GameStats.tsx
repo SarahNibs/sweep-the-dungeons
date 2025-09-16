@@ -105,7 +105,7 @@ export function GameStats({ onResetGame, gameStatus }: GameStatsProps) {
     }
   }, [])
 
-  const slideDistance = 100 // percentage
+  const slideDistance = 110 // percentage - extra 10% for spacing
 
   const isGameEnded = gameStatus.status !== 'playing'
   

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import { GameState, Tile, Position, CardEffect, Board, Card as CardType } from './types'
-import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard } from './game/cardSystem'
+import { GameState, Tile, Position, CardEffect, Board, Card as CardType, PileType } from './types'
+import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection } from './game/cardSystem'
 import { revealTile, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, checkGameStatus, executeTargetedReportEffect, getUnrevealedTilesByOwner } from './game/cardeffects'
 import { processEnemyTurnWithDualClues } from './game/enemyAI'
@@ -21,7 +21,11 @@ interface GameStore extends GameState {
   togglePlayerSlash: (position: Position) => void
   startCardSelection: () => void
   selectNewCard: (card: CardType) => void
+  skipCardSelection: () => void
+  getAllCardsInCollection: () => CardType[]
   executeTingleWithAnimation: (state: GameState) => void
+  viewPile: (pileType: PileType) => void
+  closePileView: () => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -182,13 +186,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
       
       const newHand = currentState.hand.filter(c => c.id !== card.id)
-      // If card has exhaust, don't put it in discard (it's removed from game)
+      // If card has exhaust, put it in exhaust pile; otherwise put in discard
       const newDiscard = card.exhaust ? effectState.discard : [...effectState.discard, card]
+      const newExhaust = card.exhaust ? [...effectState.exhaust, card] : effectState.exhaust
       
       const finalState = {
         ...effectState,
         hand: newHand,
         discard: newDiscard,
+        exhaust: newExhaust,
         energy: effectState.energy - card.cost,
         pendingCardEffect: null
       }
@@ -457,6 +463,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set(nextLevelState)
   },
 
+  skipCardSelection: () => {
+    const currentState = get()
+    const nextLevelState = skipCardSelection(currentState)
+    set(nextLevelState)
+  },
+
+  getAllCardsInCollection: () => {
+    const currentState = get()
+    return getAllCardsInCollection(currentState)
+  },
+
   executeTingleWithAnimation: (state: GameState) => {
     // Find a random enemy tile to target
     const enemyTiles = getUnrevealedTilesByOwner(state, 'enemy')
@@ -504,5 +521,25 @@ export const useGameStore = create<GameStore>((set, get) => ({
         })
       }, 300) // Fade back duration
     }, 800) // Emphasis duration
+  },
+
+  viewPile: (pileType: PileType) => {
+    const currentState = get()
+    if (currentState.gamePhase !== 'playing') return
+    
+    set({
+      ...currentState,
+      gamePhase: 'viewing_pile',
+      pileViewingType: pileType
+    })
+  },
+
+  closePileView: () => {
+    const currentState = get()
+    set({
+      ...currentState,
+      gamePhase: 'playing',
+      pileViewingType: undefined
+    })
   }
 }))

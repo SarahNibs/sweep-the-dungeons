@@ -33,11 +33,21 @@ export function createCard(name: string, cost: number, exhaust?: boolean): Card 
 }
 
 export function createNewLevelCards(): Card[] {
-  return [
+  const availableCards = [
     createCard('Energized', 1, true), // Exhaust card - gain 2 energy
     createCard('Options', 1),         // Draw 3 cards
-    createCard('Brush', 1)            // 3x3 area exclusion effect
+    createCard('Brush', 1),           // 3x3 area exclusion effect
+    createCard('Ramble', 1)           // Disrupts enemy guaranteed pulls
   ]
+  
+  // Randomly select 3 different cards
+  const shuffled = [...availableCards]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  
+  return shuffled.slice(0, 3)
 }
 
 export function createStartingDeck(): Card[] {
@@ -150,16 +160,21 @@ export function playCard(state: GameState, cardId: string): GameState {
     case 'Options':
       newState = executeCardEffect(state, { type: 'options' })
       break
+    case 'Ramble':
+      newState = executeCardEffect(state, { type: 'ramble' })
+      break
   }
 
   const newHand = newState.hand.filter((_, index) => index !== cardIndex)
-  // If card has exhaust, don't put it in discard (it's removed from game)
+  // If card has exhaust, put it in exhaust pile; otherwise put in discard
   const newDiscard = card.exhaust ? newState.discard : [...newState.discard, card]
+  const newExhaust = card.exhaust ? [...newState.exhaust, card] : newState.exhaust
 
   return {
     ...newState,
     hand: newHand,
     discard: newDiscard,
+    exhaust: newExhaust,
     selectedCardName: card.name,
     energy: newState.energy - card.cost
   }
@@ -181,12 +196,14 @@ export function startNewTurn(state: GameState): GameState {
   
   return {
     ...drawnState,
-    energy: drawnState.maxEnergy
+    energy: drawnState.maxEnergy,
+    rambleActive: false // Clear ramble effect at start of new turn
   }
 }
 
-export function createInitialState(level: number = 1): GameState {
-  const deck = shuffleDeck(createStartingDeck())
+export function createInitialState(level: number = 1, persistentDeck?: Card[]): GameState {
+  const startingPersistentDeck = persistentDeck || createStartingDeck()
+  const deck = shuffleDeck([...startingPersistentDeck]) // Copy and shuffle persistent deck for in-play use
   const levelConfig = getLevelConfig(level)
   
   let board = createBoard()
@@ -202,9 +219,11 @@ export function createInitialState(level: number = 1): GameState {
   }
   
   const initialState: GameState = {
+    persistentDeck: startingPersistentDeck,
     deck,
     hand: [],
     discard: [],
+    exhaust: [],
     selectedCardName: null,
     energy: 3,
     maxEnergy: 3,
@@ -221,7 +240,8 @@ export function createInitialState(level: number = 1): GameState {
     gamePhase: 'playing',
     enemyHiddenClues: [],
     tingleAnimation: null,
-    enemyAnimation: null
+    enemyAnimation: null,
+    rambleActive: false
   }
   
   return drawCards(initialState, 5)
@@ -238,11 +258,24 @@ export function startCardSelection(state: GameState): GameState {
 
 export function selectNewCard(state: GameState, selectedCard: Card): GameState {
   const nextLevel = state.currentLevel + 1
-  const newLevelState = createInitialState(nextLevel)
   
-  // Add the selected card to the new deck
-  return {
-    ...newLevelState,
-    deck: [...newLevelState.deck, selectedCard]
-  }
+  // Add the selected card to the persistent deck
+  const newPersistentDeck = [...state.persistentDeck, selectedCard]
+  const newLevelState = createInitialState(nextLevel, newPersistentDeck)
+  
+  return newLevelState
+}
+
+export function skipCardSelection(state: GameState): GameState {
+  const nextLevel = state.currentLevel + 1
+  
+  // Keep the persistent deck without adding any cards
+  const newLevelState = createInitialState(nextLevel, state.persistentDeck)
+  
+  return newLevelState
+}
+
+export function getAllCardsInCollection(state: GameState): Card[] {
+  // Return all cards the player owns (persistent deck)
+  return [...state.persistentDeck]
 }

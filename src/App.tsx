@@ -4,12 +4,14 @@ import { Hand } from './components/Hand'
 import { Board } from './components/Board'
 import { PromptWidget } from './components/PromptWidget'
 import { CardSelectionScreen } from './components/CardSelectionScreen'
+import { PileViewingScreen } from './components/PileViewingScreen'
 
 function App() {
   const { 
     deck, 
     hand, 
     discard, 
+    exhaust,
     energy,
     maxEnergy,
     board,
@@ -17,6 +19,7 @@ function App() {
     currentLevel,
     gamePhase,
     cardSelectionOptions,
+    pileViewingType,
     playCard, 
     endTurn, 
     resetGame,
@@ -25,7 +28,11 @@ function App() {
     getTargetingInfo,
     cancelCardTargeting,
     startCardSelection,
-    selectNewCard
+    selectNewCard,
+    skipCardSelection,
+    getAllCardsInCollection,
+    viewPile,
+    closePileView
   } = useGameStore()
 
   return (
@@ -60,9 +67,11 @@ function App() {
           canPlayCard={canPlayCard}
           deckCount={deck.length}
           discardCount={discard.length}
+          exhaustCount={exhaust.length}
           energy={energy}
           maxEnergy={maxEnergy}
           onEndTurn={endTurn}
+          onPileClick={viewPile}
         />
       </div>
 
@@ -71,7 +80,17 @@ function App() {
         <CardSelectionScreen
           cards={cardSelectionOptions}
           onCardSelect={selectNewCard}
-          currentLevel={currentLevel}
+          onSkip={skipCardSelection}
+          currentDeck={getAllCardsInCollection()}
+        />
+      )}
+
+      {/* Pile Viewing Screen */}
+      {gamePhase === 'viewing_pile' && pileViewingType && (
+        <PileViewingScreen
+          pileType={pileViewingType}
+          cards={pileViewingType === 'deck' ? deck : pileViewingType === 'discard' ? discard : exhaust}
+          onClose={closePileView}
         />
       )}
     </div>

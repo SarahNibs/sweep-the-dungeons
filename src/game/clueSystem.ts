@@ -47,17 +47,21 @@ export function generateClueFromBag(
   guaranteedTiles: Tile[],
   bag: Tile[],
   totalDraws: number,
-  params: ClueParams
+  params: ClueParams,
+  skipGuaranteedTiles: boolean = false
 ): ClueGenerationResult {
   
   const drawnTiles: Tile[] = []
   
-  // Add guaranteed draws first
-  drawnTiles.push(...guaranteedTiles)
+  // Add guaranteed draws first (unless Ramble is active)
+  if (!skipGuaranteedTiles) {
+    drawnTiles.push(...guaranteedTiles)
+  }
   
   // Draw remaining tiles randomly from bag
   const bagCopy = [...bag]
-  const remainingDraws = totalDraws - guaranteedTiles.length
+  const guaranteedCount = skipGuaranteedTiles ? 0 : guaranteedTiles.length
+  const remainingDraws = totalDraws - guaranteedCount
   
   for (let i = 0; i < Math.min(remainingDraws, bagCopy.length); i++) {
     const randomIndex = Math.floor(Math.random() * bagCopy.length)

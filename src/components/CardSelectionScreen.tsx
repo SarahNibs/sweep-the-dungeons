@@ -4,19 +4,11 @@ import { Card } from './Card'
 interface CardSelectionScreenProps {
   cards: CardType[]
   onCardSelect: (card: CardType) => void
-  currentLevel: number
+  onSkip: () => void
+  currentDeck: CardType[]
 }
 
-const getCardDescription = (cardName: string) => {
-  switch (cardName) {
-    case 'Energized': return 'Gain 2 energy. Exhaust (remove from deck after use)'
-    case 'Options': return 'Draw 3 cards'
-    case 'Brush': return 'Select center of 3x3 area - exclude random owners from each tile'
-    default: return 'Unknown card effect'
-  }
-}
-
-export function CardSelectionScreen({ cards, onCardSelect, currentLevel }: CardSelectionScreenProps) {
+export function CardSelectionScreen({ cards, onCardSelect, onSkip, currentDeck }: CardSelectionScreenProps) {
   return (
     <div style={{
       position: 'fixed',
@@ -29,44 +21,20 @@ export function CardSelectionScreen({ cards, onCardSelect, currentLevel }: CardS
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 1000
+      zIndex: 1000,
+      padding: '20px'
     }}>
-      <div style={{
-        textAlign: 'center',
-        marginBottom: '40px'
-      }}>
-        <h1 style={{
-          fontSize: '36px',
-          fontWeight: 'bold',
-          color: '#74b9ff',
-          margin: '0 0 16px 0'
-        }}>
-          Level {currentLevel} Complete!
-        </h1>
-        <h2 style={{
-          fontSize: '24px',
-          color: '#ddd',
-          margin: '0 0 8px 0'
-        }}>
-          Choose a card to add to your deck
-        </h2>
-        <p style={{
-          fontSize: '16px',
-          color: '#999',
-          margin: '0'
-        }}>
-          Click on a card to select it and continue to level {currentLevel + 1}
-        </p>
-      </div>
-
+      {/* Three cards centered */}
       <div style={{
         display: 'flex',
         gap: '40px',
-        alignItems: 'center'
+        alignItems: 'center',
+        marginBottom: '40px'
       }}>
         {cards.map((card) => (
-          <div key={card.id} style={{ textAlign: 'center' }}>
-            <div style={{
+          <div 
+            key={card.id} 
+            style={{
               transform: 'scale(1.2)',
               transition: 'transform 0.2s',
               cursor: 'pointer'
@@ -78,53 +46,84 @@ export function CardSelectionScreen({ cards, onCardSelect, currentLevel }: CardS
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'scale(1.2)'
             }}
+          >
+            <Card 
+              card={card}
+              onClick={() => {}} // Remove duplicate click handler
+              isPlayable={true}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Skip button */}
+      <div style={{ marginBottom: '40px' }}>
+        <button
+          onClick={onSkip}
+          style={{
+            padding: '12px 24px',
+            fontSize: '16px',
+            backgroundColor: '#636e72',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#74b9ff'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#636e72'
+          }}
+        >
+          Skip
+        </button>
+      </div>
+
+      {/* Current deck display */}
+      <div style={{
+        width: '100%',
+        maxWidth: '800px',
+        maxHeight: '200px',
+        overflowY: 'auto',
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        borderRadius: '8px',
+        border: '1px solid #74b9ff',
+        padding: '16px'
+      }}>
+        <h3 style={{
+          fontSize: '16px',
+          fontWeight: 'bold',
+          color: '#74b9ff',
+          margin: '0 0 12px 0',
+          textAlign: 'center'
+        }}>
+          Current Deck ({currentDeck.length} cards)
+        </h3>
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '8px',
+          justifyContent: 'center'
+        }}>
+          {currentDeck.map((card, index) => (
+            <div 
+              key={`${card.name}-${index}`}
+              style={{
+                transform: 'scale(0.6)',
+                transformOrigin: 'center'
+              }}
             >
               <Card 
                 card={card}
-                onClick={() => onCardSelect(card)}
+                onClick={() => {}} // No-op for deck display
                 isPlayable={true}
               />
             </div>
-            <div style={{
-              marginTop: '16px',
-              maxWidth: '200px',
-              padding: '12px',
-              backgroundColor: 'rgba(0, 0, 0, 0.3)',
-              borderRadius: '8px',
-              border: '1px solid #74b9ff'
-            }}>
-              <h3 style={{
-                fontSize: '14px',
-                fontWeight: 'bold',
-                color: '#74b9ff',
-                margin: '0 0 8px 0'
-              }}>
-                {card.name}
-              </h3>
-              <p style={{
-                fontSize: '12px',
-                color: '#ddd',
-                margin: '0',
-                lineHeight: '1.4'
-              }}>
-                {getCardDescription(card.name)}
-              </p>
-              {card.exhaust && (
-                <div style={{
-                  marginTop: '8px',
-                  padding: '4px 8px',
-                  backgroundColor: '#e74c3c',
-                  color: 'white',
-                  borderRadius: '4px',
-                  fontSize: '10px',
-                  fontWeight: 'bold'
-                }}>
-                  EXHAUST
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   )

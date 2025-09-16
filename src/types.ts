@@ -1,3 +1,5 @@
+export type PileType = 'deck' | 'discard' | 'exhaust'
+
 export interface Card {
   id: string
   name: string
@@ -14,6 +16,7 @@ export type CardEffect =
   | { type: 'energized' }
   | { type: 'options' }
   | { type: 'brush'; target: Position }
+  | { type: 'ramble' }
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
@@ -71,9 +74,13 @@ export interface LevelConfig {
 }
 
 export interface GameState {
-  deck: Card[]
+  // Persistent deck - all cards the player owns across levels
+  persistentDeck: Card[]
+  // In-play state - only used during levels, reset each level
+  deck: Card[] // Draw pile
   hand: Card[]
   discard: Card[]
+  exhaust: Card[] // Cards removed from play this level (but still in persistent deck)
   selectedCardName: string | null
   energy: number
   maxEnergy: number
@@ -87,7 +94,8 @@ export interface GameState {
   playerClueCounter: number // Counter for player clue rows
   enemyClueCounter: number // Counter for enemy clue rows
   currentLevel: number
-  gamePhase: 'playing' | 'card_selection' | 'transitioning'
+  gamePhase: 'playing' | 'card_selection' | 'viewing_pile'
+  pileViewingType?: PileType
   cardSelectionOptions?: Card[] // Three cards to choose from when advancing level
   // Dual enemy clue system: visible clues (shown as X) vs AI clues (hidden)
   enemyHiddenClues: ClueResult[] // AI-only clues for enemy decision making (not shown to player)
@@ -101,6 +109,7 @@ export interface GameState {
     revealsRemaining: Tile[]
     currentRevealIndex: number
   } | null
+  rambleActive: boolean // True if Ramble was played this turn
 }
 
 export type CardZone = 'deck' | 'hand' | 'discard'

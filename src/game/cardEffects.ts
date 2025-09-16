@@ -364,6 +364,11 @@ export function executeCardEffect(state: GameState, effect: CardEffect): GameSta
       return executeOptionsEffect(state)
     case 'brush':
       return executeBrushEffect(state, effect.target)
+    case 'ramble':
+      return {
+        ...state,
+        rambleActive: true
+      }
     default:
       return state
   }

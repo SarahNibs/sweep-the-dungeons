@@ -11,6 +11,7 @@ const getCardImage = (cardName: string) => {
     case 'Energized': return '⚡'
     case 'Options': return '🃏'
     case 'Brush': return '🖌️'
+    case 'Ramble': return '🌀'
     default: return '❓'
   }
 }

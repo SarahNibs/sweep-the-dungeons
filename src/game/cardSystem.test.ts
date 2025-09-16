@@ -519,27 +519,33 @@ describe('Card System', () => {
       expect(revealedTiles.length).toBe(1)
       expect(revealedTiles[0].owner).toBe('enemy')
       
-      // Should have selected card in deck
-      expect(state2.deck.some(card => card.name === selectedCard.name)).toBe(true)
+      // Should have selected card in persistent deck
+      expect(state2.persistentDeck.some(card => card.name === selectedCard.name)).toBe(true)
     })
 
     it('creates new level cards correctly', () => {
       const cards = createNewLevelCards()
+      
       expect(cards.length).toBe(3)
       
-      const energized = cards.find(c => c.name === 'Energized')
-      const options = cards.find(c => c.name === 'Options')
-      const brush = cards.find(c => c.name === 'Brush')
+      // Check that we get 3 different cards from the available pool
+      const cardNames = cards.map(c => c.name)
+      const uniqueNames = new Set(cardNames)
+      expect(uniqueNames.size).toBe(3) // All cards should be different
       
-      expect(energized).toBeDefined()
-      expect(energized?.exhaust).toBe(true)
-      expect(energized?.cost).toBe(1)
+      // Check that all cards come from the expected set
+      const validNames = ['Energized', 'Options', 'Brush', 'Ramble']
+      cardNames.forEach(name => {
+        expect(validNames).toContain(name)
+      })
       
-      expect(options).toBeDefined()
-      expect(options?.cost).toBe(1)
-      
-      expect(brush).toBeDefined()
-      expect(brush?.cost).toBe(1)
+      // Check card properties
+      cards.forEach(card => {
+        expect(card.cost).toBe(1)
+        if (card.name === 'Energized') {
+          expect(card.exhaust).toBe(true)
+        }
+      })
     })
   })
 })

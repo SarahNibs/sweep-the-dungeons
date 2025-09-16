@@ -9,12 +9,14 @@ interface HandProps {
   canPlayCard: (cardId: string) => boolean
   deckCount: number
   discardCount: number
+  exhaustCount: number
   energy: number
   maxEnergy: number
   onEndTurn: () => void
+  onPileClick?: (pileType: 'deck' | 'discard' | 'exhaust') => void
 }
 
-export function Hand({ cards, onCardClick, canPlayCard, deckCount, discardCount, energy, maxEnergy, onEndTurn }: HandProps) {
+export function Hand({ cards, onCardClick, canPlayCard, deckCount, discardCount, exhaustCount, energy, maxEnergy, onEndTurn, onPileClick }: HandProps) {
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null)
   
   // Calculate dynamic overlap based on hand size
@@ -61,19 +63,23 @@ export function Hand({ cards, onCardClick, canPlayCard, deckCount, discardCount,
         </Tooltip>
         
         {/* Deck widget */}
-        <Tooltip text={`Deck: ${deckCount} cards`}>
-          <div style={{
-            width: '28px',
-            height: '35px',
-            backgroundColor: '#6b8e5a',
-            color: 'white',
-            borderRadius: '2px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '12px',
-            fontWeight: 'bold'
-          }}>
+        <Tooltip text={`Draw pile: ${deckCount} cards remaining (click to view)`}>
+          <div 
+            style={{
+              width: '28px',
+              height: '35px',
+              backgroundColor: '#6b8e5a',
+              color: 'white',
+              borderRadius: '2px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              cursor: onPileClick ? 'pointer' : 'default'
+            }}
+            onClick={() => onPileClick?.('deck')}
+          >
             {deckCount}
           </div>
         </Tooltip>
@@ -109,20 +115,46 @@ export function Hand({ cards, onCardClick, canPlayCard, deckCount, discardCount,
         gap: '12px'
       }}>
         {/* Discard widget */}
-        <Tooltip text={`Discard: ${discardCount} cards`}>
-          <div style={{
-            width: '28px',
-            height: '35px',
-            backgroundColor: '#6c757d',
-            color: 'white',
-            borderRadius: '2px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '12px',
-            fontWeight: 'bold'
-          }}>
+        <Tooltip text={`Discard: ${discardCount} cards used this level (click to view)`}>
+          <div 
+            style={{
+              width: '28px',
+              height: '35px',
+              backgroundColor: '#6c757d',
+              color: 'white',
+              borderRadius: '2px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              cursor: onPileClick ? 'pointer' : 'default'
+            }}
+            onClick={() => onPileClick?.('discard')}
+          >
             {discardCount}
+          </div>
+        </Tooltip>
+        
+        {/* Exhaust widget */}
+        <Tooltip text={`Exhaust: ${exhaustCount} cards removed this level (click to view)`}>
+          <div 
+            style={{
+              width: '28px',
+              height: '35px',
+              backgroundColor: '#8b4513',
+              color: 'white',
+              borderRadius: '2px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              cursor: onPileClick ? 'pointer' : 'default'
+            }}
+            onClick={() => onPileClick?.('exhaust')}
+          >
+            {exhaustCount}
           </div>
         </Tooltip>
         

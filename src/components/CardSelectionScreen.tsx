@@ -115,24 +115,30 @@ export function CardSelectionScreen({ cards, onCardSelect, onSkip, currentDeck }
               position: 'relative',
               height: '80px'
             }}>
-              {currentDeck.slice(rowIndex * 12, (rowIndex + 1) * 12).map((card, cardIndex) => (
-                <div
-                  key={`${card.name}-${rowIndex}-${cardIndex}`}
-                  style={{
-                    position: 'absolute',
-                    left: `${cardIndex * 35}px`,
-                    zIndex: cardIndex,
-                    transform: 'scale(0.7)',
-                    transformOrigin: 'center center'
-                  }}
-                >
-                  <Card 
-                    card={card}
-                    onClick={() => {}}
-                    isPlayable={true}
-                  />
-                </div>
-              ))}
+              {currentDeck.slice(rowIndex * 12, (rowIndex + 1) * 12).map((card, cardIndex) => {
+                const cardsInThisRow = currentDeck.slice(rowIndex * 12, (rowIndex + 1) * 12).length
+                const totalWidth = (cardsInThisRow - 1) * 35
+                const leftOffset = -totalWidth / 2
+                
+                return (
+                  <div
+                    key={`${card.name}-${rowIndex}-${cardIndex}`}
+                    style={{
+                      position: 'absolute',
+                      left: `${leftOffset + cardIndex * 35}px`,
+                      zIndex: cardIndex,
+                      transform: 'scale(0.7)',
+                      transformOrigin: 'center center'
+                    }}
+                  >
+                    <Card 
+                      card={card}
+                      onClick={() => {}}
+                      isPlayable={true}
+                    />
+                  </div>
+                )
+              })}
             </div>
           ))}
         </div>

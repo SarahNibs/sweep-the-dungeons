@@ -27,6 +27,7 @@ interface GameStore extends GameState {
   executeTingleWithAnimation: (state: GameState) => void
   viewPile: (pileType: PileType) => void
   closePileView: () => void
+  debugWinLevel: () => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -125,7 +126,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const stateWithBoard = {
       ...currentState,
       board: newBoard,
-      gameStatus
+      gameStatus,
+      hoveredClueId: null // Clear hover state when tile is revealed to fix pip hover bug
     }
     
     if (gameStatus.status !== 'playing') {
@@ -146,7 +148,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (currentState.currentPlayer !== 'player') return
     
     const tile = currentState.board.tiles.get(positionToKey(position))
-    if (!tile || tile.revealed) return
+    if (!tile) return
+    
+    // For Brush card, allow targeting revealed tiles (it's selecting center of 3x3 area)
+    if (tile.revealed && currentState.selectedCardName !== 'Brush') return
     
     const effect = currentState.pendingCardEffect
     let newEffect: CardEffect | null = null
@@ -549,6 +554,40 @@ export const useGameStore = create<GameStore>((set, get) => ({
       ...currentState,
       gamePhase: 'playing',
       pileViewingType: undefined
+    })
+  },
+
+  debugWinLevel: () => {
+    const currentState = get()
+    if (currentState.gameStatus.status !== 'playing') return
+    
+    // Force win by setting all player tiles as revealed
+    const newTiles = new Map(currentState.board.tiles)
+    for (const [key, tile] of newTiles) {
+      if (tile.owner === 'player' && !tile.revealed) {
+        newTiles.set(key, {
+          ...tile,
+          revealed: true,
+          revealedBy: 'player',
+          adjacencyCount: 0 // Don't bother calculating, just set to 0 for debug
+        })
+      }
+    }
+    
+    const newBoard = {
+      ...currentState.board,
+      tiles: newTiles
+    }
+    
+    const gameStatus = checkGameStatus({
+      ...currentState,
+      board: newBoard
+    })
+    
+    set({
+      ...currentState,
+      board: newBoard,
+      gameStatus
     })
   }
 }))

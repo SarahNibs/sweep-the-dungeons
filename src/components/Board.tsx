@@ -3,6 +3,7 @@ import { Tile } from './Tile'
 import { TileCountInfo } from './TileCountInfo'
 import { positionToKey } from '../game/boardSystem'
 import { useGameStore } from '../store'
+import { useState } from 'react'
 
 interface BoardProps {
   board: BoardType
@@ -11,7 +12,10 @@ interface BoardProps {
 }
 
 export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
-  const { enemyAnimation } = useGameStore()
+  const { enemyAnimation, selectedCardName, pendingCardEffect } = useGameStore()
+  const [brushHoverCenter, setBrushHoverCenter] = useState<Position | null>(null)
+  
+  const isBrushTargeting = selectedCardName === 'Brush' && pendingCardEffect?.type === 'brush'
   
   const renderTiles = () => {
     const tiles: JSX.Element[] = []
@@ -31,14 +35,30 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
             enemyAnimation.highlightedTile.x === tile.position.x && 
             enemyAnimation.highlightedTile.y === tile.position.y)
           
+          // Check if this tile is in the 3x3 brush area
+          const isInBrushArea = isBrushTargeting && brushHoverCenter && 
+            Math.abs(tile.position.x - brushHoverCenter.x) <= 1 && 
+            Math.abs(tile.position.y - brushHoverCenter.y) <= 1
+          
           tiles.push(
             <Tile
               key={key}
               tile={tile}
               onClick={onTileClick}
-              isTargeting={isTargeting && !tile.revealed}
+              isTargeting={isTargeting && (isBrushTargeting || !tile.revealed)}
               isSelected={isSelected}
               isEnemyHighlighted={isEnemyHighlighted}
+              isBrushHighlighted={isInBrushArea || false}
+              onMouseEnter={() => {
+                if (isBrushTargeting) {
+                  setBrushHoverCenter({ x, y })
+                }
+              }}
+              onMouseLeave={() => {
+                if (isBrushTargeting) {
+                  setBrushHoverCenter(null)
+                }
+              }}
             />
           )
         }

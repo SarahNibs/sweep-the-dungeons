@@ -8,22 +8,14 @@ interface TileProps {
   isTargeting?: boolean
   isSelected?: boolean
   isEnemyHighlighted?: boolean
+  isBrushHighlighted?: boolean
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
 }
 
-export function Tile({ tile, onClick, isTargeting = false, isSelected = false, isEnemyHighlighted = false }: TileProps) {
+export function Tile({ tile, onClick, isTargeting = false, isSelected = false, isEnemyHighlighted = false, isBrushHighlighted = false, onMouseEnter, onMouseLeave }: TileProps) {
   const { hoveredClueId, setHoveredClueId, togglePlayerSlash, tingleAnimation } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
-  
-  // Don't render anything for empty tiles (holes in the grid)
-  if (tile.owner === 'empty') {
-    return (
-      <div style={{
-        width: '56px',
-        height: '56px',
-        backgroundColor: 'transparent'
-      }} />
-    )
-  }
   
   // Add animation styles when component mounts
   useEffect(() => {
@@ -308,8 +300,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                 position: 'absolute',
                 bottom: `${2 + info.position.top}px`,
                 right: `${2 + info.position.left}px`,
-                width: '3px',
-                height: '3px',
+                width: '4px',
+                height: '4px',
                 backgroundColor: info.color,
                 border: '0.5px solid black'
               }}
@@ -354,6 +346,17 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     return null
   }
 
+  // Handle empty tiles (holes in the grid) after all hooks have been called
+  if (tile.owner === 'empty') {
+    return (
+      <div style={{
+        width: '56px',
+        height: '56px',
+        backgroundColor: 'transparent'
+      }} />
+    )
+  }
+
   return (
     <div
       onClick={handleClick}
@@ -366,6 +369,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         border: isSelected ? '3px solid #ffc107' : 
                 isTargeting ? '2px solid #007bff' : 
                 isEnemyHighlighted || isTingleEmphasized() ? '3px solid #dc3545' :
+                isBrushHighlighted ? '2px solid #ff8c00' :
                 isClueHighlighted() ? '2px solid #40c057' : 
                 '2px solid #333',
         borderRadius: '4px',
@@ -380,6 +384,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         userSelect: 'none',
         transform: (isHovered && !tile.revealed) ? 'scale(1.05)' : 'scale(1)',
         boxShadow: isEnemyHighlighted || isTingleEmphasized() ? '0 0 12px rgba(220, 53, 69, 0.6)' :
+                   isBrushHighlighted ? '0 0 8px rgba(255, 140, 0, 0.5)' :
                    isClueHighlighted() ? '0 0 8px rgba(64, 192, 87, 0.4)' :
                    (isHovered && !tile.revealed) ? '0 2px 4px rgba(0,0,0,0.3)' : 
                    'none',
@@ -388,9 +393,11 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       }}
       onMouseEnter={() => {
         setIsHovered(true)
+        onMouseEnter?.()
       }}
       onMouseLeave={() => {
         setIsHovered(false)
+        onMouseLeave?.()
       }}
     >
       {getOverlay()}

@@ -32,7 +32,8 @@ function App() {
     skipCardSelection,
     getAllCardsInCollection,
     viewPile,
-    closePileView
+    closePileView,
+    debugWinLevel
   } = useGameStore()
 
   return (
@@ -49,7 +50,7 @@ function App() {
         flexDirection: 'column',
         alignItems: 'center'
       }}>
-        <GameStats onResetGame={resetGame} gameStatus={gameStatus} />
+        <GameStats onResetGame={resetGame} gameStatus={gameStatus} onDebugWin={debugWinLevel} />
         
         <PromptWidget 
           targetingInfo={getTargetingInfo()} 

@@ -24,15 +24,22 @@ export function createTile(position: Position, owner: Tile['owner']): Tile {
   }
 }
 
-export function createBoard(width: number = 6, height: number = 5): Board {
+export function createBoard(
+  width: number = 6, 
+  height: number = 5,
+  tileCounts: { player: number; enemy: number; neutral: number; mine: number } = {
+    player: 12, enemy: 10, neutral: 7, mine: 1
+  },
+  unusedLocations: number[][] = []
+): Board {
   const tiles = new Map<string, Tile>()
   
-  // Create exact counts: 12 player, 10 enemy, 7 neutral, 1 mine (30 total)
+  // Create tile types array based on provided counts
   const tileTypes: Tile['owner'][] = [
-    ...Array(12).fill('player'),
-    ...Array(10).fill('enemy'),
-    ...Array(7).fill('neutral'),
-    ...Array(1).fill('mine')
+    ...Array(tileCounts.player).fill('player'),
+    ...Array(tileCounts.enemy).fill('enemy'),
+    ...Array(tileCounts.neutral).fill('neutral'),
+    ...Array(tileCounts.mine).fill('mine')
   ]
   
   // Shuffle the array for random distribution
@@ -41,14 +48,24 @@ export function createBoard(width: number = 6, height: number = 5): Board {
     [tileTypes[i], tileTypes[j]] = [tileTypes[j], tileTypes[i]]
   }
   
-  // Create tiles with shuffled owners
+  // Convert unusedLocations to Set of position keys for fast lookup
+  const unusedPositions = new Set(
+    unusedLocations.map(([x, y]) => positionToKey({ x, y }))
+  )
+  
+  // Create tiles with shuffled owners, skipping unused locations
   let tileIndex = 0
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const position = createPosition(x, y)
       const key = positionToKey(position)
-      const owner = tileTypes[tileIndex]
       
+      // Skip unused locations (holes in the grid)
+      if (unusedPositions.has(key)) {
+        continue
+      }
+      
+      const owner = tileTypes[tileIndex]
       tiles.set(key, createTile(position, owner))
       tileIndex++
     }

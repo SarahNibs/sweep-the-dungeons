@@ -4,6 +4,7 @@ import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardU
 import { revealTile, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, checkGameStatus, executeTargetedReportEffect, getUnrevealedTilesByOwner } from './game/cardeffects'
 import { processEnemyTurnWithDualClues } from './game/enemyAI'
+import { shouldShowCardReward } from './game/levelSystem'
 
 interface GameStore extends GameState {
   playCard: (cardId: string) => void
@@ -85,7 +86,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
   
   resetGame: () => {
-    set(createInitialState())
+    set(createInitialState('intro'))
   },
 
   canPlayCard: (cardId: string) => {
@@ -453,8 +454,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   startCardSelection: () => {
     const currentState = get()
-    const cardSelectionState = startCardSelection(currentState)
-    set(cardSelectionState)
+    
+    // Check if this level should show card rewards
+    if (shouldShowCardReward(currentState.currentLevelId)) {
+      const cardSelectionState = startCardSelection(currentState)
+      set(cardSelectionState)
+    } else {
+      // Skip card selection and go directly to next level
+      const nextLevelState = skipCardSelection(currentState)
+      set(nextLevelState)
+    }
   },
 
   selectNewCard: (card: CardType) => {

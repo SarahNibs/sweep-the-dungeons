@@ -64,13 +64,30 @@ export interface Board {
 }
 
 export interface LevelConfig {
-  level: number
-  revealEnemyTileAtStart: boolean
-  // Future level customizations can go here:
-  // boardSize?: { width: number, height: number }
-  // startingEnergy?: number
-  // specialCards?: string[]
-  // enemyBehavior?: 'normal' | 'aggressive' | 'defensive'
+  levelNumber: number
+  levelId: string
+  uponFinish: {
+    cardReward: boolean
+    relicReward: boolean
+    upgradeReward: boolean
+    shopReward: boolean
+    winTheGame: boolean
+    nextLevel: string[]
+  }
+  description: string
+  dimensions: {
+    columns: number
+    rows: number
+  }
+  tileCounts: {
+    player: number
+    enemy: number
+    neutral: number
+    mine: number
+  }
+  unusedLocations: number[][]
+  specialTiles: any[]
+  specialBehaviors: any
 }
 
 export interface GameState {
@@ -93,7 +110,7 @@ export interface GameState {
   clueCounter: number // Counter for clue order (1st, 2nd, 3rd...)
   playerClueCounter: number // Counter for player clue rows
   enemyClueCounter: number // Counter for enemy clue rows
-  currentLevel: number
+  currentLevelId: string
   gamePhase: 'playing' | 'card_selection' | 'viewing_pile'
   pileViewingType?: PileType
   cardSelectionOptions?: Card[] // Three cards to choose from when advancing level

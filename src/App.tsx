@@ -16,7 +16,7 @@ function App() {
     maxEnergy,
     board,
     gameStatus,
-    currentLevel,
+    currentLevelId,
     gamePhase,
     cardSelectionOptions,
     pileViewingType,
@@ -55,7 +55,7 @@ function App() {
           targetingInfo={getTargetingInfo()} 
           onCancel={cancelCardTargeting}
           gameStatus={gameStatus}
-          currentLevel={currentLevel}
+          currentLevel={currentLevelId}
           onAdvanceLevel={startCardSelection}
         />
 

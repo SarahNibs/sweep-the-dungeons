@@ -469,32 +469,30 @@ describe('Card System', () => {
   })
 
   describe('Level System', () => {
-    it('starts at level 1 by default', () => {
+    it('starts at intro level by default', () => {
       const state = createInitialState()
-      expect(state.currentLevel).toBe(1)
+      expect(state.currentLevelId).toBe('intro')
     })
 
     it('can create state at specific level', () => {
-      const state = createInitialState(3)
-      expect(state.currentLevel).toBe(3)
+      const state = createInitialState('firstMine')
+      expect(state.currentLevelId).toBe('firstMine')
     })
 
-    it('level 1 does not reveal enemy tiles at start', () => {
-      const state = createInitialState(1)
+    it('intro level does not reveal enemy tiles at start', () => {
+      const state = createInitialState('intro')
       const revealedTiles = Array.from(state.board.tiles.values()).filter(tile => tile.revealed)
       expect(revealedTiles.length).toBe(0)
     })
 
-    it('level 2+ reveals one enemy tile at start', () => {
-      const state = createInitialState(2)
-      const revealedTiles = Array.from(state.board.tiles.values()).filter(tile => tile.revealed)
-      expect(revealedTiles.length).toBe(1)
-      expect(revealedTiles[0].owner).toBe('enemy')
-      expect(revealedTiles[0].revealedBy).toBe('enemy')
+    it('intro level has no mines', () => {
+      const state = createInitialState('intro')
+      const mineTiles = Array.from(state.board.tiles.values()).filter(tile => tile.owner === 'mine')
+      expect(mineTiles.length).toBe(0)
     })
 
     it('advances to card selection correctly', () => {
-      const state1 = createInitialState(1)
+      const state1 = createInitialState('intro')
       const cardSelectionState = startCardSelection(state1)
       
       expect(cardSelectionState.gamePhase).toBe('card_selection')
@@ -503,21 +501,20 @@ describe('Card System', () => {
     })
 
     it('selects new card and advances level correctly', () => {
-      const state1 = createInitialState(2)
+      const state1 = createInitialState('intro')
       const cardOptions = createNewLevelCards()
       const selectedCard = cardOptions[0] // Energized
       const state2 = selectNewCard(state1, selectedCard)
       
-      expect(state2.currentLevel).toBe(3)
+      expect(state2.currentLevelId).toBe('firstMine')
       expect(state2.energy).toBe(3) // Fresh energy
       expect(state2.hand.length).toBe(5) // Fresh hand
       expect(state2.gameStatus.status).toBe('playing') // Reset game status
       expect(state2.gamePhase).toBe('playing') // Back to playing phase
       
-      // Should have one revealed enemy tile for level 3+
-      const revealedTiles = Array.from(state2.board.tiles.values()).filter(tile => tile.revealed)
-      expect(revealedTiles.length).toBe(1)
-      expect(revealedTiles[0].owner).toBe('enemy')
+      // FirstMine level should have 1 mine tile
+      const mineTiles = Array.from(state2.board.tiles.values()).filter(tile => tile.owner === 'mine')
+      expect(mineTiles.length).toBe(1)
       
       // Should have selected card in persistent deck
       expect(state2.persistentDeck.some(card => card.name === selectedCard.name)).toBe(true)

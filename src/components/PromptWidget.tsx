@@ -1,18 +1,28 @@
 import { Position, GameStatusInfo } from '../types'
+import { getLevelConfig } from '../game/levelSystem'
 
 interface PromptWidgetProps {
   targetingInfo: { count: number; description: string; selected: Position[] } | null
   onCancel: () => void
   gameStatus: GameStatusInfo
-  currentLevel: number
+  currentLevel: string
   onAdvanceLevel?: () => void
 }
 
 export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel, onAdvanceLevel }: PromptWidgetProps) {
+  const levelConfig = getLevelConfig(currentLevel)
+  const levelNumber = levelConfig?.levelNumber || currentLevel
+  
   const getDisplayText = () => {
     if (gameStatus.status === 'player_won') {
       const enemyLeft = gameStatus.enemyTilesLeft || 0
-      return `🎉 Victory! ${enemyLeft} enemy tiles left! 🎉`
+      const isGameWon = levelConfig?.uponFinish?.winTheGame || false
+      
+      if (isGameWon) {
+        return `🎉 GAME WON! All levels complete! 🎉`
+      } else {
+        return `🎉 Level Complete! ${enemyLeft} enemy tiles left! 🎉`
+      }
     } else if (gameStatus.status === 'player_lost') {
       if (gameStatus.reason === 'player_revealed_mine') {
         return "💀 Failure! You revealed a mine! 💀"
@@ -23,7 +33,7 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel
     } else if (targetingInfo) {
       return `${targetingInfo.description} (${targetingInfo.selected.length}/${targetingInfo.count})`
     } else {
-      return `Level ${currentLevel}: sweep, sweep`
+      return `Level ${levelNumber}: sweep, sweep`
     }
   }
   
@@ -75,7 +85,7 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel
         </button>
       )}
       
-      {gameStatus.status === 'player_won' && onAdvanceLevel && (
+      {gameStatus.status === 'player_won' && onAdvanceLevel && !levelConfig?.uponFinish?.winTheGame && (
         <button
           onClick={onAdvanceLevel}
           style={{

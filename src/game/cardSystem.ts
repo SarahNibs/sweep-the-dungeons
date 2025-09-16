@@ -1,27 +1,7 @@
-import { Card, GameState, LevelConfig } from '../types'
-import { createBoard, revealTile } from './boardSystem'
+import { Card, GameState } from '../types'
+import { createBoard } from './boardSystem'
 import { executeCardEffect, requiresTargeting } from './cardeffects'
-
-export function getLevelConfig(level: number): LevelConfig {
-  switch (level) {
-    case 1:
-      return {
-        level: 1,
-        revealEnemyTileAtStart: false
-      }
-    case 2:
-      return {
-        level: 2,
-        revealEnemyTileAtStart: true
-      }
-    default:
-      // For levels 3+, we'll apply level 2 rules for now
-      return {
-        level,
-        revealEnemyTileAtStart: true
-      }
-  }
-}
+import { getLevelConfig as getLevelConfigFromSystem, adjustTileCountsForHoles, getNextLevelId } from './levelSystem'
 
 export function createCard(name: string, cost: number, exhaust?: boolean): Card {
   return {
@@ -201,21 +181,25 @@ export function startNewTurn(state: GameState): GameState {
   }
 }
 
-export function createInitialState(level: number = 1, persistentDeck?: Card[]): GameState {
+export function createInitialState(levelId: string = 'intro', persistentDeck?: Card[]): GameState {
   const startingPersistentDeck = persistentDeck || createStartingDeck()
   const deck = shuffleDeck([...startingPersistentDeck]) // Copy and shuffle persistent deck for in-play use
-  const levelConfig = getLevelConfig(level)
+  const levelConfig = getLevelConfigFromSystem(levelId)
   
-  let board = createBoard()
+  let board
   
-  // Apply level-specific modifications
-  if (levelConfig.revealEnemyTileAtStart) {
-    // Find all enemy tiles and reveal one at random
-    const enemyTiles = Array.from(board.tiles.values()).filter(tile => tile.owner === 'enemy')
-    if (enemyTiles.length > 0) {
-      const randomEnemyTile = enemyTiles[Math.floor(Math.random() * enemyTiles.length)]
-      board = revealTile(board, randomEnemyTile.position, 'enemy')
-    }
+  if (levelConfig) {
+    // Use level configuration
+    const adjustedTileCounts = adjustTileCountsForHoles(levelConfig)
+    board = createBoard(
+      levelConfig.dimensions.columns,
+      levelConfig.dimensions.rows,
+      adjustedTileCounts,
+      levelConfig.unusedLocations
+    )
+  } else {
+    // Fallback to default board
+    board = createBoard()
   }
   
   const initialState: GameState = {
@@ -236,7 +220,7 @@ export function createInitialState(level: number = 1, persistentDeck?: Card[]): 
     clueCounter: 0,
     playerClueCounter: 0,
     enemyClueCounter: 0,
-    currentLevel: level,
+    currentLevelId: levelId,
     gamePhase: 'playing',
     enemyHiddenClues: [],
     tingleAnimation: null,
@@ -257,20 +241,38 @@ export function startCardSelection(state: GameState): GameState {
 }
 
 export function selectNewCard(state: GameState, selectedCard: Card): GameState {
-  const nextLevel = state.currentLevel + 1
+  const nextLevelId = getNextLevelId(state.currentLevelId)
+  
+  if (!nextLevelId) {
+    // No next level - game won!
+    return {
+      ...state,
+      gamePhase: 'playing',
+      gameStatus: { status: 'player_won', reason: 'all_player_tiles_revealed' }
+    }
+  }
   
   // Add the selected card to the persistent deck
   const newPersistentDeck = [...state.persistentDeck, selectedCard]
-  const newLevelState = createInitialState(nextLevel, newPersistentDeck)
+  const newLevelState = createInitialState(nextLevelId, newPersistentDeck)
   
   return newLevelState
 }
 
 export function skipCardSelection(state: GameState): GameState {
-  const nextLevel = state.currentLevel + 1
+  const nextLevelId = getNextLevelId(state.currentLevelId)
+  
+  if (!nextLevelId) {
+    // No next level - game won!
+    return {
+      ...state,
+      gamePhase: 'playing',
+      gameStatus: { status: 'player_won', reason: 'all_player_tiles_revealed' }
+    }
+  }
   
   // Keep the persistent deck without adding any cards
-  const newLevelState = createInitialState(nextLevel, state.persistentDeck)
+  const newLevelState = createInitialState(nextLevelId, state.persistentDeck)
   
   return newLevelState
 }

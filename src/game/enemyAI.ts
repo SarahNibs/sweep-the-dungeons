@@ -77,7 +77,7 @@ export function selectEnemyTilesToRevealUsingAI(
   hiddenEnemyCluesPairs: { clueResult: ClueResult, targetPosition: Position }[]
 ): Tile[] {
   const unrevealedTiles = Array.from(state.board.tiles.values())
-    .filter(tile => !tile.revealed)
+    .filter(tile => !tile.revealed && tile.owner !== 'empty')
   
   if (unrevealedTiles.length === 0) return []
   

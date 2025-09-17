@@ -128,7 +128,7 @@ export function generatePlayerSolidClue(
   clueRowPosition: number
 ): ClueGenerationResult {
   const unrevealedTiles = Array.from(state.board.tiles.values())
-    .filter(tile => !tile.revealed)
+    .filter(tile => !tile.revealed && tile.owner !== 'empty')
   const playerTiles = unrevealedTiles.filter(tile => tile.owner === 'player')
   
   // Choose 2 player tiles
@@ -173,7 +173,7 @@ export function generatePlayerStretchClue(
   clueRowPosition: number
 ): ClueGenerationResult {
   const unrevealedTiles = Array.from(state.board.tiles.values())
-    .filter(tile => !tile.revealed)
+    .filter(tile => !tile.revealed && tile.owner !== 'empty')
   const playerTiles = unrevealedTiles.filter(tile => tile.owner === 'player')
   
   // Choose 5 player tiles
@@ -248,7 +248,7 @@ export function prepareEnemyClueSetup(state: GameState): {
   chosenRandomTiles: Tile[]
 } {
   const unrevealedTiles = Array.from(state.board.tiles.values())
-    .filter(tile => !tile.revealed)
+    .filter(tile => !tile.revealed && tile.owner !== 'empty')
   const enemyTiles = unrevealedTiles.filter(tile => tile.owner === 'enemy')
   
   // Choose 2 enemy tiles

@@ -194,7 +194,8 @@ export function createInitialState(levelId: string = 'intro', persistentDeck?: C
       levelConfig.dimensions.columns,
       levelConfig.dimensions.rows,
       levelConfig.tileCounts,
-      levelConfig.unusedLocations
+      levelConfig.unusedLocations,
+      levelConfig.specialTiles
     )
   } else {
     // Fallback to default board

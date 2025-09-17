@@ -343,6 +343,41 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       return <>{elements}</>
     }
 
+    // Show dirty scribbles for extraDirty tiles (regardless of annotations)
+    if (!tile.revealed && tile.specialTile === 'extraDirty') {
+      return (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '32px',
+            height: '32px',
+            pointerEvents: 'none',
+            zIndex: 998 // Below other annotations but visible
+          }}
+        >
+          {/* Generate random scribbles */}
+          {Array.from({ length: 8 }, (_, i) => (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                width: '2px',
+                height: `${4 + Math.floor(Math.random() * 6)}px`,
+                backgroundColor: 'black',
+                left: `${Math.floor(Math.random() * 28)}px`,
+                top: `${Math.floor(Math.random() * 28)}px`,
+                transform: `rotate(${Math.floor(Math.random() * 360)}deg)`,
+                borderRadius: '1px'
+              }}
+            />
+          ))}
+        </div>
+      )
+    }
+
     return null
   }
 
@@ -361,6 +396,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     <div
       onClick={handleClick}
       onContextMenu={handleRightClick}
+      title={tile.specialTile === 'extraDirty' && !tile.revealed ? 'Cannot reveal tile without cleaning it!' : undefined}
       style={{
         position: 'relative',
         width: '56px',

@@ -85,9 +85,8 @@
       "unusedLocations": [],
       "specialTiles": [
         {
-          "unimplemented": true,
           "type": "extraDirty",
-          "count": 1,
+          "count": 2,
           "placement": {"owner": ["player", "neutral"]}
         }
       ],
@@ -119,7 +118,6 @@
       "unusedLocations": [],
       "specialTiles": [
         {
-          "unimplemented": true,
           "type": "extraDirty",
           "count": 2,
           "placement": "random"
@@ -187,7 +185,6 @@
       "unusedLocations": [],
       "specialTiles": [
         {
-          "unimplemented": true,
           "type": "extraDirty",
           "count": 6,
           "placement": "random"
@@ -226,7 +223,6 @@
       ],
       "specialTiles": [
         {
-          "unimplemented": true,
           "type": "extraDirty",
           "count": 6,
           "placement": "random"
@@ -250,8 +246,7 @@
   },
   "specialTileTypes": {
     "extraDirty": {
-      "description": "Ends player turn if player attempts to reveal it, clearing the dirty state, without revealing. Can also clear the dirty state by using Spritz on the tile; later, other card effects will also be able to clear dirty tiles.",
-      "implemented": false
+      "description": "Ends player turn if player attempts to reveal it, clearing the dirty state, without revealing. Can also clear the dirty state by using Spritz on the tile; later, other card effects will also be able to clear dirty tiles."
     }
   },
   "specialBehaviorTypes": {

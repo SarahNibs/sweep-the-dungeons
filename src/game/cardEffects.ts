@@ -1,5 +1,5 @@
 import { GameState, CardEffect, Position, Tile, TileAnnotation, ClueResult, GameStatusInfo } from '../types'
-import { positionToKey, getTile, revealTile } from './boardSystem'
+import { positionToKey, getTile, revealTile, clearSpecialTileState } from './boardSystem'
 import { generatePlayerSolidClue, generatePlayerStretchClue } from './clueSystem'
 
 export function getUnrevealedTiles(state: GameState): Tile[] {
@@ -165,12 +165,30 @@ export function executeScoutEffect(state: GameState, target: Position): GameStat
   const tile = getTile(state.board, target)
   if (!tile || tile.revealed) return state
   
+  let newState = state
+  
+  // If this is an extraDirty tile, clear the dirty state first
+  if (tile.specialTile === 'extraDirty') {
+    const key = positionToKey(target)
+    const newTiles = new Map(state.board.tiles)
+    const cleanedTile = clearSpecialTileState(tile)
+    newTiles.set(key, cleanedTile)
+    
+    newState = {
+      ...state,
+      board: {
+        ...state.board,
+        tiles: newTiles
+      }
+    }
+  }
+  
   const isSafe = tile.owner === 'player' || tile.owner === 'neutral'
   const ownerSubset = isSafe 
     ? new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['player', 'neutral'])
     : new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['enemy', 'mine'])
   
-  return addOwnerSubsetAnnotation(state, target, ownerSubset)
+  return addOwnerSubsetAnnotation(newState, target, ownerSubset)
 }
 
 export function executeQuantumEffect(state: GameState, targets: [Position, Position]): GameState {

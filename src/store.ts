@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { GameState, Tile, Position, CardEffect, Board, Card as CardType, PileType } from './types'
 import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection } from './game/cardSystem'
-import { revealTile, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
+import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, checkGameStatus, executeTargetedReportEffect, getUnrevealedTilesByOwner } from './game/cardeffects'
 import { processEnemyTurnWithDualClues } from './game/enemyAI'
 import { shouldShowCardReward } from './game/levelSystem'
@@ -114,8 +114,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return
     }
     
-    const newBoard = revealTile(currentState.board, tile.position, 'player')
-    const endTurn = shouldEndPlayerTurn(tile)
+    const revealResult = revealTileWithResult(currentState.board, tile.position, 'player')
+    const newBoard = revealResult.board
+    
+    // For extraDirty tiles that were cleaned but not revealed, always end turn
+    const endTurn = !revealResult.revealed || shouldEndPlayerTurn(tile)
     
     // Check game status after reveal
     const gameStatus = checkGameStatus({

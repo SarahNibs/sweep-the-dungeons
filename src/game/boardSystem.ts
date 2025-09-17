@@ -13,15 +13,22 @@ export function keyToPosition(key: string): Position {
   return { x, y }
 }
 
-export function createTile(position: Position, owner: Tile['owner']): Tile {
+export function createTile(position: Position, owner: Tile['owner'], specialTile?: 'extraDirty'): Tile {
   return {
     position,
     owner,
     revealed: false,
     revealedBy: null,
     adjacencyCount: null,
-    annotations: []
+    annotations: [],
+    ...(specialTile && { specialTile })
   }
+}
+
+export interface SpecialTileConfig {
+  type: 'extraDirty'
+  count: number
+  placement: 'random' | { owner: Array<'player' | 'enemy' | 'neutral' | 'mine'> }
 }
 
 export function createBoard(
@@ -30,7 +37,8 @@ export function createBoard(
   tileCounts: { player: number; enemy: number; neutral: number; mine: number } = {
     player: 12, enemy: 10, neutral: 7, mine: 1
   },
-  unusedLocations: number[][] = []
+  unusedLocations: number[][] = [],
+  specialTiles: SpecialTileConfig[] = []
 ): Board {
   const tiles = new Map<string, Tile>()
   
@@ -72,6 +80,11 @@ export function createBoard(
     }
   }
   
+  // Apply special tiles
+  for (const specialTileConfig of specialTiles) {
+    applySpecialTiles(tiles, specialTileConfig)
+  }
+  
   return {
     width,
     height,
@@ -79,8 +92,44 @@ export function createBoard(
   }
 }
 
+function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig): void {
+  const eligibleTiles = Array.from(tiles.values()).filter(tile => {
+    // Skip empty tiles and already revealed tiles
+    if (tile.owner === 'empty' || tile.revealed) return false
+    
+    // Filter by placement rules
+    if (config.placement === 'random') {
+      return true
+    } else {
+      return config.placement.owner.includes(tile.owner as any)
+    }
+  })
+  
+  // Shuffle eligible tiles
+  for (let i = eligibleTiles.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [eligibleTiles[i], eligibleTiles[j]] = [eligibleTiles[j], eligibleTiles[i]]
+  }
+  
+  // Apply special tile type to the requested count
+  const count = Math.min(config.count, eligibleTiles.length)
+  for (let i = 0; i < count; i++) {
+    const tile = eligibleTiles[i]
+    const key = positionToKey(tile.position)
+    tiles.set(key, {
+      ...tile,
+      specialTile: config.type
+    })
+  }
+}
+
 export function getTile(board: Board, position: Position): Tile | undefined {
   return board.tiles.get(positionToKey(position))
+}
+
+export function clearSpecialTileState(tile: Tile): Tile {
+  const { specialTile, ...cleanTile } = tile
+  return cleanTile
 }
 
 export function calculateAdjacency(board: Board, position: Position, revealedBy: 'player' | 'enemy'): number {
@@ -100,12 +149,33 @@ export function calculateAdjacency(board: Board, position: Position, revealedBy:
   return count
 }
 
-export function revealTile(board: Board, position: Position, revealedBy: 'player' | 'enemy'): Board {
+export interface RevealResult {
+  board: Board
+  revealed: boolean  // true if tile was revealed, false if extraDirty was just cleaned
+}
+
+export function revealTileWithResult(board: Board, position: Position, revealedBy: 'player' | 'enemy'): RevealResult {
   const key = positionToKey(position)
   const tile = board.tiles.get(key)
   
   if (!tile || tile.revealed || tile.owner === 'empty') {
-    return board
+    return { board, revealed: false }
+  }
+  
+  // Handle extraDirty tiles when revealed by player
+  if (tile.specialTile === 'extraDirty' && revealedBy === 'player') {
+    // Clear the dirty state but don't reveal the tile
+    const newTiles = new Map(board.tiles)
+    const cleanedTile = clearSpecialTileState(tile)
+    newTiles.set(key, cleanedTile)
+    
+    return {
+      board: {
+        ...board,
+        tiles: newTiles
+      },
+      revealed: false  // Tile was not revealed, just cleaned
+    }
   }
   
   const adjacencyCount = calculateAdjacency(board, position, revealedBy)
@@ -115,15 +185,24 @@ export function revealTile(board: Board, position: Position, revealedBy: 'player
     ...tile,
     revealed: true,
     revealedBy,
-    adjacencyCount
+    adjacencyCount,
+    // Clear special tile state when revealing (enemies can reveal dirty tiles normally)
+    ...(tile.specialTile && { specialTile: undefined })
   }
   
   newTiles.set(key, revealedTile)
   
   return {
-    ...board,
-    tiles: newTiles
+    board: {
+      ...board,
+      tiles: newTiles
+    },
+    revealed: true
   }
+}
+
+export function revealTile(board: Board, position: Position, revealedBy: 'player' | 'enemy'): Board {
+  return revealTileWithResult(board, position, revealedBy).board
 }
 
 export function getNeighbors(board: Board, position: Position): Position[] {
@@ -154,12 +233,12 @@ export function isValidPosition(board: Board, position: Position): boolean {
          position.y >= 0 && position.y < board.height
 }
 
-export function getUnrevealedCounts(board: Board): Record<Tile['owner'], number> {
-  const counts = { player: 0, enemy: 0, neutral: 0, mine: 0, empty: 0 }
+export function getUnrevealedCounts(board: Board): Record<'player' | 'enemy' | 'neutral' | 'mine', number> {
+  const counts = { player: 0, enemy: 0, neutral: 0, mine: 0 }
   
   for (const tile of board.tiles.values()) {
-    if (!tile.revealed) {
-      counts[tile.owner]++
+    if (!tile.revealed && tile.owner !== 'empty') {
+      counts[tile.owner as keyof typeof counts]++
     }
   }
   

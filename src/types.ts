@@ -55,6 +55,7 @@ export interface Tile {
   revealedBy: 'player' | 'enemy' | null
   adjacencyCount: number | null
   annotations: TileAnnotation[]
+  specialTile?: 'extraDirty'
 }
 
 export interface Board {
@@ -86,7 +87,11 @@ export interface LevelConfig {
     mine: number
   }
   unusedLocations: number[][]
-  specialTiles: any[]
+  specialTiles: Array<{
+    type: 'extraDirty'
+    count: number
+    placement: 'random' | { owner: Array<'player' | 'enemy' | 'neutral' | 'mine'> }
+  }>
   specialBehaviors: any
 }
 

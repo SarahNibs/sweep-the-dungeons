@@ -42,6 +42,18 @@ export function calculateStrengthForTile(
   ).length
 }
 
+function buildBagWithMineReduction(tiles: Tile[], copiesPerTile: number): Tile[] {
+  const bag: Tile[] = []
+  for (const tile of tiles) {
+    // For mine tiles, use copiesPerTile - 1 (minimum 0) to reduce mine clue frequency
+    const actualCopies = tile.owner === 'mine' ? Math.max(0, copiesPerTile - 1) : copiesPerTile
+    for (let i = 0; i < actualCopies; i++) {
+      bag.push(tile)
+    }
+  }
+  return bag
+}
+
 export function generateClueFromBag(
   selectedTiles: Tile[],
   guaranteedTiles: Tile[],
@@ -142,18 +154,11 @@ export function generatePlayerSolidClue(
   )
   const chosenRandomTiles = selectTilesForClue(remainingTiles, 6)
   
-  // Create bag: 12 copies of each player tile + 4 copies of each random tile
-  const bag: Tile[] = []
-  for (const tile of chosenPlayerTiles) {
-    for (let i = 0; i < 12; i++) {
-      bag.push(tile)
-    }
-  }
-  for (const tile of chosenRandomTiles) {
-    for (let i = 0; i < 4; i++) {
-      bag.push(tile)
-    }
-  }
+  // Create bag: 12 copies of each player tile + 4 copies of each random tile (mines reduced by 1)
+  const bag: Tile[] = [
+    ...buildBagWithMineReduction(chosenPlayerTiles, 12),
+    ...buildBagWithMineReduction(chosenRandomTiles, 4)
+  ]
   
   // Guarantee first 2 draws are from chosen player tiles
   const guaranteedTiles = [...chosenPlayerTiles]
@@ -187,18 +192,11 @@ export function generatePlayerStretchClue(
   )
   const chosenRandomTiles = selectTilesForClue(remainingTiles, 14)
   
-  // Create bag: 4 copies of each player tile + 2 copies of each random tile
-  const bag: Tile[] = []
-  for (const tile of chosenPlayerTiles) {
-    for (let i = 0; i < 4; i++) {
-      bag.push(tile)
-    }
-  }
-  for (const tile of chosenRandomTiles) {
-    for (let i = 0; i < 2; i++) {
-      bag.push(tile)
-    }
-  }
+  // Create bag: 4 copies of each player tile + 2 copies of each random tile (mines reduced by 1)
+  const bag: Tile[] = [
+    ...buildBagWithMineReduction(chosenPlayerTiles, 4),
+    ...buildBagWithMineReduction(chosenRandomTiles, 2)
+  ]
   
   // Guarantee first 3 draws are from chosen player tiles (not all 5)
   const guaranteedTiles = chosenPlayerTiles.slice(0, 3)
@@ -218,18 +216,11 @@ export function generateEnemyClueWithSharedSetup(
   clueOrder: number,
   clueRowPosition: number
 ): ClueGenerationResult {
-  // Create bag: 12 copies of each enemy tile + 4 copies of each random tile
-  const bag: Tile[] = []
-  for (const tile of chosenEnemyTiles) {
-    for (let i = 0; i < 12; i++) {
-      bag.push(tile)
-    }
-  }
-  for (const tile of chosenRandomTiles) {
-    for (let i = 0; i < 4; i++) {
-      bag.push(tile)
-    }
-  }
+  // Create bag: 12 copies of each enemy tile + 4 copies of each random tile (mines reduced by 1)
+  const bag: Tile[] = [
+    ...buildBagWithMineReduction(chosenEnemyTiles, 12),
+    ...buildBagWithMineReduction(chosenRandomTiles, 4)
+  ]
   
   // Guarantee first 2 draws are from chosen enemy tiles
   const guaranteedTiles = [...chosenEnemyTiles]

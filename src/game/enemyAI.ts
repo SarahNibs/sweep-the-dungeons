@@ -82,10 +82,14 @@ export function selectEnemyTilesToRevealUsingAI(
   if (unrevealedTiles.length === 0) return []
   
   // Calculate priorities using only player clues and hidden enemy clues
-  const tilesWithPriority = unrevealedTiles.map(tile => ({
-    tile,
-    priority: calculateTilePriorityForAI(tile, hiddenEnemyCluesPairs) + Math.random() * 0.01
-  }))
+  // Add ramble priority boost if active (each tile gets random 0-2 boost), otherwise small random tiebreaker
+  const tilesWithPriority = unrevealedTiles.map(tile => {
+    const randomBoost = state.ramblePriorityBoost > 0 ? Math.random() * state.ramblePriorityBoost : Math.random() * 0.01
+    return {
+      tile,
+      priority: calculateTilePriorityForAI(tile, hiddenEnemyCluesPairs) + randomBoost
+    }
+  })
   
   // Sort by priority (highest first - most likely to be enemy)
   tilesWithPriority.sort((a, b) => b.priority - a.priority)

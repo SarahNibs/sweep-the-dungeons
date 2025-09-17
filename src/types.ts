@@ -17,6 +17,7 @@ export type CardEffect =
   | { type: 'options' }
   | { type: 'brush'; target: Position }
   | { type: 'ramble' }
+  | { type: 'sweep'; target: Position }
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
@@ -132,6 +133,7 @@ export interface GameState {
     currentRevealIndex: number
   } | null
   rambleActive: boolean // True if Ramble was played this turn
+  ramblePriorityBoost: number // Random boost added to enemy AI priorities next turn (0-2)
 }
 
 export type CardZone = 'deck' | 'hand' | 'discard'

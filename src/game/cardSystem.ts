@@ -1,6 +1,6 @@
 import { Card, GameState } from '../types'
 import { createBoard } from './boardSystem'
-import { executeCardEffect, requiresTargeting } from './cardeffects'
+import { executeCardEffect, requiresTargeting, executeSweepEffect } from './cardeffects'
 import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
 
 export function createCard(name: string, cost: number, exhaust?: boolean): Card {
@@ -17,7 +17,8 @@ export function createNewLevelCards(): Card[] {
     createCard('Energized', 1, true), // Exhaust card - gain 2 energy
     createCard('Options', 1),         // Draw 3 cards
     createCard('Brush', 1),           // 3x3 area exclusion effect
-    createCard('Ramble', 1)           // Disrupts enemy guaranteed pulls
+    createCard('Ramble', 1),           // Disrupts enemy guaranteed pulls
+    createCard('Sweep', 1)           // Clears dirty tiles
   ]
   
   // Randomly select 3 different cards
@@ -110,6 +111,9 @@ export function playCard(state: GameState, cardId: string): GameState {
       case 'Brush':
         effectType = 'brush'
         break
+      case 'Sweep':
+        effectType = 'sweep'
+        break
       default:
         effectType = card.name.toLowerCase().replace(' ', '_')
     }
@@ -177,7 +181,8 @@ export function startNewTurn(state: GameState): GameState {
   return {
     ...drawnState,
     energy: drawnState.maxEnergy,
-    rambleActive: false // Clear ramble effect at start of new turn
+    rambleActive: false, // Clear ramble effect at start of new turn
+    ramblePriorityBoost: 0 // Clear ramble priority boost
   }
 }
 
@@ -225,7 +230,8 @@ export function createInitialState(levelId: string = 'intro', persistentDeck?: C
     enemyHiddenClues: [],
     tingleAnimation: null,
     enemyAnimation: null,
-    rambleActive: false
+    rambleActive: false,
+    ramblePriorityBoost: 0
   }
   
   return drawCards(initialState, 5)

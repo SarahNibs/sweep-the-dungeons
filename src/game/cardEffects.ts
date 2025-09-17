@@ -392,15 +392,18 @@ export function executeCardEffect(state: GameState, effect: CardEffect): GameSta
     case 'ramble':
       return {
         ...state,
-        rambleActive: true
+        rambleActive: true,
+        ramblePriorityBoost: Math.random() * 2 // Random float between 0 and 2
       }
+    case 'sweep':
+      return executeSweepEffect(state, effect.target)
     default:
       return state
   }
 }
 
 export function requiresTargeting(cardName: string): boolean {
-  return cardName === 'Spritz' || cardName === 'Easiest' || cardName === 'Brush'
+  return cardName === 'Spritz' || cardName === 'Easiest' || cardName === 'Brush' || cardName === 'Sweep'
 }
 
 export function getTargetingInfo(cardName: string): { count: number; description: string } | null {
@@ -411,6 +414,8 @@ export function getTargetingInfo(cardName: string): { count: number; description
       return { count: 2, description: 'Click on two unrevealed tiles - the safer will be revealed' }
     case 'Brush':
       return { count: 1, description: 'Click center of 3x3 area to exclude random owners' }
+    case 'Sweep':
+      return { count: 1, description: 'Click center of 5x5 area to remove all dirt' }
     default:
       return null
   }
@@ -518,6 +523,34 @@ export function executeBrushEffect(state: GameState, target: Position): GameStat
           
           newTiles.set(key, updatedTile)
         }
+      }
+    }
+  }
+  
+  return {
+    ...state,
+    board: {
+      ...state.board,
+      tiles: newTiles
+    }
+  }
+}
+
+export function executeSweepEffect(state: GameState, target: Position): GameState {
+  const newTiles = new Map(state.board.tiles)
+  
+  // Clear dirt in a 5x5 area around the target position
+  for (let dx = -2; dx <= 2; dx++) {
+    for (let dy = -2; dy <= 2; dy++) {
+      const x = target.x + dx
+      const y = target.y + dy
+      const key = `${x},${y}`
+      const tile = newTiles.get(key)
+      
+      // Only process tiles that exist and have extraDirty special tile
+      if (tile && tile.specialTile === 'extraDirty') {
+        const updatedTile = clearSpecialTileState(tile)
+        newTiles.set(key, updatedTile)
       }
     }
   }

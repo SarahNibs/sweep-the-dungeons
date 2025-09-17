@@ -229,6 +229,7 @@
         }
       ],
       "specialBehaviors": {
+        "enemyNeverMines": true
       }
     }
   ],

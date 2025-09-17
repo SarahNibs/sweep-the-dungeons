@@ -4,6 +4,7 @@ import { Hand } from './components/Hand'
 import { Board } from './components/Board'
 import { PromptWidget } from './components/PromptWidget'
 import { CardSelectionScreen } from './components/CardSelectionScreen'
+import { UpgradeSelectionScreen } from './components/UpgradeSelectionScreen'
 import { PileViewingScreen } from './components/PileViewingScreen'
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
     currentLevelId,
     gamePhase,
     cardSelectionOptions,
+    upgradeOptions,
     pileViewingType,
     playCard, 
     endTurn, 
@@ -30,6 +32,9 @@ function App() {
     startCardSelection,
     selectNewCard,
     skipCardSelection,
+    selectUpgrade,
+    selectCardForRemoval,
+    waitingForCardRemoval,
     getAllCardsInCollection,
     viewPile,
     closePileView,
@@ -83,6 +88,17 @@ function App() {
           onCardSelect={selectNewCard}
           onSkip={skipCardSelection}
           currentDeck={getAllCardsInCollection()}
+        />
+      )}
+
+      {/* Upgrade Selection Screen */}
+      {gamePhase === 'upgrade_selection' && upgradeOptions && (
+        <UpgradeSelectionScreen
+          upgradeOptions={upgradeOptions}
+          onUpgradeSelect={selectUpgrade}
+          currentDeck={getAllCardsInCollection()}
+          waitingForCardRemoval={waitingForCardRemoval}
+          onCardRemovalSelect={selectCardForRemoval}
         />
       )}
 

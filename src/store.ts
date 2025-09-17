@@ -1,10 +1,11 @@
 import { create } from 'zustand'
 import { GameState, Tile, Position, CardEffect, Board, Card as CardType, PileType } from './types'
-import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection } from './game/cardSystem'
+import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel } from './game/cardSystem'
+import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
 import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, checkGameStatus, executeTargetedReportEffect, getUnrevealedTilesByOwner } from './game/cardeffects'
 import { processEnemyTurnWithDualClues } from './game/enemyAI'
-import { shouldShowCardReward } from './game/levelSystem'
+import { shouldShowCardReward, shouldShowUpgradeReward } from './game/levelSystem'
 
 interface GameStore extends GameState {
   playCard: (cardId: string) => void
@@ -23,6 +24,9 @@ interface GameStore extends GameState {
   startCardSelection: () => void
   selectNewCard: (card: CardType) => void
   skipCardSelection: () => void
+  startUpgradeSelection: () => void
+  selectUpgrade: (option: import('./types').UpgradeOption, selectedCardId?: string) => void
+  selectCardForRemoval: (cardId: string) => void
   getAllCardsInCollection: () => CardType[]
   executeTingleWithAnimation: (state: GameState) => void
   viewPile: (pileType: PileType) => void
@@ -153,8 +157,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const tile = currentState.board.tiles.get(positionToKey(position))
     if (!tile) return
     
-    // For Brush card, allow targeting revealed tiles (it's selecting center of 3x3 area)
-    if (tile.revealed && currentState.selectedCardName !== 'Brush') return
+    // For Brush and Sweep cards, allow targeting revealed tiles (they're selecting center of areas)
+    if (tile.revealed && currentState.selectedCardName !== 'Brush' && currentState.selectedCardName !== 'Sweep') return
     
     const effect = currentState.pendingCardEffect
     let newEffect: CardEffect | null = null
@@ -175,13 +179,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } else if (effect.type === 'brush') {
       newEffect = { type: 'brush', target: position }
       shouldExecute = true
+    } else if (effect.type === 'sweep') {
+      newEffect = { type: 'sweep', target: position }
+      shouldExecute = true
     }
     
     if (shouldExecute && newEffect) {
-      // Execute the effect and complete the card play
-      const effectState = executeCardEffect(currentState, newEffect)
-      
-      // Remove the card from hand and add to discard
+      // Remove the card from hand first so we can pass it to executeCardEffect
       const cardName = currentState.selectedCardName
       const card = currentState.hand.find(c => c.name === cardName)
       if (!card) {
@@ -194,10 +198,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
         return
       }
       
+      // Execute the effect with the card for enhanced effects
+      const effectState = executeCardEffect(currentState, newEffect, card)
+      
       const newHand = currentState.hand.filter(c => c.id !== card.id)
+      // Enhanced Energized cards no longer exhaust
+      const shouldExhaust = card.exhaust && !(card.name === 'Energized' && card.enhanced)
       // If card has exhaust, put it in exhaust pile; otherwise put in discard
-      const newDiscard = card.exhaust ? effectState.discard : [...effectState.discard, card]
-      const newExhaust = card.exhaust ? [...effectState.exhaust, card] : effectState.exhaust
+      const newDiscard = shouldExhaust ? effectState.discard : [...effectState.discard, card]
+      const newExhaust = shouldExhaust ? [...effectState.exhaust, card] : effectState.exhaust
       
       const finalState = {
         ...effectState,
@@ -467,8 +476,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (shouldShowCardReward(currentState.currentLevelId)) {
       const cardSelectionState = startCardSelection(currentState)
       set(cardSelectionState)
+    } else if (shouldShowUpgradeReward(currentState.currentLevelId)) {
+      // No card reward but has upgrade reward - go directly to upgrade selection
+      const upgradeState = startUpgradeSelection(currentState)
+      set(upgradeState)
     } else {
-      // Skip card selection and go directly to next level
+      // No rewards - skip card selection and go directly to next level
       const nextLevelState = skipCardSelection(currentState)
       set(nextLevelState)
     }
@@ -477,13 +490,31 @@ export const useGameStore = create<GameStore>((set, get) => ({
   selectNewCard: (card: CardType) => {
     const currentState = get()
     const nextLevelState = selectNewCard(currentState, card)
-    set(nextLevelState)
+    
+    // Check if this level should show upgrade rewards after card selection
+    if (shouldShowUpgradeReward(currentState.currentLevelId)) {
+      const upgradeState = startUpgradeSelection(nextLevelState)
+      set(upgradeState)
+    } else {
+      // No upgrade rewards - advance to next level immediately
+      const advancedState = advanceToNextLevel(nextLevelState)
+      set(advancedState)
+    }
   },
 
   skipCardSelection: () => {
     const currentState = get()
     const nextLevelState = skipCardSelection(currentState)
-    set(nextLevelState)
+    
+    // Check if this level should show upgrade rewards after skipping card selection
+    if (shouldShowUpgradeReward(currentState.currentLevelId)) {
+      const upgradeState = startUpgradeSelection(nextLevelState)
+      set(upgradeState)
+    } else {
+      // No upgrade rewards - advance to next level immediately
+      const advancedState = advanceToNextLevel(nextLevelState)
+      set(advancedState)
+    }
   },
 
   getAllCardsInCollection: () => {
@@ -592,5 +623,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
       board: newBoard,
       gameStatus
     })
+  },
+
+  startUpgradeSelection: () => {
+    const currentState = get()
+    const upgradeState = startUpgradeSelection(currentState)
+    set(upgradeState)
+  },
+
+  selectUpgrade: (option: import('./types').UpgradeOption, selectedCardId?: string) => {
+    const currentState = get()
+    
+    if (option.type === 'remove_card' && !selectedCardId) {
+      // Start card removal flow
+      set({
+        ...currentState,
+        waitingForCardRemoval: true,
+        pendingUpgradeOption: option
+      })
+    } else {
+      // Apply the upgrade (including remove_card if selectedCardId is provided)
+      const upgradedState = applyUpgrade(currentState, option, selectedCardId)
+      set(upgradedState)
+    }
+  },
+
+  selectCardForRemoval: (cardId: string) => {
+    const currentState = get()
+    if (!currentState.pendingUpgradeOption) return
+    
+    const upgradedState = applyUpgrade(currentState, currentState.pendingUpgradeOption, cardId)
+    set(upgradedState)
   }
 }))

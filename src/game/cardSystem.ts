@@ -2,6 +2,7 @@ import { Card, GameState } from '../types'
 import { createBoard } from './boardSystem'
 import { executeCardEffect, requiresTargeting, executeSweepEffect } from './cardeffects'
 import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
+import { startUpgradeSelection } from './upgradeSystem'
 
 export function createCard(name: string, cost: number, exhaust?: boolean): Card {
   return {
@@ -133,26 +134,28 @@ export function playCard(state: GameState, cardId: string): GameState {
       newState = state
       break
     case 'Imperious Orders':
-      newState = executeCardEffect(state, { type: 'solid_clue' })
+      newState = executeCardEffect(state, { type: 'solid_clue' }, card)
       break
     case 'Vague Orders':
-      newState = executeCardEffect(state, { type: 'stretch_clue' })
+      newState = executeCardEffect(state, { type: 'stretch_clue' }, card)
       break
     case 'Energized':
-      newState = executeCardEffect(state, { type: 'energized' })
+      newState = executeCardEffect(state, { type: 'energized' }, card)
       break
     case 'Options':
-      newState = executeCardEffect(state, { type: 'options' })
+      newState = executeCardEffect(state, { type: 'options' }, card)
       break
     case 'Ramble':
-      newState = executeCardEffect(state, { type: 'ramble' })
+      newState = executeCardEffect(state, { type: 'ramble' }, card)
       break
   }
 
   const newHand = newState.hand.filter((_, index) => index !== cardIndex)
+  // Enhanced Energized cards no longer exhaust
+  const shouldExhaust = card.exhaust && !(card.name === 'Energized' && card.enhanced)
   // If card has exhaust, put it in exhaust pile; otherwise put in discard
-  const newDiscard = card.exhaust ? newState.discard : [...newState.discard, card]
-  const newExhaust = card.exhaust ? [...newState.exhaust, card] : newState.exhaust
+  const newDiscard = shouldExhaust ? newState.discard : [...newState.discard, card]
+  const newExhaust = shouldExhaust ? [...newState.exhaust, card] : newState.exhaust
 
   return {
     ...newState,
@@ -260,8 +263,30 @@ export function selectNewCard(state: GameState, selectedCard: Card): GameState {
   
   // Add the selected card to the persistent deck
   const newPersistentDeck = [...state.persistentDeck, selectedCard]
-  const newLevelState = createInitialState(nextLevelId, newPersistentDeck)
   
+  // Return state with updated persistent deck but don't advance level yet
+  // Level advancement will happen after upgrades (if any) are applied
+  return {
+    ...state,
+    persistentDeck: newPersistentDeck,
+    gamePhase: 'playing', // This will be overridden if upgrades are pending
+    cardSelectionOptions: undefined
+  }
+}
+
+export function advanceToNextLevel(state: GameState): GameState {
+  const nextLevelId = getNextLevelId(state.currentLevelId)
+  
+  if (!nextLevelId) {
+    // No next level - game won!
+    return {
+      ...state,
+      gamePhase: 'playing',
+      gameStatus: { status: 'player_won', reason: 'all_player_tiles_revealed' }
+    }
+  }
+  
+  const newLevelState = createInitialState(nextLevelId, state.persistentDeck)
   return newLevelState
 }
 
@@ -277,10 +302,13 @@ export function skipCardSelection(state: GameState): GameState {
     }
   }
   
-  // Keep the persistent deck without adding any cards
-  const newLevelState = createInitialState(nextLevelId, state.persistentDeck)
-  
-  return newLevelState
+  // Return state without advancing level yet
+  // Level advancement will happen after upgrades (if any) are applied  
+  return {
+    ...state,
+    gamePhase: 'playing', // This will be overridden if upgrades are pending
+    cardSelectionOptions: undefined
+  }
 }
 
 export function getAllCardsInCollection(state: GameState): Card[] {

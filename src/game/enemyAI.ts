@@ -1,5 +1,6 @@
 import { GameState, Tile, ClueResult, Position } from '../types'
 import { prepareEnemyClueSetup, generateEnemyClueWithSharedSetup } from './clueSystem'
+import { getLevelConfig } from './levelSystem'
 
 export interface EnemyClueSet {
   visible: ClueResult[] // X marks shown to player
@@ -94,6 +95,10 @@ export function selectEnemyTilesToRevealUsingAI(
   // Sort by priority (highest first - most likely to be enemy)
   tilesWithPriority.sort((a, b) => b.priority - a.priority)
   
+  // Check if this level has the enemyNeverMines special behavior
+  const levelConfig = getLevelConfig(state.currentLevelId)
+  const enemyNeverMines = levelConfig?.specialBehaviors?.enemyNeverMines || false
+  
   // Log the top 4 tiles with their relevant clue information
   console.log('=== ENEMY AI PRIORITY ANALYSIS ===')
   const topFour = tilesWithPriority.slice(0, 4)
@@ -125,10 +130,19 @@ export function selectEnemyTilesToRevealUsingAI(
     console.log(`${index + 1}. ${pos} [${owner}] Priority: ${priority} | Player: ${playerClueInfo} | Enemy-Hidden: ${enemyClueInfo}`)
   })
   console.log('=====================================')
+  if (enemyNeverMines) {
+    console.log('SPECIAL BEHAVIOR: Enemy will skip mine tiles')
+  }
   
   // Return ordered list, stopping when we would reveal a non-enemy tile
+  // Skip mines if enemyNeverMines is enabled
   const tilesToReveal: Tile[] = []
   for (const item of tilesWithPriority) {
+    // Skip mine tiles if enemyNeverMines is enabled
+    if (enemyNeverMines && item.tile.owner === 'mine') {
+      continue
+    }
+    
     tilesToReveal.push(item.tile)
     // Stop after adding a non-enemy tile (this will be the last tile revealed)
     if (item.tile.owner !== 'enemy') {

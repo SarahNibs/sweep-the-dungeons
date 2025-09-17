@@ -17,18 +17,19 @@ const getCardImage = (cardName: string) => {
 }
 
 // Card descriptions
-const getCardDescription = (cardName: string, cost: number) => {
+const getCardDescription = (cardName: string, cost: number, enhanced?: boolean) => {
   const baseCost = `Cost: ${cost} energy. `
   switch (cardName) {
-    case 'Spritz': return baseCost + 'Click on an unrevealed tile to see if it\'s safe or dangerous'
-    case 'Easiest': return baseCost + 'Click on two unrevealed tiles - the safer one will be revealed'
-    case 'Tingle': return baseCost + 'Mark a random enemy tile with an enemy indicator'
-    case 'Imperious Orders': return baseCost + 'Strong evidence of two of your tiles'
-    case 'Vague Orders': return baseCost + 'Evidence of five of your tiles'
-    case 'Energized': return baseCost + 'Gain 2 energy. Exhaust (remove from deck after use)'
-    case 'Options': return baseCost + 'Draw 3 cards'
-    case 'Brush': return baseCost + 'Select center of 3x3 area - exclude random owners from each tile'
-    case 'Ramble': return baseCost + 'Disrupts enemy\'s next turn by removing their guaranteed bag pulls'
+    case 'Spritz': return baseCost + (enhanced ? 'Click on an unrevealed tile to see if it\'s safe or dangerous. Also scouts a random adjacent tile.' : 'Click on an unrevealed tile to see if it\'s safe or dangerous')
+    case 'Easiest': return baseCost + (enhanced ? 'Click on three unrevealed tiles - the safest one will be revealed' : 'Click on two unrevealed tiles - the safer one will be revealed')
+    case 'Tingle': return baseCost + (enhanced ? 'Mark 2 random enemy tiles with enemy indicators' : 'Mark a random enemy tile with an enemy indicator')
+    case 'Imperious Orders': return baseCost + (enhanced ? 'Strong evidence of two of your tiles (never clues mines)' : 'Strong evidence of two of your tiles')
+    case 'Vague Orders': return baseCost + (enhanced ? 'Evidence of five of your tiles (5 guaranteed bag pulls)' : 'Evidence of five of your tiles')
+    case 'Energized': return baseCost + (enhanced ? 'Gain 2 energy' : 'Gain 2 energy. Exhaust (remove from deck after use)')
+    case 'Options': return baseCost + (enhanced ? 'Draw 5 cards' : 'Draw 3 cards')
+    case 'Brush': return baseCost + (enhanced ? 'Select center of 3x3 area - exclude random owners from each tile (applies twice)' : 'Select center of 3x3 area - exclude random owners from each tile')
+    case 'Ramble': return baseCost + (enhanced ? 'Disrupts enemy\'s next turn by removing their guaranteed bag pulls (stronger disruption 0-4)' : 'Disrupts enemy\'s next turn by removing their guaranteed bag pulls')
+    case 'Sweep': return baseCost + (enhanced ? 'Select center of 7x7 area - removes all dirt from the area' : 'Select center of 5x5 area - removes all dirt from the area')
     default: return baseCost + 'Unknown card effect'
   }
 }
@@ -73,9 +74,10 @@ interface CardProps {
   isHovered?: boolean
   onHover?: (hovered: boolean) => void
   customOverlap?: number
+  showUpgradeIndicator?: 'cost_reduction' | 'enhance_effect'
 }
 
-export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isHovered = false, onHover, customOverlap }: CardProps) {
+export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isHovered = false, onHover, customOverlap, showUpgradeIndicator }: CardProps) {
   const handleClick = () => {
     if (isPlayable) {
       onClick(card.id)
@@ -90,7 +92,7 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
   return (
     <div
       onClick={handleClick}
-      title={getCardDescription(card.name, card.cost)}
+      title={getCardDescription(card.name, card.cost, card.enhanced)}
       style={{
         position: 'relative',
         width: '80px',
@@ -121,10 +123,38 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
         position: 'absolute',
         top: '4px',
         left: '4px',
-        zIndex: 1
+        zIndex: 1,
+        ...(showUpgradeIndicator === 'cost_reduction' && {
+          backgroundColor: '#00b894',
+          borderRadius: '50%',
+          padding: '3px',
+          border: '2px solid #00b894'
+        })
       }}>
         {renderEnergyPips(card.cost, isPlayable)}
       </div>
+      
+      {/* Enhanced effect indicator - positioned in bottom-left corner */}
+      {(showUpgradeIndicator === 'enhance_effect' || card.enhanced) && (
+        <div style={{
+          position: 'absolute',
+          bottom: '4px',
+          left: '4px',
+          zIndex: 1,
+          backgroundColor: '#a29bfe',
+          borderRadius: '50%',
+          width: '20px',
+          height: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          fontSize: '14px',
+          fontWeight: 'bold'
+        }}>
+          +
+        </div>
+      )}
       
       {/* Card content */}
       <div style={{ 

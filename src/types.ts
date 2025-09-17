@@ -5,6 +5,8 @@ export interface Card {
   name: string
   cost: number
   exhaust?: boolean // If true, card is removed from deck after use
+  costReduced?: boolean // If true, card has received cost reduction upgrade
+  enhanced?: boolean // If true, card has received enhanced effect upgrade
 }
 
 export type CardEffect = 
@@ -93,7 +95,9 @@ export interface LevelConfig {
     count: number
     placement: 'random' | { owner: Array<'player' | 'enemy' | 'neutral' | 'mine'> }
   }>
-  specialBehaviors: any
+  specialBehaviors: {
+    enemyNeverMines?: boolean
+  }
 }
 
 export interface GameState {
@@ -117,9 +121,12 @@ export interface GameState {
   playerClueCounter: number // Counter for player clue rows
   enemyClueCounter: number // Counter for enemy clue rows
   currentLevelId: string
-  gamePhase: 'playing' | 'card_selection' | 'viewing_pile'
+  gamePhase: 'playing' | 'card_selection' | 'viewing_pile' | 'upgrade_selection'
   pileViewingType?: PileType
   cardSelectionOptions?: Card[] // Three cards to choose from when advancing level
+  upgradeOptions?: UpgradeOption[] // Three upgrade options to choose from
+  waitingForCardRemoval?: boolean // True when remove card option was selected
+  pendingUpgradeOption?: UpgradeOption // The upgrade option waiting to be applied after card removal
   // Dual enemy clue system: visible clues (shown as X) vs AI clues (hidden)
   enemyHiddenClues: ClueResult[] // AI-only clues for enemy decision making (not shown to player)
   tingleAnimation: {
@@ -134,6 +141,12 @@ export interface GameState {
   } | null
   rambleActive: boolean // True if Ramble was played this turn
   ramblePriorityBoost: number // Random boost added to enemy AI priorities next turn (0-2)
+}
+
+export interface UpgradeOption {
+  type: 'remove_card' | 'cost_reduction' | 'enhance_effect'
+  card?: Card // For cost_reduction and enhance_effect options, this is the card to upgrade
+  displayCard?: Card // The upgraded version to display
 }
 
 export type CardZone = 'deck' | 'hand' | 'discard'

@@ -371,7 +371,7 @@ export function checkGameStatus(state: GameState): GameStatusInfo {
 }
 
 
-export function executeCardEffect(state: GameState, effect: CardEffect): GameState {
+export function executeCardEffect(state: GameState, effect: CardEffect, card?: import('../types').Card): GameState {
   switch (effect.type) {
     case 'scout':
       return executeScoutEffect(state, effect.target)
@@ -384,19 +384,20 @@ export function executeCardEffect(state: GameState, effect: CardEffect): GameSta
     case 'stretch_clue':
       return executeStretchClueEffect(state)
     case 'energized':
-      return executeEnergizedEffect(state)
+      return executeEnergizedEffect(state, card)
     case 'options':
-      return executeOptionsEffect(state)
+      return executeOptionsEffect(state, card)
     case 'brush':
       return executeBrushEffect(state, effect.target)
     case 'ramble':
+      const maxBoost = card?.enhanced ? 4 : 2
       return {
         ...state,
         rambleActive: true,
-        ramblePriorityBoost: Math.random() * 2 // Random float between 0 and 2
+        ramblePriorityBoost: Math.random() * maxBoost // Enhanced: 0-4, Normal: 0-2
       }
     case 'sweep':
-      return executeSweepEffect(state, effect.target)
+      return executeSweepEffect(state, effect.target, card)
     default:
       return state
   }
@@ -406,33 +407,35 @@ export function requiresTargeting(cardName: string): boolean {
   return cardName === 'Spritz' || cardName === 'Easiest' || cardName === 'Brush' || cardName === 'Sweep'
 }
 
-export function getTargetingInfo(cardName: string): { count: number; description: string } | null {
+export function getTargetingInfo(cardName: string, enhanced?: boolean): { count: number; description: string } | null {
   switch (cardName) {
     case 'Spritz':
-      return { count: 1, description: 'Click on an unrevealed tile to scout' }
+      return { count: 1, description: enhanced ? 'Click on an unrevealed tile to scout (also scouts adjacent tile)' : 'Click on an unrevealed tile to scout' }
     case 'Easiest':
-      return { count: 2, description: 'Click on two unrevealed tiles - the safer will be revealed' }
+      return { count: enhanced ? 3 : 2, description: enhanced ? 'Click on three unrevealed tiles - the safest will be revealed' : 'Click on two unrevealed tiles - the safer will be revealed' }
     case 'Brush':
-      return { count: 1, description: 'Click center of 3x3 area to exclude random owners' }
+      return { count: 1, description: enhanced ? 'Click center of 3x3 area to exclude random owners (applies twice)' : 'Click center of 3x3 area to exclude random owners' }
     case 'Sweep':
-      return { count: 1, description: 'Click center of 5x5 area to remove all dirt' }
+      return { count: 1, description: enhanced ? 'Click center of 7x7 area to remove all dirt' : 'Click center of 5x5 area to remove all dirt' }
     default:
       return null
   }
 }
 
 // New card effects
-export function executeEnergizedEffect(state: GameState): GameState {
+export function executeEnergizedEffect(state: GameState, card?: import('../types').Card): GameState {
   // Gain 2 energy (no maximum limit)
+  // Enhanced version no longer exhausts (handled in cardSystem.ts)
   return {
     ...state,
     energy: state.energy + 2
   }
 }
 
-export function executeOptionsEffect(state: GameState): GameState {
-  // Draw 3 cards
-  return drawCards(state, 3)
+export function executeOptionsEffect(state: GameState, card?: import('../types').Card): GameState {
+  // Enhanced: Draw 5 cards, Normal: Draw 3 cards
+  const cardCount = card?.enhanced ? 5 : 3
+  return drawCards(state, cardCount)
 }
 
 function drawCards(state: GameState, count: number): GameState {
@@ -536,12 +539,15 @@ export function executeBrushEffect(state: GameState, target: Position): GameStat
   }
 }
 
-export function executeSweepEffect(state: GameState, target: Position): GameState {
+export function executeSweepEffect(state: GameState, target: Position, card?: import('../types').Card): GameState {
   const newTiles = new Map(state.board.tiles)
   
-  // Clear dirt in a 5x5 area around the target position
-  for (let dx = -2; dx <= 2; dx++) {
-    for (let dy = -2; dy <= 2; dy++) {
+  // Enhanced: 7x7 area (-3 to +3), Normal: 5x5 area (-2 to +2)
+  const range = card?.enhanced ? 3 : 2
+  
+  // Clear dirt in the specified area around the target position
+  for (let dx = -range; dx <= range; dx++) {
+    for (let dy = -range; dy <= range; dy++) {
       const x = target.x + dx
       const y = target.y + dy
       const key = `${x},${y}`

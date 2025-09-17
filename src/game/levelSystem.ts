@@ -32,6 +32,11 @@ export function shouldShowCardReward(levelId: string): boolean {
   return level?.uponFinish.cardReward || false
 }
 
+export function shouldShowUpgradeReward(levelId: string): boolean {
+  const level = getLevelConfig(levelId)
+  return level?.uponFinish.upgradeReward || false
+}
+
 export function isWinningLevel(levelId: string): boolean {
   const level = getLevelConfig(levelId)
   return level?.uponFinish.winTheGame || false

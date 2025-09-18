@@ -1,5 +1,6 @@
 import { Relic, RelicOption, GameState } from '../types'
 import { advanceToNextLevel } from './cardSystem'
+import { executeBrushEffect } from './cardEffects'
 
 export function createRelic(name: string, description: string, hoverText: string): Relic {
   return {
@@ -93,66 +94,13 @@ export function triggerDoubleBroomEffect(state: GameState, revealedPosition: { x
   const shuffled = [...unrevealedAdjacent].sort(() => Math.random() - 0.5)
   const selectedTiles = shuffled.slice(0, Math.min(2, shuffled.length))
   
-  // Apply brush effect to each selected tile
+  // Apply brush effect to each selected tile (using them as center of 3x3 areas)
   let newState = state
   selectedTiles.forEach(pos => {
-    newState = applyBrushEffectToTile(newState, pos)
+    newState = executeBrushEffect(newState, pos)
   })
   
   return newState
-}
-
-function applyBrushEffectToTile(state: GameState, position: { x: number, y: number }): GameState {
-  const key = `${position.x},${position.y}`
-  const tile = state.board.tiles.get(key)
-  
-  if (!tile || tile.revealed) {
-    return state
-  }
-  
-  // Create a subset annotation that excludes a random owner
-  const possibleOwners: Array<'player' | 'enemy' | 'neutral' | 'mine'> = ['player', 'enemy', 'neutral', 'mine']
-  const randomOwnerToExclude = possibleOwners[Math.floor(Math.random() * possibleOwners.length)]
-  
-  const newOwnerSubset = new Set(possibleOwners.filter(owner => owner !== randomOwnerToExclude))
-  
-  const existingSubsetAnnotation = tile.annotations.find(a => a.type === 'owner_subset')
-  
-  let newAnnotations
-  if (existingSubsetAnnotation && existingSubsetAnnotation.ownerSubset) {
-    // Intersect with existing subset
-    const intersectedSubset = new Set(
-      Array.from(newOwnerSubset).filter(owner => existingSubsetAnnotation.ownerSubset!.has(owner))
-    )
-    newAnnotations = tile.annotations.map(a =>
-      a.type === 'owner_subset'
-        ? { ...a, ownerSubset: intersectedSubset }
-        : a
-    )
-  } else {
-    // Create new subset annotation
-    newAnnotations = [
-      ...tile.annotations,
-      {
-        type: 'owner_subset' as const,
-        ownerSubset: newOwnerSubset
-      }
-    ]
-  }
-  
-  const newTiles = new Map(state.board.tiles)
-  newTiles.set(key, {
-    ...tile,
-    annotations: newAnnotations
-  })
-  
-  return {
-    ...state,
-    board: {
-      ...state.board,
-      tiles: newTiles
-    }
-  }
 }
 
 export function triggerDustBunnyEffect(state: GameState): GameState {

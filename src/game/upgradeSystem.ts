@@ -1,5 +1,7 @@
 import { Card, GameState, UpgradeOption } from '../types'
 import { advanceToNextLevel } from './cardSystem'
+import { shouldShowRelicReward } from './levelSystem'
+import { startRelicSelection } from './relicSystem'
 
 export function createCard(name: string, cost: number, exhaust?: boolean, costReduced?: boolean, enhanced?: boolean): Card {
   return {
@@ -105,8 +107,13 @@ export function applyUpgrade(state: GameState, option: UpgradeOption, selectedCa
     pendingUpgradeOption: undefined
   }
   
-  // Advance to next level with the upgraded persistent deck
-  return advanceToNextLevel(updatedState)
+  // Check if this level should show relic rewards after upgrade
+  if (shouldShowRelicReward(state.currentLevelId)) {
+    return startRelicSelection(updatedState)
+  } else {
+    // No relic rewards - advance to next level immediately
+    return advanceToNextLevel(updatedState)
+  }
 }
 
 export function startUpgradeSelection(state: GameState): GameState {

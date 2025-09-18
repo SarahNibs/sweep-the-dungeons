@@ -423,7 +423,7 @@ export function getTargetingInfo(cardName: string, enhanced?: boolean): { count:
 }
 
 // New card effects
-export function executeEnergizedEffect(state: GameState, card?: import('../types').Card): GameState {
+export function executeEnergizedEffect(state: GameState, _card?: import('../types').Card): GameState {
   // Gain 2 energy (no maximum limit)
   // Enhanced version no longer exhausts (handled in cardSystem.ts)
   return {

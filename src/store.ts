@@ -1,11 +1,12 @@
 import { create } from 'zustand'
-import { GameState, Tile, Position, CardEffect, Board, Card as CardType, PileType } from './types'
+import { GameState, Tile, Position, CardEffect, Board, Card as CardType, PileType, Relic } from './types'
 import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel } from './game/cardSystem'
 import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
+import { startRelicSelection, selectRelic, triggerDoubleBroomEffect, checkFrillyDressEffect } from './game/relicSystem'
 import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
-import { executeCardEffect, getTargetingInfo, checkGameStatus, executeTargetedReportEffect, getUnrevealedTilesByOwner } from './game/cardeffects'
+import { executeCardEffect, getTargetingInfo, checkGameStatus, executeTargetedReportEffect, getUnrevealedTilesByOwner } from './game/cardEffects'
 import { processEnemyTurnWithDualClues } from './game/enemyAI'
-import { shouldShowCardReward, shouldShowUpgradeReward } from './game/levelSystem'
+import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowRelicReward } from './game/levelSystem'
 
 interface GameStore extends GameState {
   playCard: (cardId: string) => void
@@ -32,6 +33,8 @@ interface GameStore extends GameState {
   viewPile: (pileType: PileType) => void
   closePileView: () => void
   debugWinLevel: () => void
+  startRelicSelection: () => void
+  selectRelic: (relic: Relic) => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -122,7 +125,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const newBoard = revealResult.board
     
     // For extraDirty tiles that were cleaned but not revealed, always end turn
-    const endTurn = !revealResult.revealed || shouldEndPlayerTurn(tile)
+    let shouldEndTurn = !revealResult.revealed || shouldEndPlayerTurn(tile)
     
     // Check game status after reveal
     const gameStatus = checkGameStatus({
@@ -130,17 +133,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
       board: newBoard
     })
     
-    const stateWithBoard = {
+    let stateWithBoard = {
       ...currentState,
       board: newBoard,
       gameStatus,
       hoveredClueId: null // Clear hover state when tile is revealed to fix pip hover bug
     }
     
+    // Trigger Double Broom effect if tile was revealed (not just cleaned)
+    if (revealResult.revealed) {
+      const updatedStateWithBroom = triggerDoubleBroomEffect(stateWithBoard, tile.position)
+      stateWithBoard = {
+        ...stateWithBoard,
+        board: updatedStateWithBroom.board
+      }
+    }
+    
+    // Check for Frilly Dress effect
+    if (revealResult.revealed && checkFrillyDressEffect(stateWithBoard, tile)) {
+      stateWithBoard = {
+        ...stateWithBoard,
+        hasRevealedNeutralThisTurn: true
+      }
+      // Override the endTurn flag - don't end turn on first neutral reveal on first turn
+      shouldEndTurn = false
+    }
+    
     if (gameStatus.status !== 'playing') {
       // Game ended, just update the state
       set(stateWithBoard)
-    } else if (endTurn) {
+    } else if (shouldEndTurn) {
       // End player turn and start enemy turn immediately using shared logic
       get().performTurnEnd(newBoard)
     } else {
@@ -480,6 +502,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // No card reward but has upgrade reward - go directly to upgrade selection
       const upgradeState = startUpgradeSelection(currentState)
       set(upgradeState)
+    } else if (shouldShowRelicReward(currentState.currentLevelId)) {
+      // No card/upgrade rewards but has relic reward - go directly to relic selection
+      const relicState = startRelicSelection(currentState)
+      set(relicState)
     } else {
       // No rewards - skip card selection and go directly to next level
       const nextLevelState = skipCardSelection(currentState)
@@ -495,8 +521,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (shouldShowUpgradeReward(currentState.currentLevelId)) {
       const upgradeState = startUpgradeSelection(nextLevelState)
       set(upgradeState)
+    } else if (shouldShowRelicReward(currentState.currentLevelId)) {
+      // No upgrade rewards but has relic reward - go to relic selection
+      const relicState = startRelicSelection(nextLevelState)
+      set(relicState)
     } else {
-      // No upgrade rewards - advance to next level immediately
+      // No upgrade/relic rewards - advance to next level immediately
       const advancedState = advanceToNextLevel(nextLevelState)
       set(advancedState)
     }
@@ -510,8 +540,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (shouldShowUpgradeReward(currentState.currentLevelId)) {
       const upgradeState = startUpgradeSelection(nextLevelState)
       set(upgradeState)
+    } else if (shouldShowRelicReward(currentState.currentLevelId)) {
+      // No upgrade rewards but has relic reward - go to relic selection
+      const relicState = startRelicSelection(nextLevelState)
+      set(relicState)
     } else {
-      // No upgrade rewards - advance to next level immediately
+      // No upgrade/relic rewards - advance to next level immediately
       const advancedState = advanceToNextLevel(nextLevelState)
       set(advancedState)
     }
@@ -654,5 +688,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     const upgradedState = applyUpgrade(currentState, currentState.pendingUpgradeOption, cardId)
     set(upgradedState)
+  },
+
+  startRelicSelection: () => {
+    const currentState = get()
+    const relicState = startRelicSelection(currentState)
+    set(relicState)
+  },
+
+  selectRelic: (relic: Relic) => {
+    const currentState = get()
+    const nextLevelState = selectRelic(currentState, relic)
+    set(nextLevelState)
   }
 }))

@@ -121,12 +121,16 @@ export interface GameState {
   playerClueCounter: number // Counter for player clue rows
   enemyClueCounter: number // Counter for enemy clue rows
   currentLevelId: string
-  gamePhase: 'playing' | 'card_selection' | 'viewing_pile' | 'upgrade_selection'
+  gamePhase: 'playing' | 'card_selection' | 'viewing_pile' | 'upgrade_selection' | 'relic_selection'
   pileViewingType?: PileType
   cardSelectionOptions?: Card[] // Three cards to choose from when advancing level
   upgradeOptions?: UpgradeOption[] // Three upgrade options to choose from
   waitingForCardRemoval?: boolean // True when remove card option was selected
   pendingUpgradeOption?: UpgradeOption // The upgrade option waiting to be applied after card removal
+  relicOptions?: RelicOption[] // Three relic options to choose from
+  relics: Relic[] // Relics the player currently has
+  isFirstTurn: boolean // True if this is the first turn of the level (for Frilly Dress)
+  hasRevealedNeutralThisTurn: boolean // True if player revealed neutral on first turn (for Frilly Dress)
   // Dual enemy clue system: visible clues (shown as X) vs AI clues (hidden)
   enemyHiddenClues: ClueResult[] // AI-only clues for enemy decision making (not shown to player)
   tingleAnimation: {
@@ -147,6 +151,17 @@ export interface UpgradeOption {
   type: 'remove_card' | 'cost_reduction' | 'enhance_effect'
   card?: Card // For cost_reduction and enhance_effect options, this is the card to upgrade
   displayCard?: Card // The upgraded version to display
+}
+
+export interface Relic {
+  id: string
+  name: string
+  description: string
+  hoverText: string
+}
+
+export interface RelicOption {
+  relic: Relic
 }
 
 export type CardZone = 'deck' | 'hand' | 'discard'

@@ -37,6 +37,11 @@ export function shouldShowUpgradeReward(levelId: string): boolean {
   return level?.uponFinish.upgradeReward || false
 }
 
+export function shouldShowRelicReward(levelId: string): boolean {
+  const level = getLevelConfig(levelId)
+  return level?.uponFinish.relicReward || false
+}
+
 export function isWinningLevel(levelId: string): boolean {
   const level = getLevelConfig(levelId)
   return level?.uponFinish.winTheGame || false

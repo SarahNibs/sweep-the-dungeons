@@ -1,8 +1,8 @@
 import { Card, GameState } from '../types'
 import { createBoard } from './boardSystem'
-import { executeCardEffect, requiresTargeting, executeSweepEffect } from './cardeffects'
+import { executeCardEffect, requiresTargeting } from './cardEffects'
 import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
-import { startUpgradeSelection } from './upgradeSystem'
+import { triggerDustBunnyEffect } from './relicSystem'
 
 export function createCard(name: string, cost: number, exhaust?: boolean): Card {
   return {
@@ -185,12 +185,15 @@ export function startNewTurn(state: GameState): GameState {
     ...drawnState,
     energy: drawnState.maxEnergy,
     rambleActive: false, // Clear ramble effect at start of new turn
-    ramblePriorityBoost: 0 // Clear ramble priority boost
+    ramblePriorityBoost: 0, // Clear ramble priority boost
+    isFirstTurn: false, // No longer first turn after first turn
+    hasRevealedNeutralThisTurn: false // Reset neutral reveal tracking
   }
 }
 
-export function createInitialState(levelId: string = 'intro', persistentDeck?: Card[]): GameState {
+export function createInitialState(levelId: string = 'intro', persistentDeck?: Card[], relics?: import('../types').Relic[]): GameState {
   const startingPersistentDeck = persistentDeck || createStartingDeck()
+  const startingRelics = relics || []
   const deck = shuffleDeck([...startingPersistentDeck]) // Copy and shuffle persistent deck for in-play use
   const levelConfig = getLevelConfigFromSystem(levelId)
   
@@ -230,6 +233,10 @@ export function createInitialState(levelId: string = 'intro', persistentDeck?: C
     enemyClueCounter: 0,
     currentLevelId: levelId,
     gamePhase: 'playing',
+    relics: startingRelics,
+    relicOptions: undefined,
+    isFirstTurn: true,
+    hasRevealedNeutralThisTurn: false,
     enemyHiddenClues: [],
     tingleAnimation: null,
     enemyAnimation: null,
@@ -237,7 +244,12 @@ export function createInitialState(levelId: string = 'intro', persistentDeck?: C
     ramblePriorityBoost: 0
   }
   
-  return drawCards(initialState, 5)
+  let finalState = drawCards(initialState, 5)
+  
+  // Trigger Dust Bunny effect if present
+  finalState = triggerDustBunnyEffect(finalState)
+  
+  return finalState
 }
 
 export function startCardSelection(state: GameState): GameState {
@@ -286,7 +298,7 @@ export function advanceToNextLevel(state: GameState): GameState {
     }
   }
   
-  const newLevelState = createInitialState(nextLevelId, state.persistentDeck)
+  const newLevelState = createInitialState(nextLevelId, state.persistentDeck, state.relics)
   return newLevelState
 }
 

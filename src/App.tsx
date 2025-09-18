@@ -5,6 +5,8 @@ import { Board } from './components/Board'
 import { PromptWidget } from './components/PromptWidget'
 import { CardSelectionScreen } from './components/CardSelectionScreen'
 import { UpgradeSelectionScreen } from './components/UpgradeSelectionScreen'
+import { RelicSelectionScreen } from './components/RelicSelectionScreen'
+import { RelicDisplay } from './components/RelicDisplay'
 import { PileViewingScreen } from './components/PileViewingScreen'
 
 function App() {
@@ -21,6 +23,8 @@ function App() {
     gamePhase,
     cardSelectionOptions,
     upgradeOptions,
+    relicOptions,
+    relics,
     pileViewingType,
     playCard, 
     endTurn, 
@@ -35,6 +39,7 @@ function App() {
     selectUpgrade,
     selectCardForRemoval,
     waitingForCardRemoval,
+    selectRelic,
     getAllCardsInCollection,
     viewPile,
     closePileView,
@@ -56,6 +61,8 @@ function App() {
         alignItems: 'center'
       }}>
         <GameStats onResetGame={resetGame} gameStatus={gameStatus} onDebugWin={debugWinLevel} />
+        
+        <RelicDisplay relics={relics} />
         
         <PromptWidget 
           targetingInfo={getTargetingInfo()} 
@@ -99,6 +106,14 @@ function App() {
           currentDeck={getAllCardsInCollection()}
           waitingForCardRemoval={waitingForCardRemoval}
           onCardRemovalSelect={selectCardForRemoval}
+        />
+      )}
+
+      {/* Relic Selection Screen */}
+      {gamePhase === 'relic_selection' && relicOptions && (
+        <RelicSelectionScreen
+          relicOptions={relicOptions}
+          onRelicSelect={selectRelic}
         />
       )}
 

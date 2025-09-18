@@ -1,6 +1,50 @@
 import { GameState, CardEffect, Position, Tile, TileAnnotation, ClueResult, GameStatusInfo } from '../types'
-import { positionToKey, getTile, revealTile, clearSpecialTileState } from './boardSystem'
+import { positionToKey, getTile, clearSpecialTileState, revealTileWithResult } from './boardSystem'
 import { generatePlayerSolidClue, generatePlayerStretchClue } from './clueSystem'
+import { triggerDoubleBroomEffect, checkFrillyDressEffect } from './relicSystem'
+
+// Shared reveal function that includes relic effects
+export function revealTileWithRelicEffects(state: GameState, position: Position, revealer: 'player' | 'enemy'): GameState {
+  const revealResult = revealTileWithResult(state.board, position, revealer)
+  const newBoard = revealResult.board
+  
+  // Check game status after reveal
+  const gameStatus = checkGameStatus({
+    ...state,
+    board: newBoard
+  })
+  
+  let stateWithBoard = {
+    ...state,
+    board: newBoard,
+    gameStatus
+  }
+  
+  // Apply relic effects only for player reveals
+  if (revealer === 'player') {
+    // Trigger Double Broom effect if tile was revealed (not just cleaned)
+    if (revealResult.revealed) {
+      const updatedStateWithBroom = triggerDoubleBroomEffect(stateWithBoard, position)
+      stateWithBoard = {
+        ...stateWithBoard,
+        board: updatedStateWithBroom.board
+      }
+    }
+    
+    // Check for Frilly Dress effect and update turn state
+    if (revealResult.revealed) {
+      const tile = getTile(stateWithBoard.board, position)
+      if (tile && checkFrillyDressEffect(stateWithBoard, tile)) {
+        stateWithBoard = {
+          ...stateWithBoard,
+          hasRevealedNeutralThisTurn: true
+        }
+      }
+    }
+  }
+  
+  return stateWithBoard
+}
 
 export function getUnrevealedTiles(state: GameState): Tile[] {
   const unrevealed: Tile[] = []
@@ -222,14 +266,8 @@ export function executeQuantumEffect(state: GameState, targets: [Position, Posit
     saferPos = safety1 > safety2 ? pos1 : pos2
   }
   
-  // Reveal the chosen tile using the proper reveal function
-  const newBoard = revealTile(state.board, saferPos, 'player')
-  
-  // Use proper game status checking like regular reveals
-  const gameStatus = checkGameStatus({
-    ...state,
-    board: newBoard
-  })
+  // Reveal the chosen tile using the shared reveal function that includes relic effects
+  const stateAfterReveal = revealTileWithRelicEffects(state, saferPos, 'player')
   
   // Add annotation to the non-revealed tile
   const nonRevealedPos = saferPos === pos1 ? pos2 : pos1
@@ -245,11 +283,7 @@ export function executeQuantumEffect(state: GameState, targets: [Position, Posit
   if (revealedSafety >= 3) possibleOwners.add('neutral')    // neutral = 3
   if (revealedSafety >= 4) possibleOwners.add('player')     // player = 4
   
-  const stateWithAnnotation = addOwnerSubsetAnnotation({
-    ...state,
-    board: newBoard,
-    gameStatus
-  }, nonRevealedPos, possibleOwners)
+  const stateWithAnnotation = addOwnerSubsetAnnotation(stateAfterReveal, nonRevealedPos, possibleOwners)
   
   return stateWithAnnotation
 }

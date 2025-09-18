@@ -2,9 +2,9 @@ import { create } from 'zustand'
 import { GameState, Tile, Position, CardEffect, Board, Card as CardType, PileType, Relic } from './types'
 import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel } from './game/cardSystem'
 import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
-import { startRelicSelection, selectRelic, triggerDoubleBroomEffect, checkFrillyDressEffect } from './game/relicSystem'
+import { startRelicSelection, selectRelic } from './game/relicSystem'
 import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
-import { executeCardEffect, getTargetingInfo, checkGameStatus, executeTargetedReportEffect, getUnrevealedTilesByOwner } from './game/cardEffects'
+import { executeCardEffect, getTargetingInfo, checkGameStatus, executeTargetedReportEffect, getUnrevealedTilesByOwner, revealTileWithRelicEffects } from './game/cardEffects'
 import { processEnemyTurnWithDualClues } from './game/enemyAI'
 import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowRelicReward } from './game/levelSystem'
 
@@ -122,49 +122,31 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
     
     const revealResult = revealTileWithResult(currentState.board, tile.position, 'player')
-    const newBoard = revealResult.board
     
     // For extraDirty tiles that were cleaned but not revealed, always end turn
     let shouldEndTurn = !revealResult.revealed || shouldEndPlayerTurn(tile)
     
-    // Check game status after reveal
-    const gameStatus = checkGameStatus({
-      ...currentState,
-      board: newBoard
-    })
+    // Use shared reveal function that includes relic effects
+    let stateWithBoard = revealTileWithRelicEffects(currentState, tile.position, 'player')
     
-    let stateWithBoard = {
-      ...currentState,
-      board: newBoard,
-      gameStatus,
+    // Add hover state clearing
+    stateWithBoard = {
+      ...stateWithBoard,
       hoveredClueId: null // Clear hover state when tile is revealed to fix pip hover bug
     }
     
-    // Trigger Double Broom effect if tile was revealed (not just cleaned)
-    if (revealResult.revealed) {
-      const updatedStateWithBroom = triggerDoubleBroomEffect(stateWithBoard, tile.position)
-      stateWithBoard = {
-        ...stateWithBoard,
-        board: updatedStateWithBroom.board
-      }
-    }
-    
-    // Check for Frilly Dress effect
-    if (revealResult.revealed && checkFrillyDressEffect(stateWithBoard, tile)) {
-      stateWithBoard = {
-        ...stateWithBoard,
-        hasRevealedNeutralThisTurn: true
-      }
+    // Check for Frilly Dress effect to override turn ending
+    if (revealResult.revealed && stateWithBoard.hasRevealedNeutralThisTurn) {
       // Override the endTurn flag - don't end turn on first neutral reveal on first turn
       shouldEndTurn = false
     }
     
-    if (gameStatus.status !== 'playing') {
+    if (stateWithBoard.gameStatus.status !== 'playing') {
       // Game ended, just update the state
       set(stateWithBoard)
     } else if (shouldEndTurn) {
       // End player turn and start enemy turn immediately using shared logic
-      get().performTurnEnd(newBoard)
+      get().performTurnEnd(stateWithBoard.board)
     } else {
       set(stateWithBoard)
     }

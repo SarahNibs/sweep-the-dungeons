@@ -172,13 +172,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
       newEffect = { type: 'scout', target: position }
       shouldExecute = true
     } else if (effect.type === 'quantum') {
-      if ('target' in effect) {
-        // Second target for quantum
-        newEffect = { type: 'quantum', targets: [(effect as any).target, position] }
-        shouldExecute = true
+      if ('targets' in effect) {
+        // Add another target to existing targets
+        const newTargets = [...effect.targets, position]
+        const card = currentState.hand.find(c => c.name === currentState.selectedCardName)
+        const maxTargets = card?.enhanced ? 3 : 2
+        
+        if (newTargets.length >= maxTargets) {
+          // Have enough targets, execute the effect
+          newEffect = { type: 'quantum', targets: newTargets }
+          shouldExecute = true
+        } else {
+          // Need more targets
+          newEffect = { type: 'quantum', targets: newTargets }
+        }
       } else {
         // First target for quantum
-        newEffect = { type: 'quantum', target: position } as any
+        newEffect = { type: 'quantum', targets: [position] }
       }
     } else if (effect.type === 'brush') {
       newEffect = { type: 'brush', target: position }
@@ -267,14 +277,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const currentState = get()
     if (!currentState.pendingCardEffect || !currentState.selectedCardName) return null
     
-    const info = getTargetingInfo(currentState.selectedCardName)
+    // Find the card to check if it's enhanced
+    const card = currentState.hand.find(c => c.name === currentState.selectedCardName)
+    const info = getTargetingInfo(currentState.selectedCardName, card?.enhanced)
     if (!info) return null
     
     const selected: Position[] = []
     const effect = currentState.pendingCardEffect
     
-    if (effect.type === 'quantum' && 'target' in effect) {
-      selected.push((effect as any).target)
+    if (effect.type === 'quantum' && 'targets' in effect) {
+      selected.push(...effect.targets)
     }
     
     return {

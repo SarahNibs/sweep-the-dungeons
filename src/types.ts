@@ -11,7 +11,7 @@ export interface Card {
 
 export type CardEffect = 
   | { type: 'scout'; target: Position }
-  | { type: 'quantum'; targets: [Position, Position] }
+  | { type: 'quantum'; targets: Position[] }
   | { type: 'report' }
   | { type: 'solid_clue' }
   | { type: 'stretch_clue' }

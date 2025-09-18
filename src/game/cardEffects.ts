@@ -205,7 +205,7 @@ export function addClueResult(state: GameState, position: Position, clueResult: 
   }
 }
 
-export function executeScoutEffect(state: GameState, target: Position): GameState {
+export function executeScoutEffect(state: GameState, target: Position, card?: import('../types').Card): GameState {
   const tile = getTile(state.board, target)
   if (!tile || tile.revealed) return state
   
@@ -232,15 +232,53 @@ export function executeScoutEffect(state: GameState, target: Position): GameStat
     ? new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['player', 'neutral'])
     : new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['enemy', 'mine'])
   
-  return addOwnerSubsetAnnotation(newState, target, ownerSubset)
+  const stateWithMainScout = addOwnerSubsetAnnotation(newState, target, ownerSubset)
+  
+  // Enhanced Spritz: also scout a random adjacent tile
+  if (card?.enhanced) {
+    const adjacentPositions = [
+      { x: target.x - 1, y: target.y },
+      { x: target.x + 1, y: target.y },
+      { x: target.x, y: target.y - 1 },
+      { x: target.x, y: target.y + 1 },
+      { x: target.x - 1, y: target.y - 1 },
+      { x: target.x + 1, y: target.y - 1 },
+      { x: target.x - 1, y: target.y + 1 },
+      { x: target.x + 1, y: target.y + 1 }
+    ]
+    
+    const unrevealedAdjacent = adjacentPositions.filter(pos => {
+      const adjKey = `${pos.x},${pos.y}`
+      const adjTile = stateWithMainScout.board.tiles.get(adjKey)
+      return adjTile && !adjTile.revealed && adjTile.owner !== 'empty'
+    })
+    
+    if (unrevealedAdjacent.length > 0) {
+      // Pick a random adjacent tile to scout
+      const randomAdjacent = unrevealedAdjacent[Math.floor(Math.random() * unrevealedAdjacent.length)]
+      const adjTile = getTile(stateWithMainScout.board, randomAdjacent)
+      
+      if (adjTile) {
+        const adjIsSafe = adjTile.owner === 'player' || adjTile.owner === 'neutral'
+        const adjOwnerSubset = adjIsSafe 
+          ? new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['player', 'neutral'])
+          : new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['enemy', 'mine'])
+        
+        return addOwnerSubsetAnnotation(stateWithMainScout, randomAdjacent, adjOwnerSubset)
+      }
+    }
+  }
+  
+  return stateWithMainScout
 }
 
-export function executeQuantumEffect(state: GameState, targets: [Position, Position]): GameState {
-  const [pos1, pos2] = targets
-  const tile1 = getTile(state.board, pos1)
-  const tile2 = getTile(state.board, pos2)
+export function executeQuantumEffect(state: GameState, targets: Position[]): GameState {
+  // Get all valid tiles
+  const validTiles = targets
+    .map(pos => ({ pos, tile: getTile(state.board, pos) }))
+    .filter(({ tile }) => tile && !tile.revealed)
   
-  if (!tile1 || !tile2 || tile1.revealed || tile2.revealed) return state
+  if (validTiles.length === 0) return state
   
   // Determine which is safer (player > neutral > enemy > assassin)
   const getSafety = (tile: Tile): number => {
@@ -253,28 +291,29 @@ export function executeQuantumEffect(state: GameState, targets: [Position, Posit
     }
   }
   
-  const safety1 = getSafety(tile1)
-  const safety2 = getSafety(tile2)
+  // Find the safest tile(s)
+  const tilesWithSafety = validTiles.map(({ pos, tile }) => ({
+    pos,
+    tile: tile!,
+    safety: getSafety(tile!)
+  }))
   
-  let saferPos: Position
+  const maxSafety = Math.max(...tilesWithSafety.map(t => t.safety))
+  const safestTiles = tilesWithSafety.filter(t => t.safety === maxSafety)
   
-  if (safety1 === safety2) {
-    // Same safety level (same owner), choose randomly
-    saferPos = Math.random() < 0.5 ? pos1 : pos2
-  } else {
-    // Different safety levels, choose safer one
-    saferPos = safety1 > safety2 ? pos1 : pos2
-  }
+  // If multiple tiles have same safety, choose randomly
+  const chosenTile = safestTiles[Math.floor(Math.random() * safestTiles.length)]
   
   // Reveal the chosen tile using the shared reveal function that includes relic effects
-  const stateAfterReveal = revealTileWithRelicEffects(state, saferPos, 'player')
+  const stateAfterReveal = revealTileWithRelicEffects(state, chosenTile.pos, 'player')
   
-  // Add annotation to the non-revealed tile
-  const nonRevealedPos = saferPos === pos1 ? pos2 : pos1
-  const revealedTile = saferPos === pos1 ? tile1 : tile2
+  // Add annotations to the non-revealed tiles
+  const nonRevealedTiles = validTiles.filter(({ pos }) => 
+    pos.x !== chosenTile.pos.x || pos.y !== chosenTile.pos.y
+  )
   
-  // Quantum reveals the safer tile, so unrevealed tile is AT MOST as safe as revealed tile
-  const revealedSafety = getSafety(revealedTile)
+  // Quantum reveals the safest tile, so unrevealed tiles are AT MOST as safe as revealed tile
+  const revealedSafety = chosenTile.safety
   const possibleOwners = new Set<'player' | 'enemy' | 'neutral' | 'mine'>()
   
   // Add all owner types that are at most as safe as the revealed tile
@@ -283,9 +322,13 @@ export function executeQuantumEffect(state: GameState, targets: [Position, Posit
   if (revealedSafety >= 3) possibleOwners.add('neutral')    // neutral = 3
   if (revealedSafety >= 4) possibleOwners.add('player')     // player = 4
   
-  const stateWithAnnotation = addOwnerSubsetAnnotation(stateAfterReveal, nonRevealedPos, possibleOwners)
+  // Apply annotation to all non-revealed tiles
+  let finalState = stateAfterReveal
+  for (const { pos } of nonRevealedTiles) {
+    finalState = addOwnerSubsetAnnotation(finalState, pos, possibleOwners)
+  }
   
-  return stateWithAnnotation
+  return finalState
 }
 
 export function executeReportEffect(state: GameState): GameState {
@@ -408,7 +451,7 @@ export function checkGameStatus(state: GameState): GameStatusInfo {
 export function executeCardEffect(state: GameState, effect: CardEffect, card?: import('../types').Card): GameState {
   switch (effect.type) {
     case 'scout':
-      return executeScoutEffect(state, effect.target)
+      return executeScoutEffect(state, effect.target, card)
     case 'quantum':
       return executeQuantumEffect(state, effect.targets)
     case 'report':

@@ -6,7 +6,8 @@ import { startRelicSelection, selectRelic } from './game/relicSystem'
 import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, checkGameStatus, executeTargetedReportEffect, getUnrevealedTilesByOwner, revealTileWithRelicEffects } from './game/cardEffects'
 import { processEnemyTurnWithDualClues } from './game/enemyAI'
-import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowRelicReward } from './game/levelSystem'
+import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowRelicReward, shouldShowShopReward, calculateCopperReward } from './game/levelSystem'
+import { startShopSelection, purchaseShopItem, removeSelectedCard, exitShop } from './game/shopSystem'
 
 interface GameStore extends GameState {
   playCard: (cardId: string) => void
@@ -22,6 +23,8 @@ interface GameStore extends GameState {
   startEnemyTurn: (board: Board) => void
   performNextEnemyReveal: () => void
   togglePlayerSlash: (position: Position) => void
+  setPlayerAnnotationMode: (mode: 'slash' | 'big_checkmark' | 'small_checkmark') => void
+  togglePlayerAnnotation: (position: Position) => void
   startCardSelection: () => void
   selectNewCard: (card: CardType) => void
   skipCardSelection: () => void
@@ -29,12 +32,35 @@ interface GameStore extends GameState {
   selectUpgrade: (option: import('./types').UpgradeOption, selectedCardId?: string) => void
   selectCardForRemoval: (cardId: string) => void
   getAllCardsInCollection: () => CardType[]
-  executeTingleWithAnimation: (state: GameState) => void
+  executeTingleWithAnimation: (state: GameState, isEnhanced: boolean) => void
   viewPile: (pileType: PileType) => void
   closePileView: () => void
   debugWinLevel: () => void
   startRelicSelection: () => void
   selectRelic: (relic: Relic) => void
+  startShopSelection: () => void
+  purchaseShopItem: (optionIndex: number) => void
+  removeSelectedCard: (cardId: string) => void
+  exitShop: () => void
+}
+
+// Helper function to update state and award copper if game was just won
+const updateStateWithCopperReward = (set: any, get: any, newState: GameState) => {
+  const previousState = get()
+  const wasPlaying = previousState.gameStatus.status === 'playing'
+  const isNowWon = newState.gameStatus.status === 'player_won'
+  
+  if (wasPlaying && isNowWon) {
+    // Player just won - award copper immediately
+    const copperReward = calculateCopperReward(newState)
+    const stateWithCopper = {
+      ...newState,
+      copper: newState.copper + copperReward
+    }
+    set(stateWithCopper)
+  } else {
+    set(newState)
+  }
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -49,7 +75,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (card?.name === 'Tingle') {
       // Handle Tingle specially with animation
       const basicState = playCard(currentState, cardId) // This won't execute the effect
-      get().executeTingleWithAnimation(basicState)
+      get().executeTingleWithAnimation(basicState, card.enhanced || false)
     } else {
       const newState = playCard(currentState, cardId)
       set(newState)
@@ -142,13 +168,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
     
     if (stateWithBoard.gameStatus.status !== 'playing') {
-      // Game ended, just update the state
-      set(stateWithBoard)
+      // Game ended, update state with potential copper reward
+      updateStateWithCopperReward(set, get, stateWithBoard)
     } else if (shouldEndTurn) {
       // End player turn and start enemy turn immediately using shared logic
       get().performTurnEnd(stateWithBoard.board)
     } else {
-      set(stateWithBoard)
+      // Always use the copper reward helper to ensure consistency
+      updateStateWithCopperReward(set, get, stateWithBoard)
     }
   },
 
@@ -414,7 +441,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         board: newBoard
       })
       
-      set({
+      const stateWithGameStatus = {
         ...state,
         board: newBoard,
         gameStatus,
@@ -423,7 +450,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           highlightedTile: null,
           currentRevealIndex: state.enemyAnimation!.currentRevealIndex + 1
         }
-      })
+      }
+      updateStateWithCopperReward(set, get, stateWithGameStatus)
       
       if (gameStatus.status !== 'playing') {
         // Game ended, stop enemy animation
@@ -485,8 +513,79 @@ export const useGameStore = create<GameStore>((set, get) => ({
     })
   },
 
+  setPlayerAnnotationMode: (mode: 'slash' | 'big_checkmark' | 'small_checkmark') => {
+    const currentState = get()
+    set({
+      ...currentState,
+      playerAnnotationMode: mode
+    })
+  },
+
+  togglePlayerAnnotation: (position: Position) => {
+    const currentState = get()
+    const key = positionToKey(position)
+    const tile = currentState.board.tiles.get(key)
+    
+    if (!tile || tile.revealed) return
+    
+    const newTiles = new Map(currentState.board.tiles)
+    const mode = currentState.playerAnnotationMode
+    
+    // Get current annotation types
+    const hasSlash = tile.annotations.some(a => a.type === 'player_slash')
+    const hasBigCheckmark = tile.annotations.some(a => a.type === 'player_big_checkmark')
+    const hasSmallCheckmark = tile.annotations.some(a => a.type === 'player_small_checkmark')
+    
+    let newAnnotations = tile.annotations.filter(a => 
+      a.type !== 'player_slash' && 
+      a.type !== 'player_big_checkmark' && 
+      a.type !== 'player_small_checkmark'
+    )
+    
+    // Cycle through annotations based on mode
+    if (mode === 'slash') {
+      // Mode 1: no annotation <-> black slash
+      if (!hasSlash) {
+        newAnnotations = [...newAnnotations, { type: 'player_slash' as const }]
+      }
+    } else if (mode === 'big_checkmark') {
+      // Mode 2: no annotation -> black slash -> big green checkmark -> no annotation
+      if (!hasSlash && !hasBigCheckmark) {
+        newAnnotations = [...newAnnotations, { type: 'player_slash' as const }]
+      } else if (hasSlash && !hasBigCheckmark) {
+        newAnnotations = [...newAnnotations, { type: 'player_big_checkmark' as const }]
+      }
+      // If hasBigCheckmark, we remove all (already filtered out above)
+    } else if (mode === 'small_checkmark') {
+      // Mode 3: no annotation -> black slash -> small purple checkmark -> no annotation
+      if (!hasSlash && !hasSmallCheckmark) {
+        newAnnotations = [...newAnnotations, { type: 'player_slash' as const }]
+      } else if (hasSlash && !hasSmallCheckmark) {
+        newAnnotations = [...newAnnotations, { type: 'player_small_checkmark' as const }]
+      }
+      // If hasSmallCheckmark, we remove all (already filtered out above)
+    }
+    
+    const updatedTile = {
+      ...tile,
+      annotations: newAnnotations
+    }
+    
+    newTiles.set(key, updatedTile)
+    
+    set({
+      ...currentState,
+      board: {
+        ...currentState.board,
+        tiles: newTiles
+      }
+    })
+  },
+
   startCardSelection: () => {
     const currentState = get()
+    
+    // Copper is now awarded immediately when player wins, not here
     
     // Check if this level should show card rewards
     if (shouldShowCardReward(currentState.currentLevelId)) {
@@ -500,6 +599,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // No card/upgrade rewards but has relic reward - go directly to relic selection
       const relicState = startRelicSelection(currentState)
       set(relicState)
+    } else if (shouldShowShopReward(currentState.currentLevelId)) {
+      // No card/upgrade/relic rewards but has shop reward - go directly to shop
+      const shopState = startShopSelection(currentState)
+      set(shopState)
     } else {
       // No rewards - skip card selection and go directly to next level
       const nextLevelState = skipCardSelection(currentState)
@@ -519,8 +622,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // No upgrade rewards but has relic reward - go to relic selection
       const relicState = startRelicSelection(nextLevelState)
       set(relicState)
+    } else if (shouldShowShopReward(currentState.currentLevelId)) {
+      // No upgrade/relic rewards but has shop reward - go to shop
+      const shopState = startShopSelection(nextLevelState)
+      set(shopState)
     } else {
-      // No upgrade/relic rewards - advance to next level immediately
+      // No upgrade/relic/shop rewards - advance to next level immediately
       const advancedState = advanceToNextLevel(nextLevelState)
       set(advancedState)
     }
@@ -538,8 +645,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // No upgrade rewards but has relic reward - go to relic selection
       const relicState = startRelicSelection(nextLevelState)
       set(relicState)
+    } else if (shouldShowShopReward(currentState.currentLevelId)) {
+      // No upgrade/relic rewards but has shop reward - go to shop
+      const shopState = startShopSelection(nextLevelState)
+      set(shopState)
     } else {
-      // No upgrade/relic rewards - advance to next level immediately
+      // No upgrade/relic/shop rewards - advance to next level immediately
       const advancedState = advanceToNextLevel(nextLevelState)
       set(advancedState)
     }
@@ -550,28 +661,40 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return getAllCardsInCollection(currentState)
   },
 
-  executeTingleWithAnimation: (state: GameState) => {
-    // Find a random enemy tile to target
+  executeTingleWithAnimation: (state: GameState, isEnhanced: boolean) => {
+    // Find random enemy tiles to target (1 for normal, 2 for enhanced)
     const enemyTiles = getUnrevealedTilesByOwner(state, 'enemy')
     if (enemyTiles.length === 0) return
 
-    const randomTile = enemyTiles[Math.floor(Math.random() * enemyTiles.length)]
+    const tilesToMark = isEnhanced ? Math.min(2, enemyTiles.length) : 1
+    const randomTiles: typeof enemyTiles = []
+    
+    // Select random tiles without replacement
+    const availableTiles = [...enemyTiles]
+    for (let i = 0; i < tilesToMark; i++) {
+      const randomIndex = Math.floor(Math.random() * availableTiles.length)
+      randomTiles.push(availableTiles[randomIndex])
+      availableTiles.splice(randomIndex, 1)
+    }
 
     // Check if we're in a test environment
     const isTestEnvironment = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
     
     if (isTestEnvironment) {
       // In tests, execute immediately without animation
-      const effectState = executeTargetedReportEffect(state, randomTile.position)
+      let effectState = state
+      for (const tile of randomTiles) {
+        effectState = executeTargetedReportEffect(effectState, tile.position)
+      }
       set(effectState)
       return
     }
 
-    // Start the enemy-style emphasis animation
+    // Start the enemy-style emphasis animation (show first tile)
     set({
       ...state,
       tingleAnimation: {
-        targetTile: randomTile.position,
+        targetTile: randomTiles[0].position,
         isEmphasized: true
       }
     })
@@ -582,15 +705,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({
         ...currentState,
         tingleAnimation: {
-          targetTile: randomTile.position,
+          targetTile: randomTiles[0].position,
           isEmphasized: false
         }
       })
       
-      // After fade duration, apply the effect and clear animation
+      // After fade duration, apply the effect to all tiles and clear animation
       setTimeout(() => {
         const finalState = get()
-        const effectState = executeTargetedReportEffect(finalState, randomTile.position)
+        let effectState: GameState = finalState
+        for (const tile of randomTiles) {
+          effectState = executeTargetedReportEffect(effectState, tile.position)
+        }
         set({
           ...effectState,
           tingleAnimation: null
@@ -646,11 +772,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       board: newBoard
     })
     
-    set({
+    const stateWithGameStatus = {
       ...currentState,
       board: newBoard,
       gameStatus
-    })
+    }
+    updateStateWithCopperReward(set, get, stateWithGameStatus)
   },
 
   startUpgradeSelection: () => {
@@ -693,6 +820,30 @@ export const useGameStore = create<GameStore>((set, get) => ({
   selectRelic: (relic: Relic) => {
     const currentState = get()
     const nextLevelState = selectRelic(currentState, relic)
+    set(nextLevelState)
+  },
+
+  startShopSelection: () => {
+    const currentState = get()
+    const shopState = startShopSelection(currentState)
+    set(shopState)
+  },
+
+  purchaseShopItem: (optionIndex: number) => {
+    const currentState = get()
+    const purchaseState = purchaseShopItem(currentState, optionIndex)
+    set(purchaseState)
+  },
+
+  removeSelectedCard: (cardId: string) => {
+    const currentState = get()
+    const updatedState = removeSelectedCard(currentState, cardId)
+    set(updatedState)
+  },
+
+  exitShop: () => {
+    const currentState = get()
+    const nextLevelState = exitShop(currentState)
     set(nextLevelState)
   }
 }))

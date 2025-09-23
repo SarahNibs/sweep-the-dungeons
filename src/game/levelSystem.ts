@@ -42,9 +42,22 @@ export function shouldShowRelicReward(levelId: string): boolean {
   return level?.uponFinish.relicReward || false
 }
 
+export function shouldShowShopReward(levelId: string): boolean {
+  const level = getLevelConfig(levelId)
+  return level?.uponFinish.shopReward || false
+}
+
 export function isWinningLevel(levelId: string): boolean {
   const level = getLevelConfig(levelId)
   return level?.uponFinish.winTheGame || false
+}
+
+export function calculateCopperReward(state: import('../types').GameState): number {
+  // Count unrevealed enemy tiles
+  const unrevealedEnemyTiles = Array.from(state.board.tiles.values()).filter(tile =>
+    tile.owner === 'enemy' && !tile.revealed
+  )
+  return unrevealedEnemyTiles.length // 1 copper per unrevealed enemy tile
 }
 
 // No longer needed - we use proper empty tiles for holes

@@ -18,6 +18,7 @@ export function generateDualEnemyClues(
   const { chosenEnemyTiles, chosenRandomTiles } = prepareEnemyClueSetup(state)
   
   // Generate two different clue sets using the same setup but different random draws
+  console.log('=== GENERATING PLAYER-FACING ENEMY CLUES (Xs) ===')
   const visibleResult = generateEnemyClueWithSharedSetup(
     chosenEnemyTiles, 
     chosenRandomTiles, 
@@ -25,6 +26,7 @@ export function generateDualEnemyClues(
     clueRowPosition
   )
   
+  console.log('=== GENERATING AI-ONLY ENEMY CLUES (Hidden) ===')
   const hiddenResult = generateEnemyClueWithSharedSetup(
     chosenEnemyTiles, 
     chosenRandomTiles, 
@@ -83,9 +85,15 @@ export function selectEnemyTilesToRevealUsingAI(
   if (unrevealedTiles.length === 0) return []
   
   // Calculate priorities using only player clues and hidden enemy clues
-  // Add ramble priority boost if active (each tile gets random 0-2 boost), otherwise small random tiebreaker
+  // Add ramble priority boost if active (each tile gets sum of separate random draws per boost), otherwise small random tiebreaker
   const tilesWithPriority = unrevealedTiles.map(tile => {
-    const randomBoost = state.ramblePriorityBoost > 0 ? Math.random() * state.ramblePriorityBoost : Math.random() * 0.01
+    let randomBoost = 0
+    if (state.ramblePriorityBoosts.length > 0) {
+      // For each Ramble boost, generate a separate random draw for this tile and sum them
+      randomBoost = state.ramblePriorityBoosts.reduce((sum, maxBoost) => sum + Math.random() * maxBoost, 0)
+    } else {
+      randomBoost = Math.random() * 0.01 // Small random tiebreaker
+    }
     return {
       tile,
       priority: calculateTilePriorityForAI(tile, hiddenEnemyCluesPairs) + randomBoost

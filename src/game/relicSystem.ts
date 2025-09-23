@@ -1,5 +1,8 @@
 import { Relic, RelicOption, GameState } from '../types'
 import { advanceToNextLevel } from './cardSystem'
+import { shouldShowShopReward } from './levelSystem'
+import { startShopSelection } from './shopSystem'
+import { calculateAdjacency, getNeighbors } from './boardSystem'
 
 export function createRelic(name: string, description: string, hoverText: string): Relic {
   return {
@@ -44,8 +47,13 @@ export function selectRelic(state: GameState, selectedRelic: Relic): GameState {
     relicOptions: undefined
   }
   
-  // Advance to next level with the selected relic
-  return advanceToNextLevel(updatedState)
+  // Check if this level should show shop rewards after relic selection
+  if (shouldShowShopReward(state.currentLevelId)) {
+    return startShopSelection(updatedState)
+  } else {
+    // No shop rewards - advance to next level immediately
+    return advanceToNextLevel(updatedState)
+  }
 }
 
 export function startRelicSelection(state: GameState): GameState {
@@ -67,17 +75,8 @@ export function triggerDoubleBroomEffect(state: GameState, revealedPosition: { x
     return state
   }
   
-  // Find unrevealed adjacent tiles
-  const adjacentPositions = [
-    { x: revealedPosition.x - 1, y: revealedPosition.y },
-    { x: revealedPosition.x + 1, y: revealedPosition.y },
-    { x: revealedPosition.x, y: revealedPosition.y - 1 },
-    { x: revealedPosition.x, y: revealedPosition.y + 1 },
-    { x: revealedPosition.x - 1, y: revealedPosition.y - 1 },
-    { x: revealedPosition.x + 1, y: revealedPosition.y - 1 },
-    { x: revealedPosition.x - 1, y: revealedPosition.y + 1 },
-    { x: revealedPosition.x + 1, y: revealedPosition.y + 1 }
-  ]
+  // Find unrevealed adjacent tiles using the board's adjacency rule
+  const adjacentPositions = getNeighbors(state.board, revealedPosition)
   
   const unrevealedAdjacent = adjacentPositions.filter(pos => {
     const key = `${pos.x},${pos.y}`
@@ -185,27 +184,14 @@ export function triggerDustBunnyEffect(state: GameState): GameState {
   const key = `${randomTile.position.x},${randomTile.position.y}`
   const newTiles = new Map(state.board.tiles)
   
-  // Calculate adjacency count for this tile
-  const adjacentPlayerTiles = [
-    { x: randomTile.position.x - 1, y: randomTile.position.y },
-    { x: randomTile.position.x + 1, y: randomTile.position.y },
-    { x: randomTile.position.x, y: randomTile.position.y - 1 },
-    { x: randomTile.position.x, y: randomTile.position.y + 1 },
-    { x: randomTile.position.x - 1, y: randomTile.position.y - 1 },
-    { x: randomTile.position.x + 1, y: randomTile.position.y - 1 },
-    { x: randomTile.position.x - 1, y: randomTile.position.y + 1 },
-    { x: randomTile.position.x + 1, y: randomTile.position.y + 1 }
-  ].filter(pos => {
-    const adjKey = `${pos.x},${pos.y}`
-    const adjTile = state.board.tiles.get(adjKey)
-    return adjTile && adjTile.owner === 'player'
-  }).length
+  // Calculate adjacency count using the board's adjacency rule
+  const adjacencyCount = calculateAdjacency(state.board, randomTile.position, 'player')
   
   newTiles.set(key, {
     ...randomTile,
     revealed: true,
     revealedBy: 'player',
-    adjacencyCount: adjacentPlayerTiles
+    adjacencyCount
   })
   
   return {
@@ -226,4 +212,51 @@ export function checkFrillyDressEffect(state: GameState, revealedTile: { owner: 
   return state.isFirstTurn && 
          !state.hasRevealedNeutralThisTurn && 
          revealedTile.owner === 'neutral'
+}
+
+export function triggerTemporaryBunnyBuffs(state: GameState): GameState {
+  if (state.temporaryBunnyBuffs <= 0) {
+    return state
+  }
+  
+  // Find all unrevealed player tiles that are not dirty
+  const unrevealedPlayerTiles = Array.from(state.board.tiles.values()).filter(tile => 
+    tile.owner === 'player' && 
+    !tile.revealed && 
+    tile.specialTile !== 'extraDirty'
+  )
+  
+  if (unrevealedPlayerTiles.length === 0) {
+    // No tiles to reveal, just consume the buff
+    return {
+      ...state,
+      temporaryBunnyBuffs: state.temporaryBunnyBuffs - 1
+    }
+  }
+  
+  // Select a random player tile
+  const randomTile = unrevealedPlayerTiles[Math.floor(Math.random() * unrevealedPlayerTiles.length)]
+  
+  // Reveal the tile
+  const key = `${randomTile.position.x},${randomTile.position.y}`
+  const newTiles = new Map(state.board.tiles)
+  
+  // Calculate adjacency count using the board's adjacency rule
+  const adjacencyCount = calculateAdjacency(state.board, randomTile.position, 'player')
+  
+  newTiles.set(key, {
+    ...randomTile,
+    revealed: true,
+    revealedBy: 'player',
+    adjacencyCount
+  })
+  
+  return {
+    ...state,
+    board: {
+      ...state.board,
+      tiles: newTiles
+    },
+    temporaryBunnyBuffs: state.temporaryBunnyBuffs - 1
+  }
 }

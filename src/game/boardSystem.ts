@@ -38,7 +38,8 @@ export function createBoard(
     player: 12, enemy: 10, neutral: 7, mine: 1
   },
   unusedLocations: number[][] = [],
-  specialTiles: SpecialTileConfig[] = []
+  specialTiles: SpecialTileConfig[] = [],
+  adjacencyRule: 'standard' | 'manhattan-2' = 'standard'
 ): Board {
   const tiles = new Map<string, Tile>()
   
@@ -88,7 +89,8 @@ export function createBoard(
   return {
     width,
     height,
-    tiles
+    tiles,
+    adjacencyRule
   }
 }
 
@@ -208,19 +210,44 @@ export function revealTile(board: Board, position: Position, revealedBy: 'player
 export function getNeighbors(board: Board, position: Position): Position[] {
   const neighbors: Position[] = []
   
-  for (let dx = -1; dx <= 1; dx++) {
-    for (let dy = -1; dy <= 1; dy++) {
-      if (dx === 0 && dy === 0) continue // Skip center position
-      
-      const neighborPos = {
-        x: position.x + dx,
-        y: position.y + dy
+  if (board.adjacencyRule === 'manhattan-2') {
+    // Manhattan distance 2: all tiles within Manhattan distance 2
+    for (let dx = -2; dx <= 2; dx++) {
+      for (let dy = -2; dy <= 2; dy++) {
+        if (dx === 0 && dy === 0) continue // Skip center position
+        
+        // Check if Manhattan distance is <= 2
+        const manhattanDistance = Math.abs(dx) + Math.abs(dy)
+        if (manhattanDistance > 2) continue
+        
+        const neighborPos = {
+          x: position.x + dx,
+          y: position.y + dy
+        }
+        
+        // Check bounds
+        if (neighborPos.x >= 0 && neighborPos.x < board.width &&
+            neighborPos.y >= 0 && neighborPos.y < board.height) {
+          neighbors.push(neighborPos)
+        }
       }
-      
-      // Check bounds
-      if (neighborPos.x >= 0 && neighborPos.x < board.width &&
-          neighborPos.y >= 0 && neighborPos.y < board.height) {
-        neighbors.push(neighborPos)
+    }
+  } else {
+    // Standard adjacency: 8 surrounding tiles (3x3 grid minus center)
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        if (dx === 0 && dy === 0) continue // Skip center position
+        
+        const neighborPos = {
+          x: position.x + dx,
+          y: position.y + dy
+        }
+        
+        // Check bounds
+        if (neighborPos.x >= 0 && neighborPos.x < board.width &&
+            neighborPos.y >= 0 && neighborPos.y < board.height) {
+          neighbors.push(neighborPos)
+        }
       }
     }
   }

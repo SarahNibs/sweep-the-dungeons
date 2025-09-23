@@ -24,10 +24,9 @@ if (typeof document !== 'undefined' && !document.getElementById('pulse-glow-styl
 interface GameStatsProps {
   onResetGame: () => void
   gameStatus: GameStatusInfo
-  onDebugWin?: () => void
 }
 
-export function GameStats({ onResetGame, gameStatus, onDebugWin }: GameStatsProps) {
+export function GameStats({ onResetGame, gameStatus }: GameStatsProps) {
   const [isPressed, setIsPressed] = useState(false)
   const [animationProgress, setAnimationProgress] = useState(0)
   const [allowTransition, setAllowTransition] = useState(true)
@@ -187,27 +186,6 @@ export function GameStats({ onResetGame, gameStatus, onDebugWin }: GameStatsProp
           </h1>
         )}
       </div>
-      
-      {/* Debug Win Button - only show during active gameplay */}
-      {onDebugWin && gameStatus.status === 'playing' && (
-        <button
-          onClick={onDebugWin}
-          style={{
-            padding: '4px 8px',
-            fontSize: '12px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            marginTop: '8px'
-          }}
-          title="Debug: Instantly win the current level"
-        >
-          DEBUG WIN
-        </button>
-      )}
       </div>
     </div>
   )

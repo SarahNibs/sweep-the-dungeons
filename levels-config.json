@@ -42,7 +42,7 @@
         "upgradeReward": true,
         "shopReward": false,
         "winTheGame": false,
-        "nextLevel": ["firstDirty"]
+        "nextLevel": ["firstDirty", "firstHoles"]
       },
       "description": "The second level is simple and small still, but with a more usual ratio of player tiles to overall, and one mine.",
       "dimensions": {
@@ -65,13 +65,13 @@
       "levelId": "firstDirty",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
-        "upgradeReward": true,
+        "relicReward": true,
+        "upgradeReward": false,
         "shopReward": false,
         "winTheGame": false,
-        "nextLevel": ["L4a", "L4b"]
+        "nextLevel": ["L4b"]
       },
-      "description": "The third level is slightly larger, with two mines, and introduces one simple special tile placed in such a way that the player probably won't be incensed and also makes it clear that not all Spritzing-type cards should be removed.",
+      "description": "One third level is slightly larger, with two mines, and introduces one simple special tile placed in such a way that the player probably won't be incensed and also makes it clear that not all Spritzing-type cards should be removed.",
       "dimensions": {
         "columns": 6,
         "rows": 6
@@ -89,6 +89,37 @@
           "count": 2,
           "placement": {"owner": ["player", "neutral"]}
         }
+      ],
+      "specialBehaviors": {
+      }
+    },
+    {
+      "levelNumber": 3,
+      "levelId": "firstHoles",
+      "uponFinish": {
+        "cardReward": true,
+        "relicReward": false,
+        "upgradeReward": true,
+        "shopReward": false,
+        "winTheGame": false,
+        "nextLevel": ["L4a"]
+      },
+      "description": "One third level is slightly larger, with two mines, and introduces holes in the grid.",
+      "dimensions": {
+        "columns": 6,
+        "rows": 6
+      },
+      "tileCounts": {
+        "player": 12,
+        "enemy": 10,
+        "neutral": 8,
+        "mine": 2
+      },
+      "unusedLocations": [
+        [2, 2], [3, 2],
+        [2, 3], [3, 3]
+      ],
+      "specialTiles": [
       ],
       "specialBehaviors": {
       }
@@ -169,7 +200,40 @@
         "upgradeReward": false,
         "shopReward": true,
         "winTheGame": false,
-        "nextLevel": ["temporaryFinalBoss"]
+        "nextLevel": ["L6"]
+      },
+      "description": "Level 5 is 7x6 with half a dozen dirty tiles but nothing else special, except of course we get a shop after it.",
+      "dimensions": {
+        "columns": 7,
+        "rows": 6
+      },
+      "tileCounts": {
+        "player": 15,
+        "enemy": 13,
+        "neutral": 11,
+        "mine": 3
+      },
+      "unusedLocations": [],
+      "specialTiles": [
+        {
+          "type": "extraDirty",
+          "count": 6,
+          "placement": "random"
+        }
+      ],
+      "specialBehaviors": {
+      }
+    },
+    {
+      "levelNumber": 5,
+      "levelId": "L5",
+      "uponFinish": {
+        "cardReward": true,
+        "relicReward": false,
+        "upgradeReward": false,
+        "shopReward": true,
+        "winTheGame": false,
+        "nextLevel": ["L6"]
       },
       "description": "Level 5 is 7x6 with half a dozen dirty tiles but nothing else special, except of course we get a shop after it.",
       "dimensions": {
@@ -195,25 +259,25 @@
     },
     {
       "levelNumber": 6,
-      "levelId": "temporaryFinalBoss",
+      "levelId": "L6",
       "uponFinish": {
         "cardReward": false,
-        "relicReward": false,
+        "relicReward": true,
         "upgradeReward": false,
         "shopReward": false,
-        "winTheGame": true,
-        "nextLevel": []
+        "winTheGame": false,
+        "nextLevel": ["L7"]
       },
-      "description": "For now, our final level will be Level 6. A 7x6 grid with missing corners and center, some dirty tiles, and a good number of mines.",
+      "description": "Level 6 boss level! A 7x6 grid with missing corners and center, some dirty tiles, and a good number of mines.",
       "dimensions": {
         "columns": 7,
         "rows": 6
       },
       "tileCounts": {
-        "player": 13,
-        "enemy": 11,
-        "neutral": 6,
-        "mine": 6
+        "player": 11,
+        "enemy": 10,
+        "neutral": 8,
+        "mine": 7
       },
       "unusedLocations": [
         [0, 0],         [6, 0],
@@ -230,6 +294,41 @@
       ],
       "specialBehaviors": {
         "enemyNeverMines": true
+      }
+    },
+    {
+      "levelNumber": 7,
+      "levelId": "L7",
+      "uponFinish": {
+        "cardReward": true,
+        "relicReward": false,
+        "upgradeReward": false,
+        "shopReward": false,
+        "winTheGame": true,
+        "nextLevel": []
+      },
+      "description": "Our first alternate adjacency level. All reveals include info from all tiles within Manhattan distance 2. Temporarily, it is the last level.",
+      "dimensions": {
+        "columns": 6,
+        "rows": 6
+      },
+      "tileCounts": {
+        "player": 13,
+        "enemy": 11,
+        "neutral": 9,
+        "mine": 3
+      },
+      "unusedLocations": [
+      ],
+      "specialTiles": [
+        {
+          "type": "extraDirty",
+          "count": 3,
+          "placement": "random"
+        }
+      ],
+      "specialBehaviors": {
+        "adjacencyRule": "manhattan-2"
       }
     }
   ],

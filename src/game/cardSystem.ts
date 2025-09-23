@@ -2,7 +2,7 @@ import { Card, GameState } from '../types'
 import { createBoard } from './boardSystem'
 import { executeCardEffect, requiresTargeting } from './cardEffects'
 import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
-import { triggerDustBunnyEffect } from './relicSystem'
+import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs } from './relicSystem'
 
 export function createCard(name: string, cost: number, exhaust?: boolean): Card {
   return {
@@ -185,13 +185,13 @@ export function startNewTurn(state: GameState): GameState {
     ...drawnState,
     energy: drawnState.maxEnergy,
     rambleActive: false, // Clear ramble effect at start of new turn
-    ramblePriorityBoost: 0, // Clear ramble priority boost
+    ramblePriorityBoosts: [], // Clear ramble priority boosts
     isFirstTurn: false, // No longer first turn after first turn
     hasRevealedNeutralThisTurn: false // Reset neutral reveal tracking
   }
 }
 
-export function createInitialState(levelId: string = 'intro', persistentDeck?: Card[], relics?: import('../types').Relic[]): GameState {
+export function createInitialState(levelId: string = 'intro', persistentDeck?: Card[], relics?: import('../types').Relic[], copper: number = 0, temporaryBunnyBuffs: number = 0, playerAnnotationMode?: 'slash' | 'big_checkmark' | 'small_checkmark'): GameState {
   const startingPersistentDeck = persistentDeck || createStartingDeck()
   const startingRelics = relics || []
   const deck = shuffleDeck([...startingPersistentDeck]) // Copy and shuffle persistent deck for in-play use
@@ -206,7 +206,8 @@ export function createInitialState(levelId: string = 'intro', persistentDeck?: C
       levelConfig.dimensions.rows,
       levelConfig.tileCounts,
       levelConfig.unusedLocations,
-      levelConfig.specialTiles
+      levelConfig.specialTiles,
+      levelConfig.specialBehaviors.adjacencyRule || 'standard'
     )
   } else {
     // Fallback to default board
@@ -241,13 +242,21 @@ export function createInitialState(levelId: string = 'intro', persistentDeck?: C
     tingleAnimation: null,
     enemyAnimation: null,
     rambleActive: false,
-    ramblePriorityBoost: 0
+    ramblePriorityBoosts: [],
+    copper,
+    shopOptions: undefined,
+    purchasedShopItems: undefined,
+    temporaryBunnyBuffs,
+    playerAnnotationMode: playerAnnotationMode || 'slash'
   }
   
   let finalState = drawCards(initialState, 5)
   
   // Trigger Dust Bunny effect if present
   finalState = triggerDustBunnyEffect(finalState)
+  
+  // Trigger temporary bunny buffs if present
+  finalState = triggerTemporaryBunnyBuffs(finalState)
   
   return finalState
 }
@@ -298,7 +307,7 @@ export function advanceToNextLevel(state: GameState): GameState {
     }
   }
   
-  const newLevelState = createInitialState(nextLevelId, state.persistentDeck, state.relics)
+  const newLevelState = createInitialState(nextLevelId, state.persistentDeck, state.relics, state.copper, state.temporaryBunnyBuffs, state.playerAnnotationMode)
   return newLevelState
 }
 

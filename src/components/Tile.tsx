@@ -14,8 +14,11 @@ interface TileProps {
 }
 
 export function Tile({ tile, onClick, isTargeting = false, isSelected = false, isEnemyHighlighted = false, isBrushHighlighted = false, onMouseEnter, onMouseLeave }: TileProps) {
-  const { hoveredClueId, setHoveredClueId, togglePlayerSlash, tingleAnimation } = useGameStore()
+  const { hoveredClueId, setHoveredClueId, togglePlayerAnnotation, setPlayerAnnotationMode, playerAnnotationMode, tingleAnimation } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
+  const [showContextMenu, setShowContextMenu] = useState(false)
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
+  const [rightClickTimer, setRightClickTimer] = useState<NodeJS.Timeout | null>(null)
   
   // Add animation styles when component mounts
   useEffect(() => {
@@ -52,11 +55,61 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
   }
   
   const handleRightClick = (e: React.MouseEvent) => {
-    e.preventDefault() // Prevent context menu
-    if (!tile.revealed) {
-      togglePlayerSlash(tile.position)
+    e.preventDefault() // Prevent browser context menu
+    // Let the mouseUp handler deal with the annotation logic
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 2 && !tile.revealed) { // Right mouse button
+      e.preventDefault()
+      
+      // Start timer for hold detection
+      const timer = setTimeout(() => {
+        // Show context menu
+        setContextMenuPosition({ x: e.clientX, y: e.clientY })
+        setShowContextMenu(true)
+      }, 500) // 500ms hold time
+      
+      setRightClickTimer(timer)
     }
   }
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (e.button === 2) {
+      if (rightClickTimer) {
+        clearTimeout(rightClickTimer)
+        setRightClickTimer(null)
+        
+        // If context menu is not showing, this was a quick right-click
+        if (!showContextMenu && !tile.revealed) {
+          togglePlayerAnnotation(tile.position)
+        }
+      }
+    }
+  }
+
+  const handleContextMenuSelect = (mode: 'slash' | 'big_checkmark' | 'small_checkmark') => {
+    setPlayerAnnotationMode(mode)
+    setShowContextMenu(false)
+  }
+
+  // Close context menu when clicking elsewhere
+  useEffect(() => {
+    const handleClickOutside = () => setShowContextMenu(false)
+    if (showContextMenu) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showContextMenu])
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (rightClickTimer) {
+        clearTimeout(rightClickTimer)
+      }
+    }
+  }, [rightClickTimer])
   
   // Check if this tile should be highlighted due to clue hover
   const isClueHighlighted = () => {
@@ -139,6 +192,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       const safetyAnnotations = tile.annotations.filter(a => a.type === 'safe' || a.type === 'unsafe')
       const enemyAnnotations = tile.annotations.filter(a => a.type === 'enemy')
       const playerSlashAnnotation = tile.annotations.find(a => a.type === 'player_slash')
+      const playerBigCheckmarkAnnotation = tile.annotations.find(a => a.type === 'player_big_checkmark')
+      const playerSmallCheckmarkAnnotation = tile.annotations.find(a => a.type === 'player_small_checkmark')
       
       // Render clue pips - player clues (top-left) and enemy clues (bottom-left) 
       if (clueResultsAnnotation?.clueResults) {
@@ -340,6 +395,49 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         )
       }
       
+      // Render player big checkmark annotation (center)
+      if (playerBigCheckmarkAnnotation) {
+        elements.push(
+          <div
+            key="player-big-checkmark"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              fontSize: '32px',
+              color: '#28a745',
+              pointerEvents: 'none',
+              zIndex: 1001,
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+            }}
+          >
+            ✓
+          </div>
+        )
+      }
+      
+      // Render player small checkmark annotation (top-right corner)
+      if (playerSmallCheckmarkAnnotation) {
+        elements.push(
+          <div
+            key="player-small-checkmark"
+            style={{
+              position: 'absolute',
+              top: '2px',
+              right: '2px',
+              fontSize: '12px',
+              color: '#8b5cf6',
+              pointerEvents: 'none',
+              zIndex: 1001,
+              textShadow: '1px 1px 1px rgba(0,0,0,0.8)'
+            }}
+          >
+            ✓
+          </div>
+        )
+      }
+      
       // Add dirty scribbles for extraDirty tiles (always, regardless of other annotations)
       if (tile.specialTile === 'extraDirty') {
         elements.push(
@@ -429,10 +527,13 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
   }
 
   return (
-    <div
-      onClick={handleClick}
-      onContextMenu={handleRightClick}
-      title={tile.specialTile === 'extraDirty' && !tile.revealed ? 'Cannot reveal tile without cleaning it!' : undefined}
+    <>
+      <div
+        onClick={handleClick}
+        onContextMenu={handleRightClick}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        title={tile.specialTile === 'extraDirty' && !tile.revealed ? 'Cannot reveal tile without cleaning it!' : undefined}
       style={{
         position: 'relative',
         width: '56px',
@@ -441,7 +542,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         border: isSelected ? '3px solid #ffc107' : 
                 isTargeting ? '2px solid #007bff' : 
                 isEnemyHighlighted || isTingleEmphasized() ? '3px solid #dc3545' :
-                isBrushHighlighted ? '2px solid #ff8c00' :
+                isBrushHighlighted ? '3px solid #007bff' :
                 isClueHighlighted() ? '2px solid #40c057' : 
                 '2px solid #333',
         borderRadius: '4px',
@@ -456,7 +557,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         userSelect: 'none',
         transform: (isHovered && !tile.revealed) ? 'scale(1.05)' : 'scale(1)',
         boxShadow: isEnemyHighlighted || isTingleEmphasized() ? '0 0 12px rgba(220, 53, 69, 0.6)' :
-                   isBrushHighlighted ? '0 0 8px rgba(255, 140, 0, 0.5)' :
+                   isBrushHighlighted ? '0 0 12px rgba(0, 123, 255, 0.8)' :
                    isClueHighlighted() ? '0 0 8px rgba(64, 192, 87, 0.4)' :
                    (isHovered && !tile.revealed) ? '0 2px 4px rgba(0,0,0,0.3)' : 
                    'none',
@@ -471,8 +572,65 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         setIsHovered(false)
         onMouseLeave?.()
       }}
-    >
-      {getOverlay()}
-    </div>
+      >
+        {getOverlay()}
+      </div>
+      
+      {/* Context Menu */}
+      {showContextMenu && (
+        <div
+          style={{
+            position: 'fixed',
+            top: contextMenuPosition.y,
+            left: contextMenuPosition.x,
+            backgroundColor: 'white',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
+            zIndex: 10000,
+            padding: '4px',
+            fontSize: '12px'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div
+            style={{
+              padding: '4px 8px',
+              cursor: 'pointer',
+              backgroundColor: playerAnnotationMode === 'slash' ? '#e9ecef' : 'transparent'
+            }}
+            onClick={() => handleContextMenuSelect('slash')}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = playerAnnotationMode === 'slash' ? '#e9ecef' : 'transparent'}
+          >
+            Black slash only
+          </div>
+          <div
+            style={{
+              padding: '4px 8px',
+              cursor: 'pointer',
+              backgroundColor: playerAnnotationMode === 'big_checkmark' ? '#e9ecef' : 'transparent'
+            }}
+            onClick={() => handleContextMenuSelect('big_checkmark')}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = playerAnnotationMode === 'big_checkmark' ? '#e9ecef' : 'transparent'}
+          >
+            Slash + big ✓
+          </div>
+          <div
+            style={{
+              padding: '4px 8px',
+              cursor: 'pointer',
+              backgroundColor: playerAnnotationMode === 'small_checkmark' ? '#e9ecef' : 'transparent'
+            }}
+            onClick={() => handleContextMenuSelect('small_checkmark')}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = playerAnnotationMode === 'small_checkmark' ? '#e9ecef' : 'transparent'}
+          >
+            Slash + small ✓
+          </div>
+        </div>
+      )}
+    </>
   )
 }

@@ -31,7 +31,7 @@ export interface ClueResult {
 }
 
 export interface TileAnnotation {
-  type: 'safe' | 'unsafe' | 'enemy' | 'clue_results' | 'owner_subset' | 'player_slash'
+  type: 'safe' | 'unsafe' | 'enemy' | 'clue_results' | 'owner_subset' | 'player_slash' | 'player_big_checkmark' | 'player_small_checkmark'
   clueResults?: ClueResult[] // For clue strength annotations
   ownerSubset?: Set<'player' | 'enemy' | 'neutral' | 'mine'> // For subset annotations
 }
@@ -65,6 +65,7 @@ export interface Board {
   width: number
   height: number
   tiles: Map<string, Tile>
+  adjacencyRule?: 'standard' | 'manhattan-2'
 }
 
 export interface LevelConfig {
@@ -97,6 +98,7 @@ export interface LevelConfig {
   }>
   specialBehaviors: {
     enemyNeverMines?: boolean
+    adjacencyRule?: 'standard' | 'manhattan-2'
   }
 }
 
@@ -121,7 +123,7 @@ export interface GameState {
   playerClueCounter: number // Counter for player clue rows
   enemyClueCounter: number // Counter for enemy clue rows
   currentLevelId: string
-  gamePhase: 'playing' | 'card_selection' | 'viewing_pile' | 'upgrade_selection' | 'relic_selection'
+  gamePhase: 'playing' | 'card_selection' | 'viewing_pile' | 'upgrade_selection' | 'relic_selection' | 'shop_selection'
   pileViewingType?: PileType
   cardSelectionOptions?: Card[] // Three cards to choose from when advancing level
   upgradeOptions?: UpgradeOption[] // Three upgrade options to choose from
@@ -144,7 +146,15 @@ export interface GameState {
     currentRevealIndex: number
   } | null
   rambleActive: boolean // True if Ramble was played this turn
-  ramblePriorityBoost: number // Random boost added to enemy AI priorities next turn (0-2)
+  ramblePriorityBoosts: number[] // Array of max boost values from Rambles played this turn (e.g., [2, 4] for basic + enhanced)
+  // Currency and shop system
+  copper: number // Copper currency earned from unrevealed enemy tiles
+  shopOptions?: ShopOption[] // Available shop items
+  purchasedShopItems?: Set<number> // Indices of purchased shop items (for current shop session)
+  temporaryBunnyBuffs: number // Number of temporary bunny buffs for next level
+  
+  // Player annotation system
+  playerAnnotationMode: 'slash' | 'big_checkmark' | 'small_checkmark' // Current annotation mode
 }
 
 export interface UpgradeOption {
@@ -162,6 +172,15 @@ export interface Relic {
 
 export interface RelicOption {
   relic: Relic
+}
+
+export interface ShopOption {
+  type: 'add_card' | 'add_energy_card' | 'add_enhanced_card' | 'add_relic' | 'remove_card' | 'temp_bunny'
+  cost: number
+  card?: Card // For card options
+  relic?: Relic // For relic options
+  displayName: string
+  description: string
 }
 
 export type CardZone = 'deck' | 'hand' | 'discard'

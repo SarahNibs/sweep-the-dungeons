@@ -191,7 +191,17 @@ export function startNewTurn(state: GameState): GameState {
   }
 }
 
-export function createInitialState(levelId: string = 'intro', persistentDeck?: Card[], relics?: import('../types').Relic[], copper: number = 0, temporaryBunnyBuffs: number = 0, playerAnnotationMode?: 'slash' | 'big_checkmark' | 'small_checkmark'): GameState {
+export function createInitialState(
+  levelId: string = 'intro', 
+  persistentDeck?: Card[], 
+  relics?: import('../types').Relic[], 
+  copper: number = 0, 
+  temporaryBunnyBuffs: number = 0, 
+  playerAnnotationMode?: 'slash' | 'big_checkmark' | 'small_checkmark',
+  useDefaultAnnotations?: boolean,
+  enabledOwnerPossibilities?: Set<string>,
+  currentOwnerPossibilityIndex?: number
+): GameState {
   const startingPersistentDeck = persistentDeck || createStartingDeck()
   const startingRelics = relics || []
   const deck = shuffleDeck([...startingPersistentDeck]) // Copy and shuffle persistent deck for in-play use
@@ -247,7 +257,10 @@ export function createInitialState(levelId: string = 'intro', persistentDeck?: C
     shopOptions: undefined,
     purchasedShopItems: undefined,
     temporaryBunnyBuffs,
-    playerAnnotationMode: playerAnnotationMode || 'slash'
+    playerAnnotationMode: playerAnnotationMode || 'slash',
+    useDefaultAnnotations: useDefaultAnnotations !== undefined ? useDefaultAnnotations : true,
+    enabledOwnerPossibilities: enabledOwnerPossibilities || new Set(['player', 'enemy', 'neutral', 'mine']),
+    currentOwnerPossibilityIndex: currentOwnerPossibilityIndex || 0
   }
   
   let finalState = drawCards(initialState, 5)
@@ -307,7 +320,17 @@ export function advanceToNextLevel(state: GameState): GameState {
     }
   }
   
-  const newLevelState = createInitialState(nextLevelId, state.persistentDeck, state.relics, state.copper, state.temporaryBunnyBuffs, state.playerAnnotationMode)
+  const newLevelState = createInitialState(
+    nextLevelId, 
+    state.persistentDeck, 
+    state.relics, 
+    state.copper, 
+    state.temporaryBunnyBuffs, 
+    state.playerAnnotationMode,
+    state.useDefaultAnnotations,
+    state.enabledOwnerPossibilities,
+    state.currentOwnerPossibilityIndex
+  )
   return newLevelState
 }
 

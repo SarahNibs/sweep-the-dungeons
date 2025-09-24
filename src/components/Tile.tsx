@@ -14,7 +14,16 @@ interface TileProps {
 }
 
 export function Tile({ tile, onClick, isTargeting = false, isSelected = false, isEnemyHighlighted = false, isBrushHighlighted = false, onMouseEnter, onMouseLeave }: TileProps) {
-  const { hoveredClueId, setHoveredClueId, togglePlayerAnnotation, setPlayerAnnotationMode, playerAnnotationMode, tingleAnimation } = useGameStore()
+  const { 
+    hoveredClueId, 
+    setHoveredClueId, 
+    tingleAnimation,
+    useDefaultAnnotations,
+    enabledOwnerPossibilities,
+    setUseDefaultAnnotations,
+    toggleOwnerPossibility,
+    cyclePlayerOwnerAnnotation
+  } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
   const [showContextMenu, setShowContextMenu] = useState(false)
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
@@ -82,15 +91,99 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         
         // If context menu is not showing, this was a quick right-click
         if (!showContextMenu && !tile.revealed) {
-          togglePlayerAnnotation(tile.position)
+          cyclePlayerOwnerAnnotation(tile.position)
         }
       }
     }
   }
 
-  const handleContextMenuSelect = (mode: 'slash' | 'big_checkmark' | 'small_checkmark') => {
-    setPlayerAnnotationMode(mode)
-    setShowContextMenu(false)
+  // All 16 possible owner combinations organized as 2x2 grid of 2x2 grids
+  const getAllOwnerCombinations = (): string[][] => {
+    // Outer grid: [could be player][could be enemy] vs [can't be player][can't be enemy]
+    // Inner grid: [could be neutral][could be mine] vs [can't be neutral][can't be mine]
+    
+    const combinations: string[][] = []
+    
+    // Top-left quadrant: CAN be player, CAN be enemy
+    combinations.push([
+      'player,enemy,neutral,mine', // Can be anything
+      'player,enemy,neutral',      // Can be player/enemy/neutral (not mine)
+      'player,enemy,mine',         // Can be player/enemy/mine (not neutral)  
+      'player,enemy'               // Can only be player/enemy
+    ])
+    
+    // Top-right quadrant: CAN be player, CAN'T be enemy
+    combinations.push([
+      'player,neutral,mine',       // Can be player/neutral/mine (not enemy)
+      'player,neutral',            // Can be player/neutral (not enemy/mine)
+      'player,mine',               // Can be player/mine (not enemy/neutral)
+      'player'                     // Can only be player
+    ])
+    
+    // Bottom-left quadrant: CAN'T be player, CAN be enemy
+    combinations.push([
+      'enemy,neutral,mine',        // Can be enemy/neutral/mine (not player)
+      'enemy,neutral',             // Can be enemy/neutral (not player/mine)
+      'enemy,mine',                // Can be enemy/mine (not player/neutral)
+      'enemy'                      // Can only be enemy
+    ])
+    
+    // Bottom-right quadrant: CAN'T be player, CAN'T be enemy
+    combinations.push([
+      'neutral,mine',              // Can be neutral/mine (not player/enemy)
+      'neutral',                   // Can only be neutral
+      'mine',                      // Can only be mine
+      ''                           // Can't be anything (impossible)
+    ])
+    
+    return combinations
+  }
+
+  const ownerCombos = getAllOwnerCombinations()
+
+  const getComboLabel = (combo: string): string => {
+    if (combo === '') return '∅' // Empty set symbol
+    if (combo === 'player,enemy,neutral,mine') return 'Any'
+    
+    const owners = combo.split(',')
+    const labels = owners.map(owner => {
+      switch(owner) {
+        case 'player': return 'P'
+        case 'enemy': return 'E' 
+        case 'neutral': return 'N'
+        case 'mine': return 'M'
+        default: return ''
+      }
+    }).filter(l => l)
+    
+    return labels.join('')
+  }
+
+  // Combine player annotation with card results to get the actual display annotation
+  const getCombinedOwnerPossibility = (): Set<'player' | 'enemy' | 'neutral' | 'mine'> | null => {
+    // Find player owner possibility annotation
+    const playerAnnotation = tile.annotations.find(a => a.type === 'player_owner_possibility')
+    if (!playerAnnotation?.playerOwnerPossibility) return null
+
+    // Find card/relic result annotations (owner_subset)
+    const cardAnnotations = tile.annotations.filter(a => a.type === 'owner_subset')
+    
+    let result = new Set(playerAnnotation.playerOwnerPossibility)
+    
+    // Intersect with all card result sets
+    for (const cardAnnotation of cardAnnotations) {
+      if (cardAnnotation.ownerSubset) {
+        const intersection = new Set<'player' | 'enemy' | 'neutral' | 'mine'>()
+        for (const owner of result) {
+          if (cardAnnotation.ownerSubset.has(owner)) {
+            intersection.add(owner)
+          }
+        }
+        result = intersection
+      }
+    }
+    
+    return result.size > 0 ? result : null
   }
 
   // Close context menu when clicking elsewhere
@@ -438,6 +531,44 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         )
       }
       
+      // Render combined player owner possibility annotation (upper-right corner)
+      const combinedPossibility = getCombinedOwnerPossibility()
+      if (combinedPossibility) {
+        // Use same 2x2 grid system as subset annotations but in upper-right
+        const ownerInfo = [
+          { owner: 'player' as const, color: '#81b366', position: { top: 4, left: 8 }, name: 'Player' },
+          { owner: 'enemy' as const, color: '#c65757', position: { top: 4, left: 4 }, name: 'Enemy' },
+          { owner: 'neutral' as const, color: '#d4aa5a', position: { top: 0, left: 8 }, name: 'Neutral' },
+          { owner: 'mine' as const, color: '#8b6ba8', position: { top: 0, left: 4 }, name: 'Mine' }
+        ]
+        
+        const includedOwners = ownerInfo.filter(info => combinedPossibility.has(info.owner))
+        const tooltipText = includedOwners.length === 1 
+          ? `Could be ${includedOwners[0].name.toLowerCase()}`
+          : `Could be ${includedOwners.map(info => info.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ', or $1')}`
+        
+        // Render the squares in upper-right corner
+        includedOwners.forEach(info => {
+          elements.push(
+            <div
+              key={`combined-${info.owner}`}
+              title={tooltipText}
+              style={{
+                position: 'absolute',
+                top: `${2 + info.position.top}px`, // Upper-right instead of bottom-right
+                right: `${2 + info.position.left}px`,
+                width: '4px',
+                height: '4px',
+                backgroundColor: info.color,
+                borderRadius: '1px',
+                border: '0.5px solid black',
+                opacity: 0.8
+              }}
+            />
+          )
+        })
+      }
+      
       // Add dirty scribbles for extraDirty tiles (always, regardless of other annotations)
       if (tile.specialTile === 'extraDirty') {
         elements.push(
@@ -588,46 +719,75 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
             borderRadius: '4px',
             boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
             zIndex: 10000,
-            padding: '4px',
-            fontSize: '12px'
+            padding: '8px',
+            fontSize: '12px',
+            minWidth: '200px'
           }}
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Default annotation toggle */}
           <div
             style={{
               padding: '4px 8px',
               cursor: 'pointer',
-              backgroundColor: playerAnnotationMode === 'slash' ? '#e9ecef' : 'transparent'
+              backgroundColor: useDefaultAnnotations ? '#e9ecef' : 'transparent',
+              border: '1px solid #ddd',
+              borderRadius: '3px',
+              marginBottom: '8px',
+              textAlign: 'center'
             }}
-            onClick={() => handleContextMenuSelect('slash')}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = playerAnnotationMode === 'slash' ? '#e9ecef' : 'transparent'}
+            onClick={() => {
+              setUseDefaultAnnotations(!useDefaultAnnotations)
+            }}
           >
-            Black slash only
+            {useDefaultAnnotations ? '✓' : '○'} Default (slash only)
           </div>
-          <div
-            style={{
-              padding: '4px 8px',
-              cursor: 'pointer',
-              backgroundColor: playerAnnotationMode === 'big_checkmark' ? '#e9ecef' : 'transparent'
-            }}
-            onClick={() => handleContextMenuSelect('big_checkmark')}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = playerAnnotationMode === 'big_checkmark' ? '#e9ecef' : 'transparent'}
-          >
-            Slash + big ✓
+
+          {/* 4x4 Grid of owner possibilities */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+            {ownerCombos.map((quadrant, quadIndex) => (
+              <div key={quadIndex} style={{ 
+                border: '1px solid #ddd',
+                borderRadius: '3px',
+                padding: '2px'
+              }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
+                  {quadrant.map((combo, comboIndex) => (
+                    <div
+                      key={comboIndex}
+                      style={{
+                        padding: '4px 2px',
+                        cursor: 'pointer',
+                        backgroundColor: enabledOwnerPossibilities.has(combo) ? '#e9ecef' : 'transparent',
+                        border: '1px solid #eee',
+                        borderRadius: '2px',
+                        textAlign: 'center',
+                        fontSize: '10px',
+                        minHeight: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      onClick={() => {
+                        toggleOwnerPossibility(combo)
+                      }}
+                      title={combo === '' ? 'Impossible (empty set)' : `Can be: ${combo.replace(/,/g, ', ')}`}
+                    >
+                      {getComboLabel(combo)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
-          <div
-            style={{
-              padding: '4px 8px',
-              cursor: 'pointer',
-              backgroundColor: playerAnnotationMode === 'small_checkmark' ? '#e9ecef' : 'transparent'
-            }}
-            onClick={() => handleContextMenuSelect('small_checkmark')}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = playerAnnotationMode === 'small_checkmark' ? '#e9ecef' : 'transparent'}
-          >
-            Slash + small ✓
+
+          <div style={{ 
+            marginTop: '8px', 
+            fontSize: '10px', 
+            color: '#666',
+            textAlign: 'center'
+          }}>
+            Toggle combinations, then right-click tiles to cycle
           </div>
         </div>
       )}

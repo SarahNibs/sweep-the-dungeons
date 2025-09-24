@@ -25,6 +25,9 @@ interface GameStore extends GameState {
   togglePlayerSlash: (position: Position) => void
   setPlayerAnnotationMode: (mode: 'slash' | 'big_checkmark' | 'small_checkmark') => void
   togglePlayerAnnotation: (position: Position) => void
+  setUseDefaultAnnotations: (useDefault: boolean) => void
+  toggleOwnerPossibility: (ownerCombo: string) => void
+  cyclePlayerOwnerAnnotation: (position: Position) => void
   startCardSelection: () => void
   selectNewCard: (card: CardType) => void
   skipCardSelection: () => void
@@ -845,5 +848,79 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const currentState = get()
     const nextLevelState = exitShop(currentState)
     set(nextLevelState)
+  },
+
+  setUseDefaultAnnotations: (useDefault: boolean) => {
+    const currentState = get()
+    set({
+      ...currentState,
+      useDefaultAnnotations: useDefault
+    })
+  },
+
+  toggleOwnerPossibility: (ownerCombo: string) => {
+    const currentState = get()
+    const newEnabled = new Set(currentState.enabledOwnerPossibilities)
+    
+    if (newEnabled.has(ownerCombo)) {
+      newEnabled.delete(ownerCombo)
+    } else {
+      newEnabled.add(ownerCombo)
+    }
+    
+    set({
+      ...currentState,
+      enabledOwnerPossibilities: newEnabled,
+      currentOwnerPossibilityIndex: 0 // Reset to first enabled option
+    })
+  },
+
+  cyclePlayerOwnerAnnotation: (position: Position) => {
+    const currentState = get()
+    
+    if (currentState.useDefaultAnnotations) {
+      // Use the existing default annotation logic
+      get().togglePlayerAnnotation(position)
+      return
+    }
+
+    // Use the new owner possibility system
+    const enabledCombos = Array.from(currentState.enabledOwnerPossibilities)
+    if (enabledCombos.length === 0) return // No enabled possibilities
+
+    const key = positionToKey(position)
+    const tile = currentState.board.tiles.get(key)
+    if (!tile || tile.revealed) return
+
+    const newTiles = new Map(currentState.board.tiles)
+    const updatedTile = { ...tile }
+
+    // Remove existing player owner possibility annotation
+    updatedTile.annotations = updatedTile.annotations.filter(a => a.type !== 'player_owner_possibility')
+
+    // Find next enabled possibility
+    let nextIndex = (currentState.currentOwnerPossibilityIndex + 1) % (enabledCombos.length + 1)
+    
+    // If not the "clear" option, add the annotation
+    if (nextIndex < enabledCombos.length) {
+      const ownerCombo = enabledCombos[nextIndex]
+      const ownerSet = new Set(ownerCombo.split(',').filter(s => s.length > 0)) as Set<'player' | 'enemy' | 'neutral' | 'mine'>
+      
+      updatedTile.annotations.push({
+        type: 'player_owner_possibility',
+        playerOwnerPossibility: ownerSet
+      })
+    }
+
+    newTiles.set(key, updatedTile)
+
+    set({
+      ...currentState,
+      board: {
+        ...currentState.board,
+        tiles: newTiles
+      },
+      currentOwnerPossibilityIndex: nextIndex
+    })
   }
 }))

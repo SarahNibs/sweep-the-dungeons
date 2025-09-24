@@ -31,9 +31,10 @@ export interface ClueResult {
 }
 
 export interface TileAnnotation {
-  type: 'safe' | 'unsafe' | 'enemy' | 'clue_results' | 'owner_subset' | 'player_slash' | 'player_big_checkmark' | 'player_small_checkmark'
+  type: 'safe' | 'unsafe' | 'enemy' | 'clue_results' | 'owner_subset' | 'player_slash' | 'player_big_checkmark' | 'player_small_checkmark' | 'player_owner_possibility'
   clueResults?: ClueResult[] // For clue strength annotations
-  ownerSubset?: Set<'player' | 'enemy' | 'neutral' | 'mine'> // For subset annotations
+  ownerSubset?: Set<'player' | 'enemy' | 'neutral' | 'mine'> // For subset annotations (lower-right, from cards/relics)
+  playerOwnerPossibility?: Set<'player' | 'enemy' | 'neutral' | 'mine'> // For player's upper-right annotations
 }
 
 export interface GameStatusInfo {
@@ -154,7 +155,10 @@ export interface GameState {
   temporaryBunnyBuffs: number // Number of temporary bunny buffs for next level
   
   // Player annotation system
-  playerAnnotationMode: 'slash' | 'big_checkmark' | 'small_checkmark' // Current annotation mode
+  playerAnnotationMode: 'slash' | 'big_checkmark' | 'small_checkmark' // Legacy mode (deprecated)
+  useDefaultAnnotations: boolean // If true, use simple slash cycling; if false, use owner possibility system
+  enabledOwnerPossibilities: Set<string> // Set of enabled owner combinations (e.g., "player,enemy", "mine", etc.)
+  currentOwnerPossibilityIndex: number // Current index in the enabled possibilities cycle
 }
 
 export interface UpgradeOption {

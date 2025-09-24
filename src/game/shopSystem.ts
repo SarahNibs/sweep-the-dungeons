@@ -67,7 +67,7 @@ export function createShopOptions(state: GameState): ShopOption[] {
     createRelic(
       'Frilly Dress',
       'your counterpart sometimes watches you clean rather than cleaning themselves',
-      'Frilly Dress: the first time you reveal a neutral tile on your first turn of any level, your turn does not end'
+      'Frilly Dress: revealing neutral tiles on your first turn of any level does not end your turn'
     )
   ]
   

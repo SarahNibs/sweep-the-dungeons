@@ -36,6 +36,8 @@ interface GameStore extends GameState {
   selectCardForRemoval: (cardId: string) => void
   getAllCardsInCollection: () => CardType[]
   executeTingleWithAnimation: (state: GameState, isEnhanced: boolean) => void
+  executeTrystWithAnimation: (state: GameState, isEnhanced: boolean, target?: Position) => void
+  performNextTrystReveal: () => void
   viewPile: (pileType: PileType) => void
   closePileView: () => void
   debugWinLevel: () => void
@@ -73,12 +75,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const currentState = get()
     if (currentState.gameStatus.status !== 'playing') return
     
-    // Check if this is a Tingle card
+    // Check if this card needs special animation handling
     const card = currentState.hand.find(c => c.id === cardId)
     if (card?.name === 'Tingle') {
       // Handle Tingle specially with animation
       const basicState = playCard(currentState, cardId) // This won't execute the effect
       get().executeTingleWithAnimation(basicState, card.enhanced || false)
+    } else if (card?.name === 'Tryst') {
+      // Handle Tryst specially with animation
+      const basicState = playCard(currentState, cardId) // This won't execute the effect
+      get().executeTrystWithAnimation(basicState, card.enhanced || false, undefined)
     } else {
       const newState = playCard(currentState, cardId)
       set(newState)
@@ -170,6 +176,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       shouldEndTurn = false
     }
     
+    // Check for Underwire effect - basic Underwire ends turn when protection is used
+    if (stateWithBoard.underwireUsedThisTurn) {
+      shouldEndTurn = true
+    }
+    
     if (stateWithBoard.gameStatus.status !== 'playing') {
       // Game ended, update state with potential copper reward
       updateStateWithCopperReward(set, get, stateWithBoard)
@@ -226,6 +237,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } else if (effect.type === 'sweep') {
       newEffect = { type: 'sweep', target: position }
       shouldExecute = true
+    } else if (effect.type === 'tryst') {
+      // Handle Tryst targeting specially with animation
+      const card = currentState.hand.find(c => c.name === currentState.selectedCardName)
+      if (card) {
+        const basicState = {
+          ...currentState,
+          hand: currentState.hand.filter(c => c.id !== card.id),
+          discard: [...currentState.discard, card],
+          energy: currentState.energy - card.cost,
+          pendingCardEffect: null,
+          selectedCardName: null
+        }
+        get().executeTrystWithAnimation(basicState, card.enhanced || false, position)
+      }
+      return
+    } else if (effect.type === 'canary') {
+      newEffect = { type: 'canary', target: position }
+      shouldExecute = true
     }
     
     if (shouldExecute && newEffect) {
@@ -247,7 +276,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       
       const newHand = currentState.hand.filter(c => c.id !== card.id)
       // Enhanced Energized cards no longer exhaust
-      const shouldExhaust = card.exhaust && !(card.name === 'Energized' && card.enhanced)
+      const baseExhaust = card.exhaust && !(card.name === 'Energized' && card.enhanced)
+      const shouldExhaust = baseExhaust || effectState.shouldExhaustLastCard
       // If card has exhaust, put it in exhaust pile; otherwise put in discard
       const newDiscard = shouldExhaust ? effectState.discard : [...effectState.discard, card]
       const newExhaust = shouldExhaust ? [...effectState.exhaust, card] : effectState.exhaust
@@ -258,7 +288,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         discard: newDiscard,
         exhaust: newExhaust,
         energy: effectState.energy - card.cost,
-        pendingCardEffect: null
+        pendingCardEffect: null,
+        shouldExhaustLastCard: false // Reset after use
       }
       
       // Check if the effect revealed a tile that should end the turn (e.g., quantum)
@@ -726,6 +757,147 @@ export const useGameStore = create<GameStore>((set, get) => ({
         })
       }, 300) // Fade back duration
     }, 800) // Emphasis duration
+  },
+
+  executeTrystWithAnimation: (state: GameState, isEnhanced: boolean, target?: Position) => {
+    const enemyTiles = getUnrevealedTilesByOwner(state, 'enemy')
+    const playerTiles = getUnrevealedTilesByOwner(state, 'player')
+    
+    if (enemyTiles.length === 0 && playerTiles.length === 0) return
+    
+    const reveals: Array<{ tile: Tile; revealer: 'player' | 'enemy' }> = []
+    
+    // First, enemy reveals one of their tiles
+    if (enemyTiles.length > 0) {
+      let chosenEnemyTile: Tile
+      
+      if (isEnhanced && target) {
+        // Enhanced version: prioritize by Manhattan distance from target
+        const manhattanDistance = (pos1: Position, pos2: Position): number => {
+          return Math.abs(pos1.x - pos2.x) + Math.abs(pos1.y - pos2.y)
+        }
+        
+        const tilesWithDistance = enemyTiles.map(tile => ({
+          tile,
+          distance: manhattanDistance(tile.position, target)
+        }))
+        
+        const minDistance = Math.min(...tilesWithDistance.map(t => t.distance))
+        const closestTiles = tilesWithDistance.filter(t => t.distance === minDistance)
+        
+        chosenEnemyTile = closestTiles[Math.floor(Math.random() * closestTiles.length)].tile
+      } else {
+        // Basic version: completely random
+        chosenEnemyTile = enemyTiles[Math.floor(Math.random() * enemyTiles.length)]
+      }
+      
+      reveals.push({ tile: chosenEnemyTile, revealer: 'enemy' })
+    }
+    
+    // Then, player reveals one of their tiles
+    if (playerTiles.length > 0) {
+      let chosenPlayerTile: Tile
+      
+      if (isEnhanced && target) {
+        // Enhanced version: prioritize by Manhattan distance from target
+        const manhattanDistance = (pos1: Position, pos2: Position): number => {
+          return Math.abs(pos1.x - pos2.x) + Math.abs(pos1.y - pos2.y)
+        }
+        
+        const tilesWithDistance = playerTiles.map(tile => ({
+          tile,
+          distance: manhattanDistance(tile.position, target)
+        }))
+        
+        const minDistance = Math.min(...tilesWithDistance.map(t => t.distance))
+        const closestTiles = tilesWithDistance.filter(t => t.distance === minDistance)
+        
+        chosenPlayerTile = closestTiles[Math.floor(Math.random() * closestTiles.length)].tile
+      } else {
+        // Basic version: completely random
+        chosenPlayerTile = playerTiles[Math.floor(Math.random() * playerTiles.length)]
+      }
+      
+      reveals.push({ tile: chosenPlayerTile, revealer: 'player' })
+    }
+    
+    if (reveals.length === 0) return
+    
+    // Check if we're in a test environment
+    const isTestEnvironment = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
+    
+    if (isTestEnvironment) {
+      // In tests, execute immediately without animation
+      let effectState = state
+      for (const { tile, revealer } of reveals) {
+        effectState = revealTileWithRelicEffects(effectState, tile.position, revealer)
+      }
+      set(effectState)
+      return
+    }
+
+    // Start the animation with first tile
+    set({
+      ...state,
+      trystAnimation: {
+        isActive: true,
+        highlightedTile: reveals[0].tile.position,
+        revealsRemaining: reveals,
+        currentRevealIndex: 0
+      }
+    })
+    
+    // Start the reveal sequence
+    get().performNextTrystReveal()
+  },
+
+  performNextTrystReveal: () => {
+    const currentState = get()
+    if (!currentState.trystAnimation || !currentState.trystAnimation.isActive) return
+    
+    const { revealsRemaining, currentRevealIndex } = currentState.trystAnimation
+    
+    if (currentRevealIndex >= revealsRemaining.length) {
+      // Animation complete
+      set({
+        ...currentState,
+        trystAnimation: null
+      })
+      return
+    }
+    
+    const currentReveal = revealsRemaining[currentRevealIndex]
+    
+    // Reveal the current tile
+    let newState = revealTileWithRelicEffects(currentState, currentReveal.tile.position, currentReveal.revealer)
+    
+    // Update animation state for next reveal
+    const nextIndex = currentRevealIndex + 1
+    if (nextIndex < revealsRemaining.length) {
+      // More reveals to go
+      newState = {
+        ...newState,
+        trystAnimation: {
+          isActive: true,
+          highlightedTile: revealsRemaining[nextIndex].tile.position,
+          revealsRemaining,
+          currentRevealIndex: nextIndex
+        }
+      }
+      
+      set(newState)
+      
+      // Schedule next reveal
+      setTimeout(() => {
+        get().performNextTrystReveal()
+      }, 800)
+    } else {
+      // This was the last reveal
+      set({
+        ...newState,
+        trystAnimation: null
+      })
+    }
   },
 
   viewPile: (pileType: PileType) => {

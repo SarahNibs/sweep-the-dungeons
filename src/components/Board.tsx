@@ -11,35 +11,38 @@ interface BoardProps {
 }
 
 export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
-  const { enemyAnimation, selectedCardName, pendingCardEffect, hand } = useGameStore()
+  const { enemyAnimation, trystAnimation, selectedCardName, pendingCardEffect, hand } = useGameStore()
   const [areaHoverCenter, setAreaHoverCenter] = useState<Position | null>(null)
   
   const isBrushTargeting = selectedCardName === 'Brush' && pendingCardEffect?.type === 'brush'
   const isSweepTargeting = selectedCardName === 'Sweep' && pendingCardEffect?.type === 'sweep'
-  const isAreaTargeting = isBrushTargeting || isSweepTargeting
+  const isCanaryTargeting = selectedCardName === 'Canary' && pendingCardEffect?.type === 'canary'
+  const isAreaTargeting = isBrushTargeting || isSweepTargeting || isCanaryTargeting
   
   // Find the current selected card to check if enhanced
   const selectedCard = hand.find(card => card.name === selectedCardName)
   
-  // Get area size based on card type and enhancement
-  const getAreaSize = (cardName: string | null, isEnhanced: boolean = false): number => {
-    if (cardName === 'Brush') return 1 // Always 3x3 for Brush (range = 1)
-    if (cardName === 'Sweep') return isEnhanced ? 3 : 2 // Enhanced: 7x7 (range = 3), Normal: 5x5 (range = 2)
-    return 1 // Default
+  // Get area pattern and size based on card type and enhancement
+  const getAreaInfo = (cardName: string | null, isEnhanced: boolean = false): { size: number; pattern: 'square' | 'manhattan' } => {
+    if (cardName === 'Brush') return { size: 1, pattern: 'square' } // Always 3x3 for Brush (range = 1)
+    if (cardName === 'Sweep') return { size: isEnhanced ? 3 : 2, pattern: 'square' } // Enhanced: 7x7 (range = 3), Normal: 5x5 (range = 2)
+    if (cardName === 'Canary') return { size: isEnhanced ? 1 : 1, pattern: isEnhanced ? 'square' : 'manhattan' } // Enhanced: 3x3, Normal: star
+    return { size: 1, pattern: 'square' } // Default
   }
   
-  const areaSize = getAreaSize(selectedCardName, selectedCard?.enhanced)
+  const areaInfo = getAreaInfo(selectedCardName, selectedCard?.enhanced)
   
   // Debug logging for area targeting
   if (isAreaTargeting && areaHoverCenter) {
     console.log('Area targeting debug:', {
       selectedCardName,
       selectedCard: selectedCard ? { name: selectedCard.name, enhanced: selectedCard.enhanced } : null,
-      areaSize,
+      areaInfo,
       areaHoverCenter,
       isAreaTargeting,
       isBrushTargeting,
-      isSweepTargeting
+      isSweepTargeting,
+      isCanaryTargeting
     })
   }
   
@@ -52,9 +55,17 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
         const tile = board.tiles.get(key)
         
         // Check if this position is in the area effect zone for hover highlighting
-        const isInAreaEffect = isAreaTargeting && areaHoverCenter && 
-          Math.abs(x - areaHoverCenter.x) <= areaSize && 
-          Math.abs(y - areaHoverCenter.y) <= areaSize
+        const isInAreaEffect = isAreaTargeting && areaHoverCenter && (() => {
+          if (areaInfo.pattern === 'manhattan') {
+            // Manhattan distance pattern
+            const manhattanDistance = Math.abs(x - areaHoverCenter.x) + Math.abs(y - areaHoverCenter.y)
+            return manhattanDistance <= areaInfo.size
+          } else {
+            // Square pattern (default)
+            return Math.abs(x - areaHoverCenter.x) <= areaInfo.size && 
+                   Math.abs(y - areaHoverCenter.y) <= areaInfo.size
+          }
+        })()
         
         
         if (tile) {
@@ -66,6 +77,10 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
           const isEnemyHighlighted = !!(enemyAnimation?.highlightedTile && 
             enemyAnimation.highlightedTile.x === tile.position.x && 
             enemyAnimation.highlightedTile.y === tile.position.y)
+            
+          const isTrystHighlighted = !!(trystAnimation?.highlightedTile && 
+            trystAnimation.highlightedTile.x === tile.position.x && 
+            trystAnimation.highlightedTile.y === tile.position.y)
           
           tiles.push(
             <Tile
@@ -75,6 +90,7 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
               isTargeting={isTargeting && (isAreaTargeting || !tile.revealed)}
               isSelected={isSelected}
               isEnemyHighlighted={isEnemyHighlighted}
+              isTrystHighlighted={isTrystHighlighted}
               isBrushHighlighted={isInAreaEffect || false}
               onMouseEnter={() => {
                 if (isAreaTargeting) {
@@ -112,6 +128,7 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
               isTargeting={isTargeting}
               isSelected={isSelected}
               isEnemyHighlighted={false}
+              isTrystHighlighted={false}
               isBrushHighlighted={isInAreaEffect || false}
               onMouseEnter={() => {
                 if (isAreaTargeting) {

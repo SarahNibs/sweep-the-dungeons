@@ -9,6 +9,7 @@ import { RelicSelectionScreen } from './components/RelicSelectionScreen'
 import { ShopSelectionScreen } from './components/ShopSelectionScreen'
 import { PileViewingScreen } from './components/PileViewingScreen'
 import { TileCountsVertical } from './components/TileCountsVertical'
+import { StatusEffects } from './components/StatusEffects'
 
 function getRelicIcon(relicName: string): string {
   switch (relicName) {
@@ -18,6 +19,10 @@ function getRelicIcon(relicName: string): string {
       return '🐰'
     case 'Frilly Dress':
       return '👗'
+    case 'Busy Canary':
+      return '🐦' // Same as Canary card
+    case 'Mop':
+      return '🧽' // Different from default star
     default:
       return '✨'
   }
@@ -43,6 +48,7 @@ function App() {
     shopOptions,
     purchasedShopItems,
     pileViewingType,
+    activeStatusEffects,
     playCard, 
     endTurn, 
     resetGame,
@@ -165,6 +171,11 @@ function App() {
             {/* Tile counts vertically */}
             <TileCountsVertical board={board} />
             
+            {/* Status effects - bottom-aligned */}
+            <div style={{ marginTop: 'auto', marginBottom: '10px' }}>
+              <StatusEffects statusEffects={activeStatusEffects} />
+            </div>
+            
             {/* Debug Win Button at bottom */}
             {gameStatus.status === 'playing' && (
               <div
@@ -179,8 +190,7 @@ function App() {
                   justifyContent: 'center',
                   cursor: 'pointer',
                   fontSize: '16px',
-                  color: 'white',
-                  marginTop: 'auto' // Push to bottom of strip
+                  color: 'white'
                 }}
                 title="Debug: Instantly win the current level"
               >

@@ -4,33 +4,10 @@ import { shouldShowShopReward } from './levelSystem'
 import { startShopSelection } from './shopSystem'
 import { calculateAdjacency, getNeighbors } from './boardSystem'
 
-export function createRelic(name: string, description: string, hoverText: string): Relic {
-  return {
-    id: crypto.randomUUID(),
-    name,
-    description,
-    hoverText
-  }
-}
+import { getAllRelics } from './gameRepository'
 
 export function createRelicOptions(): RelicOption[] {
-  const allRelics = [
-    createRelic(
-      'Double Broom', 
-      'brush some nearby tiles when cleaning',
-      'Double Broom: whenever you reveal a tile, apply the Brush effect to two random unrevealed adjacent tiles'
-    ),
-    createRelic(
-      'Dust Bunny',
-      'animal companion who helps you clean', 
-      'Dust Bunny: when you start a new level, you immediately reveal one of your non-dirty tiles at random, getting adjacency info just as if you revealed it normally'
-    ),
-    createRelic(
-      'Frilly Dress',
-      'your counterpart sometimes watches you clean rather than cleaning themselves',
-      'Frilly Dress: revealing neutral tiles on your first turn of any level does not end your turn'
-    )
-  ]
+  const allRelics = getAllRelics()
   
   // Shuffle the relics and take 3
   const shuffled = [...allRelics].sort(() => Math.random() - 0.5)
@@ -259,4 +236,164 @@ export function triggerTemporaryBunnyBuffs(state: GameState): GameState {
     },
     temporaryBunnyBuffs: state.temporaryBunnyBuffs - 1
   }
+}
+
+export function triggerBusyCanaryEffect(state: GameState): GameState {
+  if (!hasRelic(state, 'Busy Canary')) {
+    return state
+  }
+  
+  let currentState = state
+  let mineFound = false
+  let attempts = 0
+  const maxAttempts = 50 // Safety limit to prevent infinite loops
+  
+  while (!mineFound && attempts < maxAttempts) {
+    attempts++
+    
+    // Get all tiles on the board
+    const allTiles = Array.from(currentState.board.tiles.values()).filter(tile => 
+      tile.owner !== 'empty' && !tile.revealed
+    )
+    
+    if (allTiles.length === 0) {
+      break // No tiles to scan
+    }
+    
+    // Pick a random tile as center
+    const randomTile = allTiles[Math.floor(Math.random() * allTiles.length)]
+    const centerPosition = randomTile.position
+    
+    // Apply enhanced Canary effect (3x3 area)
+    const tilesToCheck: { x: number, y: number }[] = []
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        tilesToCheck.push({
+          x: centerPosition.x + dx,
+          y: centerPosition.y + dy
+        })
+      }
+    }
+    
+    // Check each tile and add appropriate annotation
+    for (const pos of tilesToCheck) {
+      const key = `${pos.x},${pos.y}`
+      const tile = currentState.board.tiles.get(key)
+      
+      // Only process unrevealed tiles that exist on the board
+      if (tile && !tile.revealed && tile.owner !== 'empty') {
+        if (tile.owner === 'mine') {
+          // This is a mine - exclude everything else (only mine possible)
+          const mineOnlySubset = new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['mine'])
+          currentState = addBusyCanaryOwnerSubsetAnnotation(currentState, pos, mineOnlySubset)
+          mineFound = true
+        } else {
+          // This is not a mine - exclude mine from possibilities  
+          const noMineSubset = new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['player', 'enemy', 'neutral'])
+          currentState = addBusyCanaryOwnerSubsetAnnotation(currentState, pos, noMineSubset)
+        }
+      }
+    }
+  }
+  
+  return currentState
+}
+
+function addBusyCanaryOwnerSubsetAnnotation(state: GameState, position: { x: number, y: number }, ownerSubset: Set<'player' | 'enemy' | 'neutral' | 'mine'>): GameState {
+  const key = `${position.x},${position.y}`
+  const tile = state.board.tiles.get(key)
+  
+  if (!tile) return state
+  
+  const newTiles = new Map(state.board.tiles)
+  
+  // Find existing subset annotation if any
+  const existingSubsetAnnotation = tile.annotations.find(a => a.type === 'owner_subset')
+  const otherAnnotations = tile.annotations.filter(a => 
+    a.type !== 'owner_subset' && a.type !== 'safe' && a.type !== 'unsafe' && a.type !== 'enemy'
+  )
+  
+  let finalOwnerSubset: Set<'player' | 'enemy' | 'neutral' | 'mine'>
+  
+  if (existingSubsetAnnotation?.ownerSubset) {
+    // Combine with existing subset through intersection
+    const intersected = new Set<'player' | 'enemy' | 'neutral' | 'mine'>()
+    for (const owner of ownerSubset) {
+      if (existingSubsetAnnotation.ownerSubset.has(owner)) {
+        intersected.add(owner)
+      }
+    }
+    finalOwnerSubset = intersected
+  } else {
+    // No existing subset, use the new one
+    finalOwnerSubset = new Set(ownerSubset)
+  }
+  
+  // Only add annotation if the subset is non-empty
+  const finalAnnotations = [...otherAnnotations]
+  if (finalOwnerSubset.size > 0) {
+    finalAnnotations.push({
+      type: 'owner_subset',
+      ownerSubset: finalOwnerSubset
+    })
+  }
+  
+  const annotatedTile = {
+    ...tile,
+    annotations: finalAnnotations
+  }
+  
+  newTiles.set(key, annotatedTile)
+  
+  return {
+    ...state,
+    board: {
+      ...state.board,
+      tiles: newTiles
+    }
+  }
+}
+
+export function triggerMopEffect(state: GameState, tilesCleanedCount: number): GameState {
+  if (!hasRelic(state, 'Mop') || tilesCleanedCount <= 0) {
+    return state
+  }
+  
+  // Draw one card per tile cleaned
+  let currentState = state
+  for (let i = 0; i < tilesCleanedCount; i++) {
+    const { deck, hand, discard } = currentState
+    let newHand = [...hand]
+    let newDeck = [...deck]  
+    let newDiscard = [...discard]
+
+    if (newDeck.length === 0) {
+      if (newDiscard.length === 0) {
+        // No cards to draw, break early
+        break
+      }
+      // Reshuffle discard into deck
+      const shuffled = [...newDiscard]
+      for (let j = shuffled.length - 1; j > 0; j--) {
+        const k = Math.floor(Math.random() * (j + 1))
+        ;[shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]]
+      }
+      newDeck = shuffled
+      newDiscard = []
+    }
+    
+    if (newDeck.length > 0) {
+      const drawnCard = newDeck.pop()!
+      newHand.push(drawnCard)
+    }
+
+    currentState = {
+      ...currentState,
+      deck: newDeck,
+      hand: newHand,
+      discard: newDiscard
+    }
+  }
+  
+  return currentState
 }

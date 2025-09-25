@@ -20,6 +20,9 @@ export type CardEffect =
   | { type: 'brush'; target: Position }
   | { type: 'ramble' }
   | { type: 'sweep'; target: Position }
+  | { type: 'underwire' }
+  | { type: 'tryst'; target?: Position }
+  | { type: 'canary'; target: Position }
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
@@ -146,6 +149,12 @@ export interface GameState {
     revealsRemaining: Tile[]
     currentRevealIndex: number
   } | null
+  trystAnimation: {
+    isActive: boolean
+    highlightedTile: Position | null
+    revealsRemaining: Array<{ tile: Tile; revealer: 'player' | 'enemy' }>
+    currentRevealIndex: number
+  } | null
   rambleActive: boolean // True if Ramble was played this turn
   ramblePriorityBoosts: number[] // Array of max boost values from Rambles played this turn (e.g., [2, 4] for basic + enhanced)
   // Currency and shop system
@@ -154,11 +163,21 @@ export interface GameState {
   purchasedShopItems?: Set<number> // Indices of purchased shop items (for current shop session)
   temporaryBunnyBuffs: number // Number of temporary bunny buffs for next level
   
+  // Underwire protection
+  underwireProtection: { active: boolean; enhanced: boolean } | null // Mine protection status
+  underwireUsedThisTurn: boolean // True if underwire protection was consumed this turn (for turn ending logic)
+  
+  // Dynamic exhaust (for cards that conditionally exhaust)
+  shouldExhaustLastCard: boolean // True if the last played card should exhaust regardless of its exhaust property
+  
   // Player annotation system
   playerAnnotationMode: 'slash' | 'big_checkmark' | 'small_checkmark' // Legacy mode (deprecated)
   useDefaultAnnotations: boolean // If true, use simple slash cycling; if false, use owner possibility system
   enabledOwnerPossibilities: Set<string> // Set of enabled owner combinations (e.g., "player,enemy", "mine", etc.)
   currentOwnerPossibilityIndex: number // Current index in the enabled possibilities cycle
+  
+  // Status effects system
+  activeStatusEffects: StatusEffect[] // Active temporary status effects
 }
 
 export interface UpgradeOption {
@@ -185,6 +204,15 @@ export interface ShopOption {
   relic?: Relic // For relic options
   displayName: string
   description: string
+}
+
+export interface StatusEffect {
+  id: string
+  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency'
+  icon: string
+  name: string
+  description: string
+  enhanced?: boolean // For enhanced effects
 }
 
 export type CardZone = 'deck' | 'hand' | 'discard'

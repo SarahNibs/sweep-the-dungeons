@@ -1,38 +1,5 @@
 import { Card as CardType } from '../types'
-
-// Card images (using emojis/symbols for now)
-const getCardImage = (cardName: string) => {
-  switch (cardName) {
-    case 'Spritz': return '👁️'
-    case 'Easiest': return '⚡'
-    case 'Tingle': return '📋'
-    case 'Imperious Orders': return '🔍'
-    case 'Vague Orders': return '🔎'
-    case 'Energized': return '⚡'
-    case 'Options': return '🃏'
-    case 'Brush': return '🖌️'
-    case 'Ramble': return '🌀'
-    default: return '❓'
-  }
-}
-
-// Card descriptions
-const getCardDescription = (cardName: string, cost: number, enhanced?: boolean) => {
-  const baseCost = `Cost: ${cost} energy. `
-  switch (cardName) {
-    case 'Spritz': return baseCost + (enhanced ? 'Click on an unrevealed tile to see if it\'s safe or dangerous. Also scouts a random adjacent tile.' : 'Click on an unrevealed tile to see if it\'s safe or dangerous')
-    case 'Easiest': return baseCost + (enhanced ? 'Click on three unrevealed tiles - the safest one will be revealed' : 'Click on two unrevealed tiles - the safer one will be revealed')
-    case 'Tingle': return baseCost + (enhanced ? 'Mark 2 random enemy tiles with enemy indicators' : 'Mark a random enemy tile with an enemy indicator')
-    case 'Imperious Orders': return baseCost + (enhanced ? 'Strong evidence of two of your tiles (never clues mines)' : 'Strong evidence of two of your tiles')
-    case 'Vague Orders': return baseCost + (enhanced ? 'Evidence of five of your tiles (5 guaranteed bag pulls)' : 'Evidence of five of your tiles')
-    case 'Energized': return baseCost + (enhanced ? 'Gain 2 energy' : 'Gain 2 energy. Exhaust (remove from deck after use)')
-    case 'Options': return baseCost + (enhanced ? 'Draw 5 cards' : 'Draw 3 cards')
-    case 'Brush': return baseCost + (enhanced ? 'Select center of 3x3 area - exclude random owners from each tile (applies twice)' : 'Select center of 3x3 area - exclude random owners from each tile')
-    case 'Ramble': return baseCost + (enhanced ? 'Disrupts enemy\'s next turn by removing their guaranteed bag pulls (stronger disruption 0-4)' : 'Disrupts enemy\'s next turn by removing their guaranteed bag pulls')
-    case 'Sweep': return baseCost + (enhanced ? 'Select center of 7x7 area - removes all dirt from the area' : 'Select center of 5x5 area - removes all dirt from the area')
-    default: return baseCost + 'Unknown card effect'
-  }
-}
+import { getCardIcon, getCardDescription } from '../game/gameRepository'
 
 // Energy pips display
 const renderEnergyPips = (cost: number, isPlayable: boolean) => {
@@ -92,7 +59,7 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
   return (
     <div
       onClick={handleClick}
-      title={getCardDescription(card.name, card.cost, card.enhanced)}
+      title={getCardDescription(card)}
       style={{
         position: 'relative',
         width: '80px',
@@ -181,7 +148,7 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
           lineHeight: '1',
           userSelect: 'none'
         }}>
-          {getCardImage(card.name)}
+          {getCardIcon(card.name)}
         </div>
       </div>
     </div>

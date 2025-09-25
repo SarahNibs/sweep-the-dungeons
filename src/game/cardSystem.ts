@@ -2,25 +2,16 @@ import { Card, GameState } from '../types'
 import { createBoard } from './boardSystem'
 import { executeCardEffect, requiresTargeting } from './cardEffects'
 import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
-import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs } from './relicSystem'
+import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerBusyCanaryEffect } from './relicSystem'
 
-export function createCard(name: string, cost: number, exhaust?: boolean): Card {
-  return {
-    id: crypto.randomUUID(),
-    name,
-    cost,
-    exhaust
-  }
+import { createCard as createCardFromRepository, getRewardCardPool, getStarterCards, removeStatusEffect, addStatusEffect } from './gameRepository'
+
+export function createCard(name: string, upgrades?: { costReduced?: boolean; enhanced?: boolean }): Card {
+  return createCardFromRepository(name, upgrades)
 }
 
 export function createNewLevelCards(): Card[] {
-  const availableCards = [
-    createCard('Energized', 1, true), // Exhaust card - gain 2 energy
-    createCard('Options', 1),         // Draw 3 cards
-    createCard('Brush', 1),           // 3x3 area exclusion effect
-    createCard('Ramble', 1),           // Disrupts enemy guaranteed pulls
-    createCard('Sweep', 1)           // Clears dirty tiles
-  ]
+  const availableCards = getRewardCardPool()
   
   // Randomly select 3 different cards
   const shuffled = [...availableCards]
@@ -33,18 +24,7 @@ export function createNewLevelCards(): Card[] {
 }
 
 export function createStartingDeck(): Card[] {
-  return [
-    createCard('Imperious Orders', 2),
-    createCard('Imperious Orders', 2),
-    createCard('Vague Orders', 2),
-    createCard('Spritz', 1),
-    createCard('Spritz', 1),
-    createCard('Spritz', 1),
-    createCard('Spritz', 1),
-    createCard('Tingle', 1),
-    createCard('Tingle', 1),
-    createCard('Easiest', 1)
-  ]
+  return getStarterCards()
 }
 
 export function shuffleDeck(cards: Card[]): Card[] {
@@ -99,7 +79,7 @@ export function playCard(state: GameState, cardId: string): GameState {
   if (state.energy < card.cost) return state
 
   // If card requires targeting, set up pending effect
-  if (requiresTargeting(card.name)) {
+  if (requiresTargeting(card.name, card.enhanced)) {
     // Map card names to their effect types
     let effectType: string
     switch (card.name) {
@@ -114,6 +94,12 @@ export function playCard(state: GameState, cardId: string): GameState {
         break
       case 'Sweep':
         effectType = 'sweep'
+        break
+      case 'Tryst':
+        effectType = 'tryst'
+        break
+      case 'Canary':
+        effectType = 'canary'
         break
       default:
         effectType = card.name.toLowerCase().replace(' ', '_')
@@ -148,6 +134,13 @@ export function playCard(state: GameState, cardId: string): GameState {
     case 'Ramble':
       newState = executeCardEffect(state, { type: 'ramble' }, card)
       break
+    case 'Underwire':
+      newState = executeCardEffect(state, { type: 'underwire' }, card)
+      break
+    case 'Tryst':
+      // Tryst needs animation - don't execute immediately
+      newState = state
+      break
   }
 
   const newHand = newState.hand.filter((_, index) => index !== cardIndex)
@@ -181,13 +174,18 @@ export function startNewTurn(state: GameState): GameState {
   const discardedState = discardHand(state)
   const drawnState = drawCards(discardedState, 5)
   
+  // Remove ramble status effect at start of new turn
+  const stateWithoutRamble = removeStatusEffect(drawnState, 'ramble_active')
+  
   return {
-    ...drawnState,
-    energy: drawnState.maxEnergy,
+    ...stateWithoutRamble,
+    energy: stateWithoutRamble.maxEnergy,
     rambleActive: false, // Clear ramble effect at start of new turn
     ramblePriorityBoosts: [], // Clear ramble priority boosts
     isFirstTurn: false, // No longer first turn after first turn
-    hasRevealedNeutralThisTurn: false // Reset neutral reveal tracking
+    hasRevealedNeutralThisTurn: false, // Reset neutral reveal tracking
+    underwireUsedThisTurn: false, // Reset underwire usage tracking
+    shouldExhaustLastCard: false // Reset dynamic exhaust tracking
   }
 }
 
@@ -251,16 +249,21 @@ export function createInitialState(
     enemyHiddenClues: [],
     tingleAnimation: null,
     enemyAnimation: null,
+    trystAnimation: null,
     rambleActive: false,
     ramblePriorityBoosts: [],
     copper,
     shopOptions: undefined,
     purchasedShopItems: undefined,
     temporaryBunnyBuffs,
+    underwireProtection: null,
+    underwireUsedThisTurn: false,
+    shouldExhaustLastCard: false,
     playerAnnotationMode: playerAnnotationMode || 'slash',
     useDefaultAnnotations: useDefaultAnnotations !== undefined ? useDefaultAnnotations : true,
     enabledOwnerPossibilities: enabledOwnerPossibilities || new Set(['player', 'enemy', 'neutral', 'mine']),
-    currentOwnerPossibilityIndex: currentOwnerPossibilityIndex || 0
+    currentOwnerPossibilityIndex: currentOwnerPossibilityIndex || 0,
+    activeStatusEffects: []
   }
   
   let finalState = drawCards(initialState, 5)
@@ -270,6 +273,14 @@ export function createInitialState(
   
   // Trigger temporary bunny buffs if present
   finalState = triggerTemporaryBunnyBuffs(finalState)
+  
+  // Trigger Busy Canary effect if present
+  finalState = triggerBusyCanaryEffect(finalState)
+  
+  // Add manhattan adjacency status effect if board uses it
+  if (finalState.board.adjacencyRule === 'manhattan-2') {
+    finalState = addStatusEffect(finalState, 'manhattan_adjacency')
+  }
   
   return finalState
 }

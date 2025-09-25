@@ -8,12 +8,13 @@ interface TileProps {
   isTargeting?: boolean
   isSelected?: boolean
   isEnemyHighlighted?: boolean
+  isTrystHighlighted?: boolean
   isBrushHighlighted?: boolean
   onMouseEnter?: () => void
   onMouseLeave?: () => void
 }
 
-export function Tile({ tile, onClick, isTargeting = false, isSelected = false, isEnemyHighlighted = false, isBrushHighlighted = false, onMouseEnter, onMouseLeave }: TileProps) {
+export function Tile({ tile, onClick, isTargeting = false, isSelected = false, isEnemyHighlighted = false, isTrystHighlighted = false, isBrushHighlighted = false, onMouseEnter, onMouseLeave }: TileProps) {
   const { 
     hoveredClueId, 
     setHoveredClueId, 
@@ -673,6 +674,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         border: isSelected ? '3px solid #ffc107' : 
                 isTargeting ? '2px solid #007bff' : 
                 isEnemyHighlighted || isTingleEmphasized() ? '3px solid #dc3545' :
+                isTrystHighlighted ? '3px solid #9b59b6' :
                 isBrushHighlighted ? '3px solid #007bff' :
                 isClueHighlighted() ? '2px solid #40c057' : 
                 '2px solid #333',
@@ -688,11 +690,13 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         userSelect: 'none',
         transform: (isHovered && !tile.revealed) ? 'scale(1.05)' : 'scale(1)',
         boxShadow: isEnemyHighlighted || isTingleEmphasized() ? '0 0 12px rgba(220, 53, 69, 0.6)' :
+                   isTrystHighlighted ? '0 0 12px rgba(155, 89, 182, 0.6)' :
                    isBrushHighlighted ? '0 0 12px rgba(0, 123, 255, 0.8)' :
                    isClueHighlighted() ? '0 0 8px rgba(64, 192, 87, 0.4)' :
                    (isHovered && !tile.revealed) ? '0 2px 4px rgba(0,0,0,0.3)' : 
                    'none',
         animation: isEnemyHighlighted || isTingleEmphasized() ? 'pulse 1s ease-in-out infinite' : 
+                   isTrystHighlighted ? 'pulse 1s ease-in-out infinite' :
                    'none'
       }}
       onMouseEnter={() => {

@@ -1,22 +1,40 @@
 import { GameState, CardEffect, Position, Tile, TileAnnotation, ClueResult, GameStatusInfo } from '../types'
 import { positionToKey, getTile, clearSpecialTileState, revealTileWithResult } from './boardSystem'
 import { generatePlayerSolidClue, generatePlayerStretchClue } from './clueSystem'
-import { triggerDoubleBroomEffect, checkFrillyDressEffect } from './relicSystem'
+import { triggerDoubleBroomEffect, checkFrillyDressEffect, triggerMopEffect } from './relicSystem'
+import { addStatusEffect, removeStatusEffect } from './gameRepository'
 
 // Shared reveal function that includes relic effects
 export function revealTileWithRelicEffects(state: GameState, position: Position, revealer: 'player' | 'enemy'): GameState {
   const revealResult = revealTileWithResult(state.board, position, revealer)
   const newBoard = revealResult.board
   
-  // Check game status after reveal
-  const gameStatus = checkGameStatus({
-    ...state,
-    board: newBoard
-  })
-  
   let stateWithBoard = {
     ...state,
-    board: newBoard,
+    board: newBoard
+  }
+  
+  // Handle Underwire protection if player revealed a mine
+  if (revealer === 'player' && revealResult.revealed) {
+    const tile = getTile(newBoard, position)
+    if (tile && tile.owner === 'mine' && state.underwireProtection?.active) {
+      // Consume the underwire protection
+      const isEnhanced = state.underwireProtection.enhanced
+      stateWithBoard = {
+        ...stateWithBoard,
+        underwireProtection: null,
+        underwireUsedThisTurn: !isEnhanced // Only mark for turn end if basic Underwire
+      }
+      // Remove the status effect
+      stateWithBoard = removeStatusEffect(stateWithBoard, 'underwire_protection')
+    }
+  }
+  
+  // Check game status after reveal (with potentially updated protection state)
+  const gameStatus = checkGameStatus(stateWithBoard)
+  
+  stateWithBoard = {
+    ...stateWithBoard,
     gameStatus
   }
   
@@ -225,6 +243,9 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
         tiles: newTiles
       }
     }
+    
+    // Trigger Mop effect for cleaning dirt
+    newState = triggerMopEffect(newState, 1)
   }
   
   const isSafe = tile.owner === 'player' || tile.owner === 'neutral'
@@ -420,6 +441,12 @@ export function checkGameStatus(state: GameState): GameStatusInfo {
   // Check if mine was revealed
   for (const tile of board.tiles.values()) {
     if (tile.revealed && tile.owner === 'mine') {
+      if (tile.revealedBy === 'player' && state.underwireProtection?.active) {
+        // Player has mine protection - continue playing but consume the protection
+        // Note: The protection consumption is handled in the reveal function
+        continue
+      }
+      
       return {
         status: tile.revealedBy === 'player' ? 'player_lost' : 'player_won',
         reason: tile.revealedBy === 'player' ? 'player_revealed_mine' : 'enemy_revealed_mine',
@@ -468,20 +495,31 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
       return executeBrushEffect(state, effect.target, card)
     case 'ramble':
       const maxBoost = card?.enhanced ? 4 : 2
-      return {
+      const stateWithRamble = {
         ...state,
         rambleActive: true,
         ramblePriorityBoosts: [...state.ramblePriorityBoosts, maxBoost] // Collect boost values
       }
+      // Add ramble status effect
+      return addStatusEffect(stateWithRamble, 'ramble_active', card?.enhanced)
     case 'sweep':
       return executeSweepEffect(state, effect.target, card)
+    case 'underwire':
+      return executeUnderwireEffect(state, card)
+    case 'tryst':
+      return executeTrystEffect(state, effect.target, card)
+    case 'canary':
+      return executeCanaryEffect(state, effect.target, card)
     default:
       return state
   }
 }
 
-export function requiresTargeting(cardName: string): boolean {
-  return cardName === 'Spritz' || cardName === 'Easiest' || cardName === 'Brush' || cardName === 'Sweep'
+export function requiresTargeting(cardName: string, enhanced?: boolean): boolean {
+  if (cardName === 'Tryst') {
+    return enhanced || false // Only enhanced Tryst requires targeting
+  }
+  return cardName === 'Spritz' || cardName === 'Easiest' || cardName === 'Brush' || cardName === 'Sweep' || cardName === 'Canary'
 }
 
 export function getTargetingInfo(cardName: string, enhanced?: boolean): { count: number; description: string } | null {
@@ -494,6 +532,10 @@ export function getTargetingInfo(cardName: string, enhanced?: boolean): { count:
       return { count: 1, description: enhanced ? 'Click center of 3x3 area to exclude random owners (applies twice)' : 'Click center of 3x3 area to exclude random owners' }
     case 'Sweep':
       return { count: 1, description: enhanced ? 'Click center of 7x7 area to remove all dirt' : 'Click center of 5x5 area to remove all dirt' }
+    case 'Tryst':
+      return enhanced ? { count: 1, description: 'Click target tile - reveals will be prioritized by distance from it' } : null
+    case 'Canary':
+      return { count: 1, description: enhanced ? 'Click center of 3x3 area to detect mines' : 'Click center of star area to detect mines' }
     default:
       return null
   }
@@ -627,6 +669,7 @@ export function executeBrushEffect(state: GameState, target: Position, card?: im
 
 export function executeSweepEffect(state: GameState, target: Position, card?: import('../types').Card): GameState {
   const newTiles = new Map(state.board.tiles)
+  let tilesCleanedCount = 0
   
   // Enhanced: 7x7 area (-3 to +3), Normal: 5x5 area (-2 to +2)
   const range = card?.enhanced ? 3 : 2
@@ -643,15 +686,157 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
       if (tile && tile.specialTile === 'extraDirty') {
         const updatedTile = clearSpecialTileState(tile)
         newTiles.set(key, updatedTile)
+        tilesCleanedCount++
       }
     }
   }
   
-  return {
+  let finalState = {
     ...state,
     board: {
       ...state.board,
       tiles: newTiles
     }
   }
+  
+  // Trigger Mop effect for all cleaned tiles
+  finalState = triggerMopEffect(finalState, tilesCleanedCount)
+  
+  return finalState
+}
+
+export function executeUnderwireEffect(state: GameState, card?: import('../types').Card): GameState {
+  // Activate mine protection for this level
+  const stateWithProtection = {
+    ...state,
+    underwireProtection: {
+      active: true,
+      enhanced: card?.enhanced || false
+    }
+  }
+  // Add underwire status effect
+  return addStatusEffect(stateWithProtection, 'underwire_protection', card?.enhanced)
+}
+
+function manhattanDistance(pos1: Position, pos2: Position): number {
+  return Math.abs(pos1.x - pos2.x) + Math.abs(pos1.y - pos2.y)
+}
+
+export function executeTrystEffect(state: GameState, target?: Position, card?: import('../types').Card): GameState {
+  // First, enemy reveals one of their tiles at random
+  let currentState = state
+  
+  const enemyTiles = getUnrevealedTilesByOwner(state, 'enemy')
+  if (enemyTiles.length > 0) {
+    let chosenEnemyTile: import('../types').Tile
+    
+    if (card?.enhanced && target) {
+      // Enhanced version: prioritize by Manhattan distance from target
+      const tilesWithDistance = enemyTiles.map(tile => ({
+        tile,
+        distance: manhattanDistance(tile.position, target)
+      }))
+      
+      // Find minimum distance
+      const minDistance = Math.min(...tilesWithDistance.map(t => t.distance))
+      const closestTiles = tilesWithDistance.filter(t => t.distance === minDistance)
+      
+      // Random tiebreaker among tiles at same distance
+      chosenEnemyTile = closestTiles[Math.floor(Math.random() * closestTiles.length)].tile
+    } else {
+      // Basic version: completely random
+      chosenEnemyTile = enemyTiles[Math.floor(Math.random() * enemyTiles.length)]
+    }
+    
+    // Reveal the enemy tile
+    currentState = revealTileWithRelicEffects(currentState, chosenEnemyTile.position, 'enemy')
+  }
+  
+  // Then, player reveals one of their tiles at random  
+  const playerTiles = getUnrevealedTilesByOwner(currentState, 'player')
+  if (playerTiles.length > 0) {
+    let chosenPlayerTile: import('../types').Tile
+    
+    if (card?.enhanced && target) {
+      // Enhanced version: prioritize by Manhattan distance from target
+      const tilesWithDistance = playerTiles.map(tile => ({
+        tile,
+        distance: manhattanDistance(tile.position, target)
+      }))
+      
+      // Find minimum distance
+      const minDistance = Math.min(...tilesWithDistance.map(t => t.distance))
+      const closestTiles = tilesWithDistance.filter(t => t.distance === minDistance)
+      
+      // Random tiebreaker among tiles at same distance
+      chosenPlayerTile = closestTiles[Math.floor(Math.random() * closestTiles.length)].tile
+    } else {
+      // Basic version: completely random
+      chosenPlayerTile = playerTiles[Math.floor(Math.random() * playerTiles.length)]
+    }
+    
+    // Reveal the player tile (triggering relic effects)
+    currentState = revealTileWithRelicEffects(currentState, chosenPlayerTile.position, 'player')
+  }
+  
+  return currentState
+}
+
+export function executeCanaryEffect(state: GameState, target: Position, card?: import('../types').Card): GameState {
+  if (!target) return state
+  
+  let currentState = state
+  let mineFound = false
+  
+  // Get tiles to check based on enhanced status
+  const tilesToCheck: Position[] = []
+  
+  if (card?.enhanced) {
+    // Enhanced: 3x3 area
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        tilesToCheck.push({
+          x: target.x + dx,
+          y: target.y + dy
+        })
+      }
+    }
+  } else {
+    // Basic: star pattern (Manhattan distance 1)
+    tilesToCheck.push(target) // Center
+    tilesToCheck.push({ x: target.x, y: target.y - 1 }) // North
+    tilesToCheck.push({ x: target.x, y: target.y + 1 }) // South  
+    tilesToCheck.push({ x: target.x - 1, y: target.y }) // West
+    tilesToCheck.push({ x: target.x + 1, y: target.y }) // East
+  }
+  
+  // Check each tile and add appropriate annotation
+  for (const pos of tilesToCheck) {
+    const key = positionToKey(pos)
+    const tile = currentState.board.tiles.get(key)
+    
+    // Only process unrevealed tiles that exist on the board
+    if (tile && !tile.revealed && tile.owner !== 'empty') {
+      if (tile.owner === 'mine') {
+        // This is a mine - exclude everything else (only mine possible)
+        const mineOnlySubset = new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['mine'])
+        currentState = addOwnerSubsetAnnotation(currentState, pos, mineOnlySubset)
+        mineFound = true
+      } else {
+        // This is not a mine - exclude mine from possibilities  
+        const noMineSubset = new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['player', 'enemy', 'neutral'])
+        currentState = addOwnerSubsetAnnotation(currentState, pos, noMineSubset)
+      }
+    }
+  }
+  
+  // If any mine was found, mark card to exhaust
+  if (mineFound) {
+    currentState = {
+      ...currentState,
+      shouldExhaustLastCard: true
+    }
+  }
+  
+  return currentState
 }

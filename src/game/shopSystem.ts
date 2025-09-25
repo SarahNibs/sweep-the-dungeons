@@ -1,6 +1,6 @@
 import { ShopOption, GameState } from '../types'
-import { createCard } from './cardSystem'
-import { createRelic } from './relicSystem'
+import { createCard } from './gameRepository'
+import { getAllRelics } from './gameRepository'
 import { advanceToNextLevel } from './cardSystem'
 
 export function createShopOptions(state: GameState): ShopOption[] {
@@ -8,11 +8,14 @@ export function createShopOptions(state: GameState): ShopOption[] {
   
   // 2x random cards you can choose to add to your deck for 4 coppers apiece
   const availableCards = [
-    createCard('Energized', 1, true), // Exhaust card - gain 2 energy
-    createCard('Options', 1),         // Draw 3 cards
-    createCard('Brush', 1),           // 3x3 area exclusion effect
-    createCard('Ramble', 1),          // Disrupts enemy guaranteed pulls
-    createCard('Sweep', 1)           // Clears dirty tiles
+    createCard('Energized'),
+    createCard('Options'),
+    createCard('Brush'),
+    createCard('Ramble'),
+    createCard('Sweep'),
+    createCard('Underwire'),
+    createCard('Tryst'),
+    createCard('Canary')
   ]
   
   // Shuffle and pick 2 random cards
@@ -30,9 +33,10 @@ export function createShopOptions(state: GameState): ShopOption[] {
   })
   
   // 1x random energy-upgraded card for 8 coppers
-  const energyCard = { ...availableCards[Math.floor(Math.random() * availableCards.length)] }
-  energyCard.costReduced = true
-  energyCard.cost = Math.max(0, energyCard.cost - 1)
+  // Filter out 0-cost cards for cost reduction (can't reduce cost below 0)
+  const costReducibleCardNames = ['Energized', 'Options', 'Brush', 'Ramble', 'Sweep', 'Tryst']
+  const energyCardName = costReducibleCardNames[Math.floor(Math.random() * costReducibleCardNames.length)]
+  const energyCard = createCard(energyCardName, { costReduced: true })
   options.push({
     type: 'add_energy_card',
     cost: 8,
@@ -42,8 +46,9 @@ export function createShopOptions(state: GameState): ShopOption[] {
   })
   
   // 1x random enhance-upgraded card for 8 coppers
-  const enhancedCard = { ...availableCards[Math.floor(Math.random() * availableCards.length)] }
-  enhancedCard.enhanced = true
+  const enhancedCardNames = ['Energized', 'Options', 'Brush', 'Ramble', 'Sweep', 'Underwire', 'Tryst', 'Canary']
+  const enhancedCardName = enhancedCardNames[Math.floor(Math.random() * enhancedCardNames.length)]
+  const enhancedCard = createCard(enhancedCardName, { enhanced: true })
   options.push({
     type: 'add_enhanced_card',
     cost: 8,
@@ -53,23 +58,7 @@ export function createShopOptions(state: GameState): ShopOption[] {
   })
   
   // 2x random relics you don't already own for 15 coppers apiece
-  const allRelics = [
-    createRelic(
-      'Double Broom', 
-      'brush some nearby tiles when cleaning',
-      'Double Broom: whenever you reveal a tile, apply the Brush effect to two random unrevealed adjacent tiles'
-    ),
-    createRelic(
-      'Dust Bunny',
-      'animal companion who helps you clean', 
-      'Dust Bunny: when you start a new level, you immediately reveal one of your non-dirty tiles at random, getting adjacency info just as if you revealed it normally'
-    ),
-    createRelic(
-      'Frilly Dress',
-      'your counterpart sometimes watches you clean rather than cleaning themselves',
-      'Frilly Dress: revealing neutral tiles on your first turn of any level does not end your turn'
-    )
-  ]
+  const allRelics = getAllRelics()
   
   // Filter out relics player already owns
   const availableRelics = allRelics.filter(relic => 

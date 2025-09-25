@@ -23,7 +23,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     enabledOwnerPossibilities,
     setUseDefaultAnnotations,
     toggleOwnerPossibility,
-    cyclePlayerOwnerAnnotation
+    toggleFilteredAnnotation
   } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
   const [showContextMenu, setShowContextMenu] = useState(false)
@@ -92,7 +92,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         
         // If context menu is not showing, this was a quick right-click
         if (!showContextMenu && !tile.revealed) {
-          cyclePlayerOwnerAnnotation(tile.position)
+          toggleFilteredAnnotation(tile.position)
         }
       }
     }
@@ -460,7 +460,12 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       }
       
       // Render player slash annotation (always on top)
-      if (playerSlashAnnotation) {
+      // Show slash if: 1) explicit player slash annotation, OR 2) player annotation exists but doesn't include 'player'
+      const playerOwnerAnnotation = tile.annotations.find(a => a.type === 'player_owner_possibility')
+      const shouldShowSlash = playerSlashAnnotation || 
+        (playerOwnerAnnotation?.playerOwnerPossibility && !playerOwnerAnnotation.playerOwnerPossibility.has('player'))
+      
+      if (shouldShowSlash) {
         elements.push(
           <div
             key="player-slash"
@@ -548,26 +553,48 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           ? `Could be ${includedOwners[0].name.toLowerCase()}`
           : `Could be ${includedOwners.map(info => info.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ', or $1')}`
         
-        // Render the squares in upper-right corner
-        includedOwners.forEach(info => {
+        if (includedOwners.length === 1) {
+          // Single possibility: large colored square
+          const info = includedOwners[0]
           elements.push(
             <div
-              key={`combined-${info.owner}`}
+              key={`combined-single`}
               title={tooltipText}
               style={{
                 position: 'absolute',
-                top: `${2 + info.position.top}px`, // Upper-right instead of bottom-right
-                right: `${2 + info.position.left}px`,
-                width: '4px',
-                height: '4px',
+                top: '2px',
+                right: '2px',
+                width: '12px',
+                height: '12px', 
                 backgroundColor: info.color,
-                borderRadius: '1px',
-                border: '0.5px solid black',
-                opacity: 0.8
+                borderRadius: '2px',
+                border: '1px solid black',
+                opacity: 0.9
               }}
             />
           )
-        })
+        } else {
+          // Multiple possibilities: small squares in 2x2 grid
+          includedOwners.forEach(info => {
+            elements.push(
+              <div
+                key={`combined-${info.owner}`}
+                title={tooltipText}
+                style={{
+                  position: 'absolute',
+                  top: `${2 + info.position.top}px`, // Upper-right instead of bottom-right
+                  right: `${2 + info.position.left}px`,
+                  width: '4px',
+                  height: '4px',
+                  backgroundColor: info.color,
+                  borderRadius: '1px',
+                  border: '0.5px solid black',
+                  opacity: 0.8
+                }}
+              />
+            )
+          })
+        }
       }
       
       // Add dirty scribbles for extraDirty tiles (always, regardless of other annotations)

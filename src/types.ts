@@ -178,6 +178,14 @@ export interface GameState {
   
   // Status effects system
   activeStatusEffects: StatusEffect[] // Active temporary status effects
+  
+  // Player annotation button states
+  annotationButtons: {
+    player: boolean // Whether player button is depressed
+    enemy: boolean  // Whether enemy button is depressed
+    neutral: boolean // Whether neutral button is depressed
+    mine: boolean   // Whether mine button is depressed
+  }
 }
 
 export interface UpgradeOption {

@@ -10,6 +10,7 @@ import { ShopSelectionScreen } from './components/ShopSelectionScreen'
 import { PileViewingScreen } from './components/PileViewingScreen'
 import { TileCountsVertical } from './components/TileCountsVertical'
 import { StatusEffects } from './components/StatusEffects'
+import { useEffect } from 'react'
 
 function getRelicIcon(relicName: string): string {
   switch (relicName) {
@@ -49,6 +50,7 @@ function App() {
     purchasedShopItems,
     pileViewingType,
     activeStatusEffects,
+    annotationButtons,
     playCard, 
     endTurn, 
     resetGame,
@@ -69,8 +71,43 @@ function App() {
     getAllCardsInCollection,
     viewPile,
     closePileView,
-    debugWinLevel
+    debugWinLevel,
+    toggleAnnotationButton
   } = useGameStore()
+
+  // Add keyboard shortcuts for toggling annotation buttons
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only handle keys when not in an input field and game is playing
+      if (event.target instanceof HTMLInputElement || 
+          event.target instanceof HTMLTextAreaElement ||
+          gamePhase !== 'playing') {
+        return
+      }
+
+      switch (event.key.toLowerCase()) {
+        case 'p':
+          toggleAnnotationButton('player')
+          event.preventDefault()
+          break
+        case 'e':
+          toggleAnnotationButton('enemy')
+          event.preventDefault()
+          break
+        case 'n':
+          toggleAnnotationButton('neutral')
+          event.preventDefault()
+          break
+        case 'm':
+          toggleAnnotationButton('mine')
+          event.preventDefault()
+          break
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [gamePhase, toggleAnnotationButton])
 
   return (
     <div style={{
@@ -169,7 +206,11 @@ function App() {
             marginTop: '20px' // Align with board grid (board has 20px internal padding)
           }}>
             {/* Tile counts vertically */}
-            <TileCountsVertical board={board} />
+            <TileCountsVertical 
+              board={board} 
+              annotationButtons={annotationButtons}
+              onToggleButton={toggleAnnotationButton}
+            />
             
             {/* Status effects - bottom-aligned */}
             <div style={{ marginTop: 'auto', marginBottom: '10px' }}>

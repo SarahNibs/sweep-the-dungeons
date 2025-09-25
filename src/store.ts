@@ -28,6 +28,8 @@ interface GameStore extends GameState {
   setUseDefaultAnnotations: (useDefault: boolean) => void
   toggleOwnerPossibility: (ownerCombo: string) => void
   cyclePlayerOwnerAnnotation: (position: Position) => void
+  toggleAnnotationButton: (buttonType: 'player' | 'enemy' | 'neutral' | 'mine') => void
+  toggleFilteredAnnotation: (position: Position) => void
   startCardSelection: () => void
   selectNewCard: (card: CardType) => void
   skipCardSelection: () => void
@@ -1093,6 +1095,60 @@ export const useGameStore = create<GameStore>((set, get) => ({
         tiles: newTiles
       },
       currentOwnerPossibilityIndex: nextIndex
+    })
+  },
+
+  toggleAnnotationButton: (buttonType: 'player' | 'enemy' | 'neutral' | 'mine') => {
+    const currentState = get()
+    set({
+      ...currentState,
+      annotationButtons: {
+        ...currentState.annotationButtons,
+        [buttonType]: !currentState.annotationButtons[buttonType]
+      }
+    })
+  },
+
+  toggleFilteredAnnotation: (position: Position) => {
+    const currentState = get()
+    const key = positionToKey(position)
+    const tile = currentState.board.tiles.get(key)
+    if (!tile || tile.revealed) return
+
+    const newTiles = new Map(currentState.board.tiles)
+    const updatedTile = { ...tile }
+
+    // Remove existing player owner possibility annotation
+    const existingAnnotation = updatedTile.annotations.find(a => a.type === 'player_owner_possibility')
+    updatedTile.annotations = updatedTile.annotations.filter(a => a.type !== 'player_owner_possibility')
+
+    // If no existing annotation, add filtered annotation based on depressed buttons
+    if (!existingAnnotation) {
+      const depressedOwners: ('player' | 'enemy' | 'neutral' | 'mine')[] = []
+      
+      if (currentState.annotationButtons.player) depressedOwners.push('player')
+      if (currentState.annotationButtons.enemy) depressedOwners.push('enemy') 
+      if (currentState.annotationButtons.neutral) depressedOwners.push('neutral')
+      if (currentState.annotationButtons.mine) depressedOwners.push('mine')
+
+      if (depressedOwners.length > 0) {
+        const ownerSet = new Set(depressedOwners)
+        updatedTile.annotations.push({
+          type: 'player_owner_possibility',
+          playerOwnerPossibility: ownerSet
+        })
+      }
+    }
+    // If annotation exists, remove it (toggle off)
+
+    newTiles.set(key, updatedTile)
+
+    set({
+      ...currentState,
+      board: {
+        ...currentState.board,
+        tiles: newTiles
+      }
     })
   }
 }))

@@ -263,7 +263,13 @@ export function createInitialState(
     useDefaultAnnotations: useDefaultAnnotations !== undefined ? useDefaultAnnotations : true,
     enabledOwnerPossibilities: enabledOwnerPossibilities || new Set(['player', 'enemy', 'neutral', 'mine']),
     currentOwnerPossibilityIndex: currentOwnerPossibilityIndex || 0,
-    activeStatusEffects: []
+    activeStatusEffects: [],
+    annotationButtons: {
+      player: false, // Start undepressed (no black slash)
+      enemy: true,   // Start depressed
+      neutral: true, // Start depressed  
+      mine: true     // Start depressed
+    }
   }
   
   let finalState = drawCards(initialState, 5)

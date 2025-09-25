@@ -21,7 +21,7 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel
       if (isGameWon) {
         return `🎉 GAME WON! All levels complete! 🎉`
       } else {
-        return `🎉 Level Complete! ${enemyLeft} enemy tiles left! 🎉`
+        return `🎉 Level ${levelNumber} Complete! ${enemyLeft} enemy tiles left! 🎉`
       }
     } else if (gameStatus.status === 'player_lost') {
       if (gameStatus.reason === 'player_revealed_mine') {

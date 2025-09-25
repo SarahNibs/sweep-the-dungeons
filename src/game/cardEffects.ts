@@ -14,6 +14,8 @@ export function revealTileWithRelicEffects(state: GameState, position: Position,
     board: newBoard
   }
   
+  let underwireProtectionConsumed = false
+  
   // Handle Underwire protection if player revealed a mine
   if (revealer === 'player' && revealResult.revealed) {
     const tile = getTile(newBoard, position)
@@ -27,11 +29,12 @@ export function revealTileWithRelicEffects(state: GameState, position: Position,
       }
       // Remove the status effect
       stateWithBoard = removeStatusEffect(stateWithBoard, 'underwire_protection')
+      underwireProtectionConsumed = true
     }
   }
   
   // Check game status after reveal (with potentially updated protection state)
-  const gameStatus = checkGameStatus(stateWithBoard)
+  const gameStatus = checkGameStatus(stateWithBoard, underwireProtectionConsumed)
   
   stateWithBoard = {
     ...stateWithBoard,
@@ -419,7 +422,7 @@ export function executeStretchClueEffect(state: GameState): GameState {
 
 
 
-export function checkGameStatus(state: GameState): GameStatusInfo {
+export function checkGameStatus(state: GameState, underwireProtectionConsumed: boolean = false): GameStatusInfo {
   const board = state.board
   
   // Count tiles first for potential enemy tiles left calculation
@@ -441,9 +444,8 @@ export function checkGameStatus(state: GameState): GameStatusInfo {
   // Check if mine was revealed
   for (const tile of board.tiles.values()) {
     if (tile.revealed && tile.owner === 'mine') {
-      if (tile.revealedBy === 'player' && state.underwireProtection?.active) {
-        // Player has mine protection - continue playing but consume the protection
-        // Note: The protection consumption is handled in the reveal function
+      if (tile.revealedBy === 'player' && underwireProtectionConsumed) {
+        // Player had mine protection that was just consumed - don't end game, just turn
         continue
       }
       

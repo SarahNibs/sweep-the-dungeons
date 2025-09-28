@@ -26,24 +26,24 @@ export type CardEffect =
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
-  cardType: 'solid_clue' | 'stretch_clue' | 'enemy_clue'
+  cardType: 'solid_clue' | 'stretch_clue' | 'rival_clue'
   strengthForThisTile: number // How many pips this clue contributed to this specific tile
   allAffectedTiles: Position[] // All tiles that got pips from this clue
   clueOrder: number // Order in which this clue was played (1st, 2nd, 3rd...)
-  clueRowPosition: number // Row position for this clue type (player/enemy separate)
+  clueRowPosition: number // Row position for this clue type (player/rival separate)
 }
 
 export interface TileAnnotation {
-  type: 'safe' | 'unsafe' | 'enemy' | 'clue_results' | 'owner_subset' | 'player_slash' | 'player_big_checkmark' | 'player_small_checkmark' | 'player_owner_possibility'
+  type: 'safe' | 'unsafe' | 'rival' | 'clue_results' | 'owner_subset' | 'player_slash' | 'player_big_checkmark' | 'player_small_checkmark' | 'player_owner_possibility'
   clueResults?: ClueResult[] // For clue strength annotations
-  ownerSubset?: Set<'player' | 'enemy' | 'neutral' | 'mine'> // For subset annotations (lower-right, from cards/relics)
-  playerOwnerPossibility?: Set<'player' | 'enemy' | 'neutral' | 'mine'> // For player's upper-right annotations
+  ownerSubset?: Set<'player' | 'rival' | 'neutral' | 'mine'> // For subset annotations (lower-right, from cards/relics)
+  playerOwnerPossibility?: Set<'player' | 'rival' | 'neutral' | 'mine'> // For player's upper-right annotations
 }
 
 export interface GameStatusInfo {
   status: 'playing' | 'player_won' | 'player_lost'
-  reason?: 'player_revealed_mine' | 'enemy_revealed_mine' | 'all_player_tiles_revealed' | 'all_enemy_tiles_revealed'
-  enemyTilesLeft?: number
+  reason?: 'player_revealed_mine' | 'rival_revealed_mine' | 'all_player_tiles_revealed' | 'all_rival_tiles_revealed'
+  rivalTilesLeft?: number
 }
 
 export type GameEvent = 
@@ -57,9 +57,9 @@ export interface Position {
 
 export interface Tile {
   position: Position
-  owner: 'player' | 'enemy' | 'neutral' | 'mine' | 'empty'
+  owner: 'player' | 'rival' | 'neutral' | 'mine' | 'empty'
   revealed: boolean
-  revealedBy: 'player' | 'enemy' | null
+  revealedBy: 'player' | 'rival' | null
   adjacencyCount: number | null
   annotations: TileAnnotation[]
   specialTile?: 'extraDirty'
@@ -90,7 +90,7 @@ export interface LevelConfig {
   }
   tileCounts: {
     player: number
-    enemy: number
+    rival: number
     neutral: number
     mine: number
   }
@@ -98,10 +98,10 @@ export interface LevelConfig {
   specialTiles: Array<{
     type: 'extraDirty'
     count: number
-    placement: 'random' | { owner: Array<'player' | 'enemy' | 'neutral' | 'mine'> }
+    placement: 'random' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> }
   }>
   specialBehaviors: {
-    enemyNeverMines?: boolean
+    rivalNeverMines?: boolean
     adjacencyRule?: 'standard' | 'manhattan-2'
   }
 }
@@ -118,14 +118,14 @@ export interface GameState {
   energy: number
   maxEnergy: number
   board: Board
-  currentPlayer: 'player' | 'enemy'
+  currentPlayer: 'player' | 'rival'
   gameStatus: GameStatusInfo
   pendingCardEffect: CardEffect | null
   eventQueue: GameEvent[]
   hoveredClueId: string | null // For highlighting related clue pips and tiles
   clueCounter: number // Counter for clue order (1st, 2nd, 3rd...)
   playerClueCounter: number // Counter for player clue rows
-  enemyClueCounter: number // Counter for enemy clue rows
+  rivalClueCounter: number // Counter for rival clue rows
   currentLevelId: string
   gamePhase: 'playing' | 'card_selection' | 'viewing_pile' | 'upgrade_selection' | 'relic_selection' | 'shop_selection'
   pileViewingType?: PileType
@@ -137,13 +137,13 @@ export interface GameState {
   relics: Relic[] // Relics the player currently has
   isFirstTurn: boolean // True if this is the first turn of the level (for Frilly Dress)
   hasRevealedNeutralThisTurn: boolean // True if player revealed neutral on first turn (for Frilly Dress)
-  // Dual enemy clue system: visible clues (shown as X) vs AI clues (hidden)
-  enemyHiddenClues: ClueResult[] // AI-only clues for enemy decision making (not shown to player)
+  // Dual rival clue system: visible clues (shown as X) vs AI clues (hidden)
+  rivalHiddenClues: ClueResult[] // AI-only clues for rival decision making (not shown to player)
   tingleAnimation: {
     targetTile: Position | null
     isEmphasized: boolean
   } | null
-  enemyAnimation: {
+  rivalAnimation: {
     isActive: boolean
     highlightedTile: Position | null
     revealsRemaining: Tile[]
@@ -152,13 +152,13 @@ export interface GameState {
   trystAnimation: {
     isActive: boolean
     highlightedTile: Position | null
-    revealsRemaining: Array<{ tile: Tile; revealer: 'player' | 'enemy' }>
+    revealsRemaining: Array<{ tile: Tile; revealer: 'player' | 'rival' }>
     currentRevealIndex: number
   } | null
   rambleActive: boolean // True if Ramble was played this turn
   ramblePriorityBoosts: number[] // Array of max boost values from Rambles played this turn (e.g., [2, 4] for basic + enhanced)
   // Currency and shop system
-  copper: number // Copper currency earned from unrevealed enemy tiles
+  copper: number // Copper currency earned from unrevealed rival tiles
   shopOptions?: ShopOption[] // Available shop items
   purchasedShopItems?: Set<number> // Indices of purchased shop items (for current shop session)
   temporaryBunnyBuffs: number // Number of temporary bunny buffs for next level
@@ -173,7 +173,7 @@ export interface GameState {
   // Player annotation system
   playerAnnotationMode: 'slash' | 'big_checkmark' | 'small_checkmark' // Legacy mode (deprecated)
   useDefaultAnnotations: boolean // If true, use simple slash cycling; if false, use owner possibility system
-  enabledOwnerPossibilities: Set<string> // Set of enabled owner combinations (e.g., "player,enemy", "mine", etc.)
+  enabledOwnerPossibilities: Set<string> // Set of enabled owner combinations (e.g., "player,rival", "mine", etc.)
   currentOwnerPossibilityIndex: number // Current index in the enabled possibilities cycle
   
   // Status effects system
@@ -182,7 +182,7 @@ export interface GameState {
   // Player annotation button states
   annotationButtons: {
     player: boolean // Whether player button is depressed
-    enemy: boolean  // Whether enemy button is depressed
+    rival: boolean  // Whether rival button is depressed
     neutral: boolean // Whether neutral button is depressed
     mine: boolean   // Whether mine button is depressed
   }

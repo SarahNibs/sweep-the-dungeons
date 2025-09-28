@@ -239,16 +239,16 @@ export function createInitialState(
     hoveredClueId: null,
     clueCounter: 0,
     playerClueCounter: 0,
-    enemyClueCounter: 0,
+    rivalClueCounter: 0,
     currentLevelId: levelId,
     gamePhase: 'playing',
     relics: startingRelics,
     relicOptions: undefined,
     isFirstTurn: true,
     hasRevealedNeutralThisTurn: false,
-    enemyHiddenClues: [],
+    rivalHiddenClues: [],
     tingleAnimation: null,
-    enemyAnimation: null,
+    rivalAnimation: null,
     trystAnimation: null,
     rambleActive: false,
     ramblePriorityBoosts: [],
@@ -261,12 +261,12 @@ export function createInitialState(
     shouldExhaustLastCard: false,
     playerAnnotationMode: playerAnnotationMode || 'slash',
     useDefaultAnnotations: useDefaultAnnotations !== undefined ? useDefaultAnnotations : true,
-    enabledOwnerPossibilities: enabledOwnerPossibilities || new Set(['player', 'enemy', 'neutral', 'mine']),
+    enabledOwnerPossibilities: enabledOwnerPossibilities || new Set(['player', 'rival', 'neutral', 'mine']),
     currentOwnerPossibilityIndex: currentOwnerPossibilityIndex || 0,
     activeStatusEffects: [],
     annotationButtons: {
       player: false, // Start undepressed (no black slash)
-      enemy: true,   // Start depressed
+      rival: true,   // Start depressed
       neutral: true, // Start depressed  
       mine: true     // Start depressed
     }

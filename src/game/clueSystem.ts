@@ -1,7 +1,7 @@
 import { GameState, Position, Tile, ClueResult } from '../types'
 
 export interface ClueParams {
-  cardType: 'solid_clue' | 'stretch_clue' | 'enemy_clue'
+  cardType: 'solid_clue' | 'stretch_clue' | 'rival_clue'
   clueOrder: number
   clueRowPosition: number
 }
@@ -45,7 +45,7 @@ export function calculateStrengthForTile(
 function buildBagWithAdjustments(
   tiles: Tile[], 
   copiesPerTile: number, 
-  targetOwner: 'player' | 'enemy', 
+  targetOwner: 'player' | 'rival', 
   targetTiles: Tile[]
 ): Tile[] {
   const bag: Tile[] = []
@@ -262,10 +262,10 @@ export function generateEnemyClueWithSharedSetup(
   clueOrder: number,
   clueRowPosition: number
 ): ClueGenerationResult {
-  // Create bag: 12 copies of each enemy tile + 4 copies of each random tile (with spoiler adjustments)
+  // Create bag: 12 copies of each rival tile + 4 copies of each random tile (with spoiler adjustments)
   const bag: Tile[] = [
-    ...buildBagWithAdjustments(chosenEnemyTiles, 12, 'enemy', chosenEnemyTiles),
-    ...buildBagWithAdjustments(chosenRandomTiles, 4, 'enemy', chosenEnemyTiles)
+    ...buildBagWithAdjustments(chosenEnemyTiles, 12, 'rival', chosenEnemyTiles),
+    ...buildBagWithAdjustments(chosenRandomTiles, 4, 'rival', chosenEnemyTiles)
   ]
   
   // DEBUG: Log clue generation details
@@ -279,11 +279,11 @@ export function generateEnemyClueWithSharedSetup(
     return acc
   }, {} as Record<string, number>))
   
-  // Guarantee first 2 draws are from chosen enemy tiles
+  // Guarantee first 2 draws are from chosen rival tiles
   const guaranteedTiles = [...chosenEnemyTiles]
   
   const params: ClueParams = {
-    cardType: 'enemy_clue',
+    cardType: 'rival_clue',
     clueOrder,
     clueRowPosition
   }
@@ -297,10 +297,10 @@ export function prepareEnemyClueSetup(state: GameState): {
 } {
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
-  const enemyTiles = unrevealedTiles.filter(tile => tile.owner === 'enemy')
+  const rivalTiles = unrevealedTiles.filter(tile => tile.owner === 'rival')
   
-  // Choose 2 enemy tiles
-  const chosenEnemyTiles = selectTilesForClue(enemyTiles, 2)
+  // Choose 2 rival tiles
+  const chosenEnemyTiles = selectTilesForClue(rivalTiles, 2)
   
   // Choose 6 other random tiles
   const remainingTiles = unrevealedTiles.filter(tile => 

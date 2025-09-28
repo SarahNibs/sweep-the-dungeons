@@ -100,38 +100,38 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
 
   // All 16 possible owner combinations organized as 2x2 grid of 2x2 grids
   const getAllOwnerCombinations = (): string[][] => {
-    // Outer grid: [could be player][could be enemy] vs [can't be player][can't be enemy]
+    // Outer grid: [could be player][could be rival] vs [can't be player][can't be rival]
     // Inner grid: [could be neutral][could be mine] vs [can't be neutral][can't be mine]
     
     const combinations: string[][] = []
     
-    // Top-left quadrant: CAN be player, CAN be enemy
+    // Top-left quadrant: CAN be player, CAN be rival
     combinations.push([
-      'player,enemy,neutral,mine', // Can be anything
-      'player,enemy,neutral',      // Can be player/enemy/neutral (not mine)
-      'player,enemy,mine',         // Can be player/enemy/mine (not neutral)  
-      'player,enemy'               // Can only be player/enemy
+      'player,rival,neutral,mine', // Can be anything
+      'player,rival,neutral',      // Can be player/rival/neutral (not mine)
+      'player,rival,mine',         // Can be player/rival/mine (not neutral)  
+      'player,rival'               // Can only be player/rival
     ])
     
-    // Top-right quadrant: CAN be player, CAN'T be enemy
+    // Top-right quadrant: CAN be player, CAN'T be rival
     combinations.push([
-      'player,neutral,mine',       // Can be player/neutral/mine (not enemy)
-      'player,neutral',            // Can be player/neutral (not enemy/mine)
-      'player,mine',               // Can be player/mine (not enemy/neutral)
+      'player,neutral,mine',       // Can be player/neutral/mine (not rival)
+      'player,neutral',            // Can be player/neutral (not rival/mine)
+      'player,mine',               // Can be player/mine (not rival/neutral)
       'player'                     // Can only be player
     ])
     
-    // Bottom-left quadrant: CAN'T be player, CAN be enemy
+    // Bottom-left quadrant: CAN'T be player, CAN be rival
     combinations.push([
-      'enemy,neutral,mine',        // Can be enemy/neutral/mine (not player)
-      'enemy,neutral',             // Can be enemy/neutral (not player/mine)
-      'enemy,mine',                // Can be enemy/mine (not player/neutral)
-      'enemy'                      // Can only be enemy
+      'rival,neutral,mine',        // Can be rival/neutral/mine (not player)
+      'rival,neutral',             // Can be rival/neutral (not player/mine)
+      'rival,mine',                // Can be rival/mine (not player/neutral)
+      'rival'                      // Can only be rival
     ])
     
-    // Bottom-right quadrant: CAN'T be player, CAN'T be enemy
+    // Bottom-right quadrant: CAN'T be player, CAN'T be rival
     combinations.push([
-      'neutral,mine',              // Can be neutral/mine (not player/enemy)
+      'neutral,mine',              // Can be neutral/mine (not player/rival)
       'neutral',                   // Can only be neutral
       'mine',                      // Can only be mine
       ''                           // Can't be anything (impossible)
@@ -144,13 +144,13 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
 
   const getComboLabel = (combo: string): string => {
     if (combo === '') return '∅' // Empty set symbol
-    if (combo === 'player,enemy,neutral,mine') return 'Any'
+    if (combo === 'player,rival,neutral,mine') return 'Any'
     
     const owners = combo.split(',')
     const labels = owners.map(owner => {
       switch(owner) {
         case 'player': return 'P'
-        case 'enemy': return 'E' 
+        case 'rival': return 'E' 
         case 'neutral': return 'N'
         case 'mine': return 'M'
         default: return ''
@@ -161,7 +161,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
   }
 
   // Combine player annotation with card results to get the actual display annotation
-  const getCombinedOwnerPossibility = (): Set<'player' | 'enemy' | 'neutral' | 'mine'> | null => {
+  const getCombinedOwnerPossibility = (): Set<'player' | 'rival' | 'neutral' | 'mine'> | null => {
     // Find player owner possibility annotation
     const playerAnnotation = tile.annotations.find(a => a.type === 'player_owner_possibility')
     if (!playerAnnotation?.playerOwnerPossibility) return null
@@ -174,7 +174,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     // Intersect with all card result sets
     for (const cardAnnotation of cardAnnotations) {
       if (cardAnnotation.ownerSubset) {
-        const intersection = new Set<'player' | 'enemy' | 'neutral' | 'mine'>()
+        const intersection = new Set<'player' | 'rival' | 'neutral' | 'mine'>()
         for (const owner of result) {
           if (cardAnnotation.ownerSubset.has(owner)) {
             intersection.add(owner)
@@ -229,8 +229,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     switch (tile.owner) {
       case 'player':
         return '#81b366' // Muted green for player
-      case 'enemy':
-        return '#c65757' // Muted red for enemy
+      case 'rival':
+        return '#c65757' // Muted red for rival
       case 'neutral':
         return '#d4aa5a' // Muted yellow for neutral
       case 'mine':
@@ -246,7 +246,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       const getAdjacencyColor = () => {
         if (tile.revealedBy === 'player') {
           return '#007bff'
-        } else if (tile.revealedBy === 'enemy') {
+        } else if (tile.revealedBy === 'rival') {
           return '#dc3545'
         }
         return '#6c757d'
@@ -284,20 +284,20 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       const subsetAnnotations = tile.annotations.filter(a => a.type === 'owner_subset')
       // Legacy annotations - keeping for backward compatibility
       const safetyAnnotations = tile.annotations.filter(a => a.type === 'safe' || a.type === 'unsafe')
-      const enemyAnnotations = tile.annotations.filter(a => a.type === 'enemy')
+      const rivalAnnotations = tile.annotations.filter(a => a.type === 'rival')
       const playerSlashAnnotation = tile.annotations.find(a => a.type === 'player_slash')
       const playerBigCheckmarkAnnotation = tile.annotations.find(a => a.type === 'player_big_checkmark')
       const playerSmallCheckmarkAnnotation = tile.annotations.find(a => a.type === 'player_small_checkmark')
       
-      // Render clue pips - player clues (top-left) and enemy clues (bottom-left) 
+      // Render clue pips - player clues (top-left) and rival clues (bottom-left) 
       if (clueResultsAnnotation?.clueResults) {
         
         clueResultsAnnotation.clueResults.forEach((clueResult, clueIndex) => {
           const strength = clueResult.strengthForThisTile
           const isThisClueHovered = hoveredClueId === clueResult.id
-          const isEnemyClue = clueResult.cardType === 'enemy_clue'
+          const isEnemyClue = clueResult.cardType === 'rival_clue'
           
-          // Position based on clue row position (already separated by player/enemy)
+          // Position based on clue row position (already separated by player/rival)
           // Fallback to clueOrder if clueRowPosition is not available (backward compatibility)
           const rowPosition = (clueResult.clueRowPosition || clueResult.clueOrder || 1) - 1
           
@@ -365,7 +365,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         const annotation = safetyAnnotations[safetyAnnotations.length - 1] // Show latest
         const display = annotation.type === 'safe' 
           ? { text: '✓', color: '#ffc107', tooltip: 'Tile is either yours or neutral' }
-          : { text: '!', color: '#dc3545', tooltip: 'Tile is either enemy or mine' }
+          : { text: '!', color: '#dc3545', tooltip: 'Tile is either rival or mine' }
         
         elements.push(
           <div
@@ -393,12 +393,12 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         )
       }
       
-      // Legacy enemy annotations - keeping for backward compatibility but Report now uses subset system
-      if (enemyAnnotations.length > 0) {
+      // Legacy rival annotations - keeping for backward compatibility but Report now uses subset system
+      if (rivalAnnotations.length > 0) {
         elements.push(
           <div
-            key="enemy"
-            title="Tile is enemy's"
+            key="rival"
+            title="Tile is rival's"
             style={{
               position: 'absolute',
               bottom: '2px',
@@ -429,7 +429,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         // Define owner colors and positions in 2x2 grid (positioned from bottom-right)
         const ownerInfo = [
           { owner: 'player' as const, color: '#81b366', position: { top: 4, left: 8 }, name: 'Player' },
-          { owner: 'enemy' as const, color: '#c65757', position: { top: 4, left: 4 }, name: 'Enemy' },
+          { owner: 'rival' as const, color: '#c65757', position: { top: 4, left: 4 }, name: 'Enemy' },
           { owner: 'neutral' as const, color: '#d4aa5a', position: { top: 0, left: 8 }, name: 'Neutral' },
           { owner: 'mine' as const, color: '#8b6ba8', position: { top: 0, left: 4 }, name: 'Mine' }
         ]
@@ -542,10 +542,10 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       if (combinedPossibility) {
         // Use same 2x2 grid system as subset annotations but in upper-right
         const ownerInfo = [
-          { owner: 'player' as const, color: '#81b366', position: { top: 4, left: 8 }, name: 'Player' },
-          { owner: 'enemy' as const, color: '#c65757', position: { top: 4, left: 4 }, name: 'Enemy' },
-          { owner: 'neutral' as const, color: '#d4aa5a', position: { top: 0, left: 8 }, name: 'Neutral' },
-          { owner: 'mine' as const, color: '#8b6ba8', position: { top: 0, left: 4 }, name: 'Mine' }
+          { owner: 'player' as const, color: '#81b366', position: { top: 0, left: 4 }, name: 'Player' }, // upper-left
+          { owner: 'rival' as const, color: '#c65757', position: { top: 0, left: 8 }, name: 'Enemy' }, // upper-right
+          { owner: 'neutral' as const, color: '#d4aa5a', position: { top: 4, left: 4 }, name: 'Neutral' }, // lower-left
+          { owner: 'mine' as const, color: '#8b6ba8', position: { top: 4, left: 8 }, name: 'Mine' } // lower-right
         ]
         
         const includedOwners = ownerInfo.filter(info => combinedPossibility.has(info.owner))

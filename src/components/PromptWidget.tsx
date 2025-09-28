@@ -15,19 +15,19 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel
   
   const getDisplayText = () => {
     if (gameStatus.status === 'player_won') {
-      const enemyLeft = gameStatus.enemyTilesLeft || 0
+      const rivalLeft = gameStatus.rivalTilesLeft || 0
       const isGameWon = levelConfig?.uponFinish?.winTheGame || false
       
       if (isGameWon) {
         return `🎉 GAME WON! All levels complete! 🎉`
       } else {
-        return `🎉 Level ${levelNumber} Complete! ${enemyLeft} enemy tiles left! 🎉`
+        return `🎉 Level ${levelNumber} Complete! ${rivalLeft} rival tiles left! 🎉`
       }
     } else if (gameStatus.status === 'player_lost') {
       if (gameStatus.reason === 'player_revealed_mine') {
         return "💀 Failure! You revealed a mine! 💀"
-      } else if (gameStatus.reason === 'all_enemy_tiles_revealed') {
-        return "💀 Failure! All enemy tiles revealed! 💀"
+      } else if (gameStatus.reason === 'all_rival_tiles_revealed') {
+        return "💀 Failure! All rival tiles revealed! 💀"
       }
       return "💀 Failure! 💀"
     } else if (targetingInfo) {

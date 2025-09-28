@@ -86,19 +86,19 @@ function App() {
       }
 
       switch (event.key.toLowerCase()) {
-        case 'p':
+        case 'w':
           toggleAnnotationButton('player')
           event.preventDefault()
           break
-        case 'e':
-          toggleAnnotationButton('enemy')
+        case 'r':
+          toggleAnnotationButton('rival')
           event.preventDefault()
           break
-        case 'n':
+        case 'e':
           toggleAnnotationButton('neutral')
           event.preventDefault()
           break
-        case 'm':
+        case 'f':
           toggleAnnotationButton('mine')
           event.preventDefault()
           break

@@ -5,7 +5,7 @@ import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
 import { startRelicSelection, selectRelic } from './game/relicSystem'
 import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, checkGameStatus, executeTargetedReportEffect, getUnrevealedTilesByOwner, revealTileWithRelicEffects } from './game/cardEffects'
-import { processEnemyTurnWithDualClues } from './game/enemyAI'
+import { processRivalTurnWithDualClues } from './game/rivalAI'
 import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowRelicReward, shouldShowShopReward, calculateCopperReward } from './game/levelSystem'
 import { startShopSelection, purchaseShopItem, removeSelectedCard, exitShop } from './game/shopSystem'
 
@@ -28,7 +28,7 @@ interface GameStore extends GameState {
   setUseDefaultAnnotations: (useDefault: boolean) => void
   toggleOwnerPossibility: (ownerCombo: string) => void
   cyclePlayerOwnerAnnotation: (position: Position) => void
-  toggleAnnotationButton: (buttonType: 'player' | 'enemy' | 'neutral' | 'mine') => void
+  toggleAnnotationButton: (buttonType: 'player' | 'rival' | 'neutral' | 'mine') => void
   toggleFilteredAnnotation: (position: Position) => void
   startCardSelection: () => void
   selectNewCard: (card: CardType) => void
@@ -104,7 +104,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const isTestEnvironment = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
     
     if (isTestEnvironment) {
-      // In tests, just do a simple turn transition without enemy animation
+      // In tests, just do a simple turn transition without rival animation
       const discardedState = discardHand(currentState)
       const newTurnState = startNewTurn(discardedState)
       set({
@@ -125,7 +125,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       ...currentState,
       board
     })
-    // Update state with discarded hand, then start enemy turn
+    // Update state with discarded hand, then start rival turn
     set(discardedState)
     get().startEnemyTurn(discardedState.board)
   },
@@ -187,7 +187,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // Game ended, update state with potential copper reward
       updateStateWithCopperReward(set, get, stateWithBoard)
     } else if (shouldEndTurn) {
-      // End player turn and start enemy turn immediately using shared logic
+      // End player turn and start rival turn immediately using shared logic
       get().performTurnEnd(stateWithBoard.board)
     } else {
       // Always use the copper reward helper to ensure consistency
@@ -377,16 +377,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
       selectedCardName: null
     }
     
-    // Process enemy turn with dual clue system
-    const enemyTurnResult = processEnemyTurnWithDualClues(clearedState)
+    // Process rival turn with dual clue system
+    const rivalTurnResult = processRivalTurnWithDualClues(clearedState)
     const stateWithEnemyClue = {
-      ...enemyTurnResult.stateWithVisibleClues,
-      enemyHiddenClues: [...clearedState.enemyHiddenClues, ...enemyTurnResult.hiddenClues]
+      ...rivalTurnResult.stateWithVisibleClues,
+      rivalHiddenClues: [...clearedState.rivalHiddenClues, ...rivalTurnResult.hiddenClues]
     }
-    const tilesToReveal = enemyTurnResult.tilesToReveal
+    const tilesToReveal = rivalTurnResult.tilesToReveal
     
     if (tilesToReveal.length === 0) {
-      // No tiles to reveal, end enemy turn immediately
+      // No tiles to reveal, end rival turn immediately
       const newTurnState = startNewTurn(stateWithEnemyClue)
       set({
         ...newTurnState,
@@ -399,11 +399,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const isTestEnvironment = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
     
     if (isTestEnvironment) {
-      // In tests, run enemy turn synchronously
+      // In tests, run rival turn synchronously
       let boardState = stateWithEnemyClue.board
       for (const tile of tilesToReveal) {
-        boardState = revealTile(boardState, tile.position, 'enemy')
-        if (tile.owner !== 'enemy') break // Stop if non-enemy tile revealed
+        boardState = revealTile(boardState, tile.position, 'rival')
+        if (tile.owner !== 'rival') break // Stop if non-rival tile revealed
       }
       
       const newTurnState = startNewTurn({
@@ -420,8 +420,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Start the animation sequence
     set({
       ...stateWithEnemyClue,
-      currentPlayer: 'enemy',
-      enemyAnimation: {
+      currentPlayer: 'rival',
+      rivalAnimation: {
         isActive: true,
         highlightedTile: null,
         revealsRemaining: tilesToReveal,
@@ -437,19 +437,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   performNextEnemyReveal: () => {
     const currentState = get()
-    const animation = currentState.enemyAnimation
+    const animation = currentState.rivalAnimation
     
     if (!animation || !animation.isActive) return
     
     const { revealsRemaining, currentRevealIndex } = animation
     
     if (currentRevealIndex >= revealsRemaining.length) {
-      // Animation complete, end enemy turn
+      // Animation complete, end rival turn
       const newTurnState = startNewTurn(currentState)
       set({
         ...newTurnState,
         currentPlayer: 'player',
-        enemyAnimation: null
+        rivalAnimation: null
       })
       return
     }
@@ -459,7 +459,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Highlight the tile
     set({
       ...currentState,
-      enemyAnimation: {
+      rivalAnimation: {
         ...animation,
         highlightedTile: tileToReveal.position
       }
@@ -468,10 +468,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // After highlighting delay, reveal the tile
     setTimeout(() => {
       const state = get()
-      const newBoard = revealTile(state.board, tileToReveal.position, 'enemy')
-      const shouldContinue = tileToReveal.owner === 'enemy' // Continue if enemy tile
+      const newBoard = revealTile(state.board, tileToReveal.position, 'rival')
+      const shouldContinue = tileToReveal.owner === 'rival' // Continue if rival tile
       
-      // Check game status after enemy reveal
+      // Check game status after rival reveal
       const gameStatus = checkGameStatus({
         ...state,
         board: newBoard
@@ -481,34 +481,34 @@ export const useGameStore = create<GameStore>((set, get) => ({
         ...state,
         board: newBoard,
         gameStatus,
-        enemyAnimation: {
-          ...state.enemyAnimation!,
+        rivalAnimation: {
+          ...state.rivalAnimation!,
           highlightedTile: null,
-          currentRevealIndex: state.enemyAnimation!.currentRevealIndex + 1
+          currentRevealIndex: state.rivalAnimation!.currentRevealIndex + 1
         }
       }
       updateStateWithCopperReward(set, get, stateWithGameStatus)
       
       if (gameStatus.status !== 'playing') {
-        // Game ended, stop enemy animation
+        // Game ended, stop rival animation
         const endState = get()
         set({
           ...endState,
-          enemyAnimation: null
+          rivalAnimation: null
         })
-      } else if (shouldContinue && state.enemyAnimation!.currentRevealIndex + 1 < revealsRemaining.length) {
+      } else if (shouldContinue && state.rivalAnimation!.currentRevealIndex + 1 < revealsRemaining.length) {
         // Continue with next reveal after delay
         setTimeout(() => {
           get().performNextEnemyReveal()
         }, 800)
       } else {
-        // End enemy turn
+        // End rival turn
         const finalState = get()
         const newTurnState = startNewTurn(finalState)
         set({
           ...newTurnState,
           currentPlayer: 'player',
-          enemyAnimation: null
+          rivalAnimation: null
         })
       }
     }, 1000) // Highlighting duration
@@ -698,15 +698,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   executeTingleWithAnimation: (state: GameState, isEnhanced: boolean) => {
-    // Find random enemy tiles to target (1 for normal, 2 for enhanced)
-    const enemyTiles = getUnrevealedTilesByOwner(state, 'enemy')
-    if (enemyTiles.length === 0) return
+    // Find random rival tiles to target (1 for normal, 2 for enhanced)
+    const rivalTiles = getUnrevealedTilesByOwner(state, 'rival')
+    if (rivalTiles.length === 0) return
 
-    const tilesToMark = isEnhanced ? Math.min(2, enemyTiles.length) : 1
-    const randomTiles: typeof enemyTiles = []
+    const tilesToMark = isEnhanced ? Math.min(2, rivalTiles.length) : 1
+    const randomTiles: typeof rivalTiles = []
     
     // Select random tiles without replacement
-    const availableTiles = [...enemyTiles]
+    const availableTiles = [...rivalTiles]
     for (let i = 0; i < tilesToMark; i++) {
       const randomIndex = Math.floor(Math.random() * availableTiles.length)
       randomTiles.push(availableTiles[randomIndex])
@@ -726,7 +726,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return
     }
 
-    // Start the enemy-style emphasis animation (show first tile)
+    // Start the rival-style emphasis animation (show first tile)
     set({
       ...state,
       tingleAnimation: {
@@ -762,15 +762,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   executeTrystWithAnimation: (state: GameState, isEnhanced: boolean, target?: Position) => {
-    const enemyTiles = getUnrevealedTilesByOwner(state, 'enemy')
+    const rivalTiles = getUnrevealedTilesByOwner(state, 'rival')
     const playerTiles = getUnrevealedTilesByOwner(state, 'player')
     
-    if (enemyTiles.length === 0 && playerTiles.length === 0) return
+    if (rivalTiles.length === 0 && playerTiles.length === 0) return
     
-    const reveals: Array<{ tile: Tile; revealer: 'player' | 'enemy' }> = []
+    const reveals: Array<{ tile: Tile; revealer: 'player' | 'rival' }> = []
     
-    // First, enemy reveals one of their tiles
-    if (enemyTiles.length > 0) {
+    // First, rival reveals one of their tiles
+    if (rivalTiles.length > 0) {
       let chosenEnemyTile: Tile
       
       if (isEnhanced && target) {
@@ -779,7 +779,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           return Math.abs(pos1.x - pos2.x) + Math.abs(pos1.y - pos2.y)
         }
         
-        const tilesWithDistance = enemyTiles.map(tile => ({
+        const tilesWithDistance = rivalTiles.map(tile => ({
           tile,
           distance: manhattanDistance(tile.position, target)
         }))
@@ -790,10 +790,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
         chosenEnemyTile = closestTiles[Math.floor(Math.random() * closestTiles.length)].tile
       } else {
         // Basic version: completely random
-        chosenEnemyTile = enemyTiles[Math.floor(Math.random() * enemyTiles.length)]
+        chosenEnemyTile = rivalTiles[Math.floor(Math.random() * rivalTiles.length)]
       }
       
-      reveals.push({ tile: chosenEnemyTile, revealer: 'enemy' })
+      reveals.push({ tile: chosenEnemyTile, revealer: 'rival' })
     }
     
     // Then, player reveals one of their tiles
@@ -1078,7 +1078,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // If not the "clear" option, add the annotation
     if (nextIndex < enabledCombos.length) {
       const ownerCombo = enabledCombos[nextIndex]
-      const ownerSet = new Set(ownerCombo.split(',').filter(s => s.length > 0)) as Set<'player' | 'enemy' | 'neutral' | 'mine'>
+      const ownerSet = new Set(ownerCombo.split(',').filter(s => s.length > 0)) as Set<'player' | 'rival' | 'neutral' | 'mine'>
       
       updatedTile.annotations.push({
         type: 'player_owner_possibility',
@@ -1098,7 +1098,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     })
   },
 
-  toggleAnnotationButton: (buttonType: 'player' | 'enemy' | 'neutral' | 'mine') => {
+  toggleAnnotationButton: (buttonType: 'player' | 'rival' | 'neutral' | 'mine') => {
     const currentState = get()
     set({
       ...currentState,
@@ -1124,10 +1124,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // If no existing annotation, add filtered annotation based on depressed buttons
     if (!existingAnnotation) {
-      const depressedOwners: ('player' | 'enemy' | 'neutral' | 'mine')[] = []
+      const depressedOwners: ('player' | 'rival' | 'neutral' | 'mine')[] = []
       
       if (currentState.annotationButtons.player) depressedOwners.push('player')
-      if (currentState.annotationButtons.enemy) depressedOwners.push('enemy') 
+      if (currentState.annotationButtons.rival) depressedOwners.push('rival') 
       if (currentState.annotationButtons.neutral) depressedOwners.push('neutral')
       if (currentState.annotationButtons.mine) depressedOwners.push('mine')
 

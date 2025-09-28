@@ -59,8 +59,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'starter',
     description: {
-      base: 'Mark a random enemy tile with an enemy indicator',
-      enhanced: 'Mark 2 random enemy tiles with enemy indicators'
+      base: 'Mark a random rival tile with an rival indicator',
+      enhanced: 'Mark 2 random rival tiles with rival indicators'
     },
     icon: '📋'
   },
@@ -112,8 +112,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Disrupts enemy\'s next turn by removing their guaranteed bag pulls',
-      enhanced: 'Disrupts enemy\'s next turn by removing their guaranteed bag pulls (stronger disruption 0-4)'
+      base: 'Disrupts rival\'s next turn by removing their guaranteed bag pulls',
+      enhanced: 'Disrupts rival\'s next turn by removing their guaranteed bag pulls (stronger disruption 0-4)'
     },
     icon: '🌀'
   },
@@ -144,7 +144,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     category: 'reward',
     description: {
       base: 'Enemy reveals one of their tiles at random, then you reveal one of your tiles at random. Does not end your turn',
-      enhanced: 'Select target tile - enemy and player each reveal tiles prioritized by distance from target'
+      enhanced: 'Select target tile - rival and player each reveal tiles prioritized by distance from target'
     },
     icon: '🥺'
   },

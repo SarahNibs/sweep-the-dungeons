@@ -46,31 +46,31 @@ export function calculateTilePriorityForAI(
   tile: Tile,
   hiddenEnemyCluesPairs: { clueResult: ClueResult, targetPosition: Position }[]
 ): number {
-  // Only use player clues and hidden enemy clues for AI decisions
-  // Completely ignore visible enemy clues (X marks)
+  // Only use player clues and hidden rival clues for AI decisions
+  // Completely ignore visible rival clues (X marks)
   
   let playerScore = 0
-  let enemyScore = 0
+  let rivalScore = 0
   
   // Get player clue strength for this tile
   const playerClueAnnotations = tile.annotations.find(a => a.type === 'clue_results')
   if (playerClueAnnotations?.clueResults) {
     playerClueAnnotations.clueResults.forEach(result => {
-      if (result.cardType !== 'enemy_clue') {
+      if (result.cardType !== 'rival_clue') {
         playerScore += result.strengthForThisTile
       }
     })
   }
   
-  // Get hidden enemy clue strength for this tile using proper mapping
+  // Get hidden rival clue strength for this tile using proper mapping
   hiddenEnemyCluesPairs.forEach(({ clueResult, targetPosition }) => {
     if (targetPosition.x === tile.position.x && targetPosition.y === tile.position.y) {
-      enemyScore += clueResult.strengthForThisTile
+      rivalScore += clueResult.strengthForThisTile
     }
   })
   
-  // Prefer tiles that are likely to be enemy tiles based on AI's knowledge
-  const priorityScore = enemyScore - Math.max(0, playerScore - 1)
+  // Prefer tiles that are likely to be rival tiles based on AI's knowledge
+  const priorityScore = rivalScore - Math.max(0, playerScore - 1)
   
   return priorityScore
 }
@@ -84,7 +84,7 @@ export function selectEnemyTilesToRevealUsingAI(
   
   if (unrevealedTiles.length === 0) return []
   
-  // Calculate priorities using only player clues and hidden enemy clues
+  // Calculate priorities using only player clues and hidden rival clues
   // Add ramble priority boost if active (each tile gets sum of separate random draws per boost), otherwise small random tiebreaker
   const tilesWithPriority = unrevealedTiles.map(tile => {
     let randomBoost = 0
@@ -100,12 +100,12 @@ export function selectEnemyTilesToRevealUsingAI(
     }
   })
   
-  // Sort by priority (highest first - most likely to be enemy)
+  // Sort by priority (highest first - most likely to be rival)
   tilesWithPriority.sort((a, b) => b.priority - a.priority)
   
-  // Check if this level has the enemyNeverMines special behavior
+  // Check if this level has the rivalNeverMines special behavior
   const levelConfig = getLevelConfig(state.currentLevelId)
-  const enemyNeverMines = levelConfig?.specialBehaviors?.enemyNeverMines || false
+  const rivalNeverMines = levelConfig?.specialBehaviors?.rivalNeverMines || false
   
   // Log the top 4 tiles with their relevant clue information
   console.log('=== ENEMY AI PRIORITY ANALYSIS ===')
@@ -120,40 +120,40 @@ export function selectEnemyTilesToRevealUsingAI(
     const playerClueAnnotations = tile.annotations.find(a => a.type === 'clue_results')
     let playerClueInfo = 'none'
     if (playerClueAnnotations?.clueResults) {
-      const playerClues = playerClueAnnotations.clueResults.filter(r => r.cardType !== 'enemy_clue')
+      const playerClues = playerClueAnnotations.clueResults.filter(r => r.cardType !== 'rival_clue')
       if (playerClues.length > 0) {
         playerClueInfo = playerClues.map(r => `${r.strengthForThisTile}pips`).join(', ')
       }
     }
     
-    // Get hidden enemy clue information
-    let enemyClueInfo = 'none'
+    // Get hidden rival clue information
+    let rivalClueInfo = 'none'
     const affectedByEnemyClues = hiddenEnemyCluesPairs.filter(({ targetPosition }) => {
       return targetPosition.x === tile.position.x && targetPosition.y === tile.position.y
     })
     if (affectedByEnemyClues.length > 0) {
-      enemyClueInfo = affectedByEnemyClues.map(({ clueResult }) => `${clueResult.strengthForThisTile}pips`).join(', ')
+      rivalClueInfo = affectedByEnemyClues.map(({ clueResult }) => `${clueResult.strengthForThisTile}pips`).join(', ')
     }
     
-    console.log(`${index + 1}. ${pos} [${owner}] Priority: ${priority} | Player: ${playerClueInfo} | Enemy-Hidden: ${enemyClueInfo}`)
+    console.log(`${index + 1}. ${pos} [${owner}] Priority: ${priority} | Player: ${playerClueInfo} | Enemy-Hidden: ${rivalClueInfo}`)
   })
   console.log('=====================================')
-  if (enemyNeverMines) {
+  if (rivalNeverMines) {
     console.log('SPECIAL BEHAVIOR: Enemy will skip mine tiles')
   }
   
-  // Return ordered list, stopping when we would reveal a non-enemy tile
-  // Skip mines if enemyNeverMines is enabled
+  // Return ordered list, stopping when we would reveal a non-rival tile
+  // Skip mines if rivalNeverMines is enabled
   const tilesToReveal: Tile[] = []
   for (const item of tilesWithPriority) {
-    // Skip mine tiles if enemyNeverMines is enabled
-    if (enemyNeverMines && item.tile.owner === 'mine') {
+    // Skip mine tiles if rivalNeverMines is enabled
+    if (rivalNeverMines && item.tile.owner === 'mine') {
       continue
     }
     
     tilesToReveal.push(item.tile)
-    // Stop after adding a non-enemy tile (this will be the last tile revealed)
-    if (item.tile.owner !== 'enemy') {
+    // Stop after adding a non-rival tile (this will be the last tile revealed)
+    if (item.tile.owner !== 'rival') {
       break
     }
   }
@@ -214,16 +214,16 @@ export function applyVisibleEnemyClues(
   return newState
 }
 
-export function processEnemyTurnWithDualClues(state: GameState): {
+export function processRivalTurnWithDualClues(state: GameState): {
   stateWithVisibleClues: GameState
   hiddenClues: ClueResult[]
   tilesToReveal: Tile[]
 } {
-  // Generate dual enemy clues
+  // Generate dual rival clues
   const dualClues = generateDualEnemyClues(
     state,
-    state.enemyClueCounter + 1,
-    state.enemyClueCounter + 1
+    state.rivalClueCounter + 1,
+    state.rivalClueCounter + 1
   )
   
   // Apply only visible clues to the game state
@@ -235,7 +235,7 @@ export function processEnemyTurnWithDualClues(state: GameState): {
   return {
     stateWithVisibleClues: {
       ...stateWithVisibleClues,
-      enemyClueCounter: stateWithVisibleClues.enemyClueCounter + 1
+      rivalClueCounter: stateWithVisibleClues.rivalClueCounter + 1
     },
     hiddenClues: dualClues.hidden,
     tilesToReveal

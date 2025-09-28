@@ -28,14 +28,14 @@ export function createTile(position: Position, owner: Tile['owner'], specialTile
 export interface SpecialTileConfig {
   type: 'extraDirty'
   count: number
-  placement: 'random' | { owner: Array<'player' | 'enemy' | 'neutral' | 'mine'> }
+  placement: 'random' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> }
 }
 
 export function createBoard(
   width: number = 6, 
   height: number = 5,
-  tileCounts: { player: number; enemy: number; neutral: number; mine: number } = {
-    player: 12, enemy: 10, neutral: 7, mine: 1
+  tileCounts: { player: number; rival: number; neutral: number; mine: number } = {
+    player: 12, rival: 10, neutral: 7, mine: 1
   },
   unusedLocations: number[][] = [],
   specialTiles: SpecialTileConfig[] = [],
@@ -46,7 +46,7 @@ export function createBoard(
   // Create tile types array based on provided counts
   const tileTypes: Tile['owner'][] = [
     ...Array(tileCounts.player).fill('player'),
-    ...Array(tileCounts.enemy).fill('enemy'),
+    ...Array(tileCounts.rival).fill('rival'),
     ...Array(tileCounts.neutral).fill('neutral'),
     ...Array(tileCounts.mine).fill('mine')
   ]
@@ -134,12 +134,12 @@ export function clearSpecialTileState(tile: Tile): Tile {
   return cleanTile
 }
 
-export function calculateAdjacency(board: Board, position: Position, revealedBy: 'player' | 'enemy'): number {
+export function calculateAdjacency(board: Board, position: Position, revealedBy: 'player' | 'rival'): number {
   const neighbors = getNeighbors(board, position)
   let count = 0
   
   // Count adjacent tiles that belong to the revealer's team
-  const targetOwner = revealedBy // 'player' or 'enemy'
+  const targetOwner = revealedBy // 'player' or 'rival'
   
   for (const neighborPos of neighbors) {
     const neighbor = getTile(board, neighborPos)
@@ -156,7 +156,7 @@ export interface RevealResult {
   revealed: boolean  // true if tile was revealed, false if extraDirty was just cleaned
 }
 
-export function revealTileWithResult(board: Board, position: Position, revealedBy: 'player' | 'enemy'): RevealResult {
+export function revealTileWithResult(board: Board, position: Position, revealedBy: 'player' | 'rival'): RevealResult {
   const key = positionToKey(position)
   const tile = board.tiles.get(key)
   
@@ -203,7 +203,7 @@ export function revealTileWithResult(board: Board, position: Position, revealedB
   }
 }
 
-export function revealTile(board: Board, position: Position, revealedBy: 'player' | 'enemy'): Board {
+export function revealTile(board: Board, position: Position, revealedBy: 'player' | 'rival'): Board {
   return revealTileWithResult(board, position, revealedBy).board
 }
 
@@ -260,8 +260,8 @@ export function isValidPosition(board: Board, position: Position): boolean {
          position.y >= 0 && position.y < board.height
 }
 
-export function getUnrevealedCounts(board: Board): Record<'player' | 'enemy' | 'neutral' | 'mine', number> {
-  const counts = { player: 0, enemy: 0, neutral: 0, mine: 0 }
+export function getUnrevealedCounts(board: Board): Record<'player' | 'rival' | 'neutral' | 'mine', number> {
+  const counts = { player: 0, rival: 0, neutral: 0, mine: 0 }
   
   for (const tile of board.tiles.values()) {
     if (!tile.revealed && tile.owner !== 'empty') {
@@ -273,19 +273,19 @@ export function getUnrevealedCounts(board: Board): Record<'player' | 'enemy' | '
 }
 
 export function getUnrevealedEnemyTiles(board: Board): Tile[] {
-  const enemyTiles: Tile[] = []
+  const rivalTiles: Tile[] = []
   
   for (const tile of board.tiles.values()) {
-    if (!tile.revealed && tile.owner === 'enemy') {
-      enemyTiles.push(tile)
+    if (!tile.revealed && tile.owner === 'rival') {
+      rivalTiles.push(tile)
     }
   }
   
-  return enemyTiles
+  return rivalTiles
 }
 
 export function performEnemyTurn(board: Board): Board {
-  // This function is now deprecated - the store handles enemy turns with animation
+  // This function is now deprecated - the store handles rival turns with animation
   // Keeping it for backward compatibility but it should not be used for the new AI system
   return board
 }

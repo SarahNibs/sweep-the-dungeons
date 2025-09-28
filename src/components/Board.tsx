@@ -11,7 +11,7 @@ interface BoardProps {
 }
 
 export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
-  const { enemyAnimation, trystAnimation, selectedCardName, pendingCardEffect, hand } = useGameStore()
+  const { rivalAnimation, trystAnimation, selectedCardName, pendingCardEffect, hand } = useGameStore()
   const [areaHoverCenter, setAreaHoverCenter] = useState<Position | null>(null)
   
   const isBrushTargeting = selectedCardName === 'Brush' && pendingCardEffect?.type === 'brush'
@@ -74,9 +74,9 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
             positionToKey(pos) === key
           ) || false
           
-          const isEnemyHighlighted = !!(enemyAnimation?.highlightedTile && 
-            enemyAnimation.highlightedTile.x === tile.position.x && 
-            enemyAnimation.highlightedTile.y === tile.position.y)
+          const isEnemyHighlighted = !!(rivalAnimation?.highlightedTile && 
+            rivalAnimation.highlightedTile.x === tile.position.x && 
+            rivalAnimation.highlightedTile.y === tile.position.y)
             
           const isTrystHighlighted = !!(trystAnimation?.highlightedTile && 
             trystAnimation.highlightedTile.x === tile.position.x && 

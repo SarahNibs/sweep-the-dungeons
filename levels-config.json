@@ -18,7 +18,7 @@
       },
       "tileCounts": {
         "player": 12,
-        "enemy": 10,
+        "rival": 10,
         "neutral": 8,
         "mine": 0
       },
@@ -51,7 +51,7 @@
       },
       "tileCounts": {
         "player": 10,
-        "enemy": 9,
+        "rival": 9,
         "neutral": 10,
         "mine": 1
       },
@@ -78,7 +78,7 @@
       },
       "tileCounts": {
         "player": 13,
-        "enemy": 11,
+        "rival": 11,
         "neutral": 10,
         "mine": 2
       },
@@ -111,7 +111,7 @@
       },
       "tileCounts": {
         "player": 12,
-        "enemy": 10,
+        "rival": 10,
         "neutral": 8,
         "mine": 2
       },
@@ -142,7 +142,7 @@
       },
       "tileCounts": {
         "player": 13,
-        "enemy": 11,
+        "rival": 11,
         "neutral": 7,
         "mine": 5
       },
@@ -175,7 +175,7 @@
       },
       "tileCounts": {
         "player": 13,
-        "enemy": 11,
+        "rival": 11,
         "neutral": 10,
         "mine": 2
       },
@@ -209,7 +209,7 @@
       },
       "tileCounts": {
         "player": 15,
-        "enemy": 13,
+        "rival": 13,
         "neutral": 11,
         "mine": 3
       },
@@ -242,7 +242,7 @@
       },
       "tileCounts": {
         "player": 15,
-        "enemy": 13,
+        "rival": 13,
         "neutral": 11,
         "mine": 3
       },
@@ -275,7 +275,7 @@
       },
       "tileCounts": {
         "player": 11,
-        "enemy": 10,
+        "rival": 10,
         "neutral": 8,
         "mine": 7
       },
@@ -293,7 +293,7 @@
         }
       ],
       "specialBehaviors": {
-        "enemyNeverMines": true
+        "rivalNeverMines": true
       }
     },
     {
@@ -314,7 +314,7 @@
       },
       "tileCounts": {
         "player": 13,
-        "enemy": 11,
+        "rival": 11,
         "neutral": 9,
         "mine": 3
       },

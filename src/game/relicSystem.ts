@@ -90,13 +90,13 @@ function applySingleOwnerExclusion(state: GameState, position: { x: number, y: n
   const actualOwner = tile.owner
   
   // Pick a random owner from the OTHER three possible owners (exclude the actual owner)
-  const allPossibleOwners: Array<'player' | 'enemy' | 'neutral' | 'mine'> = ['player', 'enemy', 'neutral', 'mine']
+  const allPossibleOwners: Array<'player' | 'rival' | 'neutral' | 'mine'> = ['player', 'rival', 'neutral', 'mine']
   const otherOwners = allPossibleOwners.filter(owner => owner !== actualOwner)
   
   const randomOwnerToExclude = otherOwners[Math.floor(Math.random() * otherOwners.length)]
   
   // Create subset that excludes the randomly chosen owner (but NOT the actual owner)
-  const allOwners: Array<'player' | 'enemy' | 'neutral' | 'mine'> = ['player', 'enemy', 'neutral', 'mine']
+  const allOwners: Array<'player' | 'rival' | 'neutral' | 'mine'> = ['player', 'rival', 'neutral', 'mine']
   const newOwnerSubset = new Set(allOwners.filter(owner => owner !== randomOwnerToExclude))
   
   const existingSubsetAnnotation = tile.annotations.find(a => a.type === 'owner_subset')
@@ -284,12 +284,12 @@ export function triggerBusyCanaryEffect(state: GameState): GameState {
       if (tile && !tile.revealed && tile.owner !== 'empty') {
         if (tile.owner === 'mine') {
           // This is a mine - exclude everything else (only mine possible)
-          const mineOnlySubset = new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['mine'])
+          const mineOnlySubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['mine'])
           currentState = addBusyCanaryOwnerSubsetAnnotation(currentState, pos, mineOnlySubset)
           mineFound = true
         } else {
           // This is not a mine - exclude mine from possibilities  
-          const noMineSubset = new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['player', 'enemy', 'neutral'])
+          const noMineSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player', 'rival', 'neutral'])
           currentState = addBusyCanaryOwnerSubsetAnnotation(currentState, pos, noMineSubset)
         }
       }
@@ -299,7 +299,7 @@ export function triggerBusyCanaryEffect(state: GameState): GameState {
   return currentState
 }
 
-function addBusyCanaryOwnerSubsetAnnotation(state: GameState, position: { x: number, y: number }, ownerSubset: Set<'player' | 'enemy' | 'neutral' | 'mine'>): GameState {
+function addBusyCanaryOwnerSubsetAnnotation(state: GameState, position: { x: number, y: number }, ownerSubset: Set<'player' | 'rival' | 'neutral' | 'mine'>): GameState {
   const key = `${position.x},${position.y}`
   const tile = state.board.tiles.get(key)
   
@@ -310,14 +310,14 @@ function addBusyCanaryOwnerSubsetAnnotation(state: GameState, position: { x: num
   // Find existing subset annotation if any
   const existingSubsetAnnotation = tile.annotations.find(a => a.type === 'owner_subset')
   const otherAnnotations = tile.annotations.filter(a => 
-    a.type !== 'owner_subset' && a.type !== 'safe' && a.type !== 'unsafe' && a.type !== 'enemy'
+    a.type !== 'owner_subset' && a.type !== 'safe' && a.type !== 'unsafe' && a.type !== 'rival'
   )
   
-  let finalOwnerSubset: Set<'player' | 'enemy' | 'neutral' | 'mine'>
+  let finalOwnerSubset: Set<'player' | 'rival' | 'neutral' | 'mine'>
   
   if (existingSubsetAnnotation?.ownerSubset) {
     // Combine with existing subset through intersection
-    const intersected = new Set<'player' | 'enemy' | 'neutral' | 'mine'>()
+    const intersected = new Set<'player' | 'rival' | 'neutral' | 'mine'>()
     for (const owner of ownerSubset) {
       if (existingSubsetAnnotation.ownerSubset.has(owner)) {
         intersected.add(owner)

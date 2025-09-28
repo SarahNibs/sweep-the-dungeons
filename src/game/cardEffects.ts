@@ -5,7 +5,7 @@ import { triggerDoubleBroomEffect, checkFrillyDressEffect, triggerMopEffect } fr
 import { addStatusEffect, removeStatusEffect } from './gameRepository'
 
 // Shared reveal function that includes relic effects
-export function revealTileWithRelicEffects(state: GameState, position: Position, revealer: 'player' | 'enemy'): GameState {
+export function revealTileWithRelicEffects(state: GameState, position: Position, revealer: 'player' | 'rival'): GameState {
   const revealResult = revealTileWithResult(state.board, position, revealer)
   const newBoard = revealResult.board
   
@@ -82,11 +82,11 @@ export function getUnrevealedTilesByOwner(state: GameState, owner: Tile['owner']
 }
 
 function combineOwnerSubsets(
-  existing: Set<'player' | 'enemy' | 'neutral' | 'mine'>, 
-  incoming: Set<'player' | 'enemy' | 'neutral' | 'mine'>
-): Set<'player' | 'enemy' | 'neutral' | 'mine'> {
+  existing: Set<'player' | 'rival' | 'neutral' | 'mine'>, 
+  incoming: Set<'player' | 'rival' | 'neutral' | 'mine'>
+): Set<'player' | 'rival' | 'neutral' | 'mine'> {
   // Intersection: only owners that are possible according to BOTH sets
-  const combined = new Set<'player' | 'enemy' | 'neutral' | 'mine'>()
+  const combined = new Set<'player' | 'rival' | 'neutral' | 'mine'>()
   
   for (const owner of existing) {
     if (incoming.has(owner)) {
@@ -100,7 +100,7 @@ function combineOwnerSubsets(
 export function addOwnerSubsetAnnotation(
   state: GameState, 
   position: Position, 
-  newOwnerSubset: Set<'player' | 'enemy' | 'neutral' | 'mine'>
+  newOwnerSubset: Set<'player' | 'rival' | 'neutral' | 'mine'>
 ): GameState {
   const key = positionToKey(position)
   const tile = state.board.tiles.get(key)
@@ -112,10 +112,10 @@ export function addOwnerSubsetAnnotation(
   // Find existing subset annotation if any
   const existingSubsetAnnotation = tile.annotations.find(a => a.type === 'owner_subset')
   const otherAnnotations = tile.annotations.filter(a => 
-    a.type !== 'owner_subset' && a.type !== 'safe' && a.type !== 'unsafe' && a.type !== 'enemy'
+    a.type !== 'owner_subset' && a.type !== 'safe' && a.type !== 'unsafe' && a.type !== 'rival'
   )
   
-  let finalOwnerSubset: Set<'player' | 'enemy' | 'neutral' | 'mine'>
+  let finalOwnerSubset: Set<'player' | 'rival' | 'neutral' | 'mine'>
   
   if (existingSubsetAnnotation?.ownerSubset) {
     // Combine with existing subset through intersection
@@ -166,7 +166,7 @@ export function addTileAnnotation(state: GameState, position: Position, annotati
   let existingAnnotations = [...tile.annotations]
   
   // Handle annotation replacement rules
-  if (annotation.type === 'enemy') {
+  if (annotation.type === 'rival') {
     // Enemy annotations override safety annotations
     existingAnnotations = existingAnnotations.filter(a => a.type !== 'safe' && a.type !== 'unsafe')
   }
@@ -253,8 +253,8 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
   
   const isSafe = tile.owner === 'player' || tile.owner === 'neutral'
   const ownerSubset = isSafe 
-    ? new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['player', 'neutral'])
-    : new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['enemy', 'mine'])
+    ? new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player', 'neutral'])
+    : new Set<'player' | 'rival' | 'neutral' | 'mine'>(['rival', 'mine'])
   
   const stateWithMainScout = addOwnerSubsetAnnotation(newState, target, ownerSubset)
   
@@ -285,8 +285,8 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
       if (adjTile) {
         const adjIsSafe = adjTile.owner === 'player' || adjTile.owner === 'neutral'
         const adjOwnerSubset = adjIsSafe 
-          ? new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['player', 'neutral'])
-          : new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['enemy', 'mine'])
+          ? new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player', 'neutral'])
+          : new Set<'player' | 'rival' | 'neutral' | 'mine'>(['rival', 'mine'])
         
         return addOwnerSubsetAnnotation(stateWithMainScout, randomAdjacent, adjOwnerSubset)
       }
@@ -304,12 +304,12 @@ export function executeQuantumEffect(state: GameState, targets: Position[]): Gam
   
   if (validTiles.length === 0) return state
   
-  // Determine which is safer (player > neutral > enemy > assassin)
+  // Determine which is safer (player > neutral > rival > assassin)
   const getSafety = (tile: Tile): number => {
     switch (tile.owner) {
       case 'player': return 4
       case 'neutral': return 3  
-      case 'enemy': return 2
+      case 'rival': return 2
       case 'mine': return 1
       default: return 0
     }
@@ -338,11 +338,11 @@ export function executeQuantumEffect(state: GameState, targets: Position[]): Gam
   
   // Quantum reveals the safest tile, so unrevealed tiles are AT MOST as safe as revealed tile
   const revealedSafety = chosenTile.safety
-  const possibleOwners = new Set<'player' | 'enemy' | 'neutral' | 'mine'>()
+  const possibleOwners = new Set<'player' | 'rival' | 'neutral' | 'mine'>()
   
   // Add all owner types that are at most as safe as the revealed tile
   if (revealedSafety >= 1) possibleOwners.add('mine')   // mine = 1
-  if (revealedSafety >= 2) possibleOwners.add('enemy')      // enemy = 2  
+  if (revealedSafety >= 2) possibleOwners.add('rival')      // rival = 2  
   if (revealedSafety >= 3) possibleOwners.add('neutral')    // neutral = 3
   if (revealedSafety >= 4) possibleOwners.add('player')     // player = 4
   
@@ -356,20 +356,20 @@ export function executeQuantumEffect(state: GameState, targets: Position[]): Gam
 }
 
 export function executeReportEffect(state: GameState): GameState {
-  const enemyTiles = getUnrevealedTilesByOwner(state, 'enemy')
+  const rivalTiles = getUnrevealedTilesByOwner(state, 'rival')
   
-  if (enemyTiles.length === 0) return state
+  if (rivalTiles.length === 0) return state
   
-  // Pick a random enemy tile
-  const randomIndex = Math.floor(Math.random() * enemyTiles.length)
-  const targetTile = enemyTiles[randomIndex]
+  // Pick a random rival tile
+  const randomIndex = Math.floor(Math.random() * rivalTiles.length)
+  const targetTile = rivalTiles[randomIndex]
   
-  const ownerSubset = new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['enemy'])
+  const ownerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['rival'])
   return addOwnerSubsetAnnotation(state, targetTile.position, ownerSubset)
 }
 
 export function executeTargetedReportEffect(state: GameState, targetPosition: Position): GameState {
-  const ownerSubset = new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['enemy'])
+  const ownerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['rival'])
   return addOwnerSubsetAnnotation(state, targetPosition, ownerSubset)
 }
 
@@ -425,19 +425,19 @@ export function executeStretchClueEffect(state: GameState): GameState {
 export function checkGameStatus(state: GameState, underwireProtectionConsumed: boolean = false): GameStatusInfo {
   const board = state.board
   
-  // Count tiles first for potential enemy tiles left calculation
+  // Count tiles first for potential rival tiles left calculation
   let playerTilesRevealed = 0
   let totalPlayerTiles = 0
-  let enemyTilesRevealed = 0
+  let rivalTilesRevealed = 0
   let totalEnemyTiles = 0
   
   for (const tile of board.tiles.values()) {
     if (tile.owner === 'player') {
       totalPlayerTiles++
       if (tile.revealed) playerTilesRevealed++
-    } else if (tile.owner === 'enemy') {
+    } else if (tile.owner === 'rival') {
       totalEnemyTiles++
-      if (tile.revealed) enemyTilesRevealed++
+      if (tile.revealed) rivalTilesRevealed++
     }
   }
 
@@ -451,8 +451,8 @@ export function checkGameStatus(state: GameState, underwireProtectionConsumed: b
       
       return {
         status: tile.revealedBy === 'player' ? 'player_lost' : 'player_won',
-        reason: tile.revealedBy === 'player' ? 'player_revealed_mine' : 'enemy_revealed_mine',
-        enemyTilesLeft: tile.revealedBy === 'enemy' ? totalEnemyTiles - enemyTilesRevealed : undefined
+        reason: tile.revealedBy === 'player' ? 'player_revealed_mine' : 'rival_revealed_mine',
+        rivalTilesLeft: tile.revealedBy === 'rival' ? totalEnemyTiles - rivalTilesRevealed : undefined
       }
     }
   }
@@ -462,14 +462,14 @@ export function checkGameStatus(state: GameState, underwireProtectionConsumed: b
     return {
       status: 'player_won',
       reason: 'all_player_tiles_revealed',
-      enemyTilesLeft: totalEnemyTiles - enemyTilesRevealed
+      rivalTilesLeft: totalEnemyTiles - rivalTilesRevealed
     }
   }
   
-  if (enemyTilesRevealed === totalEnemyTiles) {
+  if (rivalTilesRevealed === totalEnemyTiles) {
     return {
       status: 'player_lost',
-      reason: 'all_enemy_tiles_revealed'
+      reason: 'all_rival_tiles_revealed'
     }
   }
   
@@ -615,7 +615,7 @@ export function executeBrushEffect(state: GameState, target: Position, card?: im
         // Only affect unrevealed tiles that are within board bounds
         if (tile && !tile.revealed) {
           // Pick one of the three non-owners at random to exclude
-          const allOwners: ('player' | 'enemy' | 'neutral' | 'mine')[] = ['player', 'enemy', 'neutral', 'mine']
+          const allOwners: ('player' | 'rival' | 'neutral' | 'mine')[] = ['player', 'rival', 'neutral', 'mine']
           const nonOwners = allOwners.filter(owner => owner !== tile.owner)
           
           if (nonOwners.length > 0) {
@@ -725,16 +725,16 @@ function manhattanDistance(pos1: Position, pos2: Position): number {
 }
 
 export function executeTrystEffect(state: GameState, target?: Position, card?: import('../types').Card): GameState {
-  // First, enemy reveals one of their tiles at random
+  // First, rival reveals one of their tiles at random
   let currentState = state
   
-  const enemyTiles = getUnrevealedTilesByOwner(state, 'enemy')
-  if (enemyTiles.length > 0) {
+  const rivalTiles = getUnrevealedTilesByOwner(state, 'rival')
+  if (rivalTiles.length > 0) {
     let chosenEnemyTile: import('../types').Tile
     
     if (card?.enhanced && target) {
       // Enhanced version: prioritize by Manhattan distance from target
-      const tilesWithDistance = enemyTiles.map(tile => ({
+      const tilesWithDistance = rivalTiles.map(tile => ({
         tile,
         distance: manhattanDistance(tile.position, target)
       }))
@@ -747,11 +747,11 @@ export function executeTrystEffect(state: GameState, target?: Position, card?: i
       chosenEnemyTile = closestTiles[Math.floor(Math.random() * closestTiles.length)].tile
     } else {
       // Basic version: completely random
-      chosenEnemyTile = enemyTiles[Math.floor(Math.random() * enemyTiles.length)]
+      chosenEnemyTile = rivalTiles[Math.floor(Math.random() * rivalTiles.length)]
     }
     
-    // Reveal the enemy tile
-    currentState = revealTileWithRelicEffects(currentState, chosenEnemyTile.position, 'enemy')
+    // Reveal the rival tile
+    currentState = revealTileWithRelicEffects(currentState, chosenEnemyTile.position, 'rival')
   }
   
   // Then, player reveals one of their tiles at random  
@@ -821,12 +821,12 @@ export function executeCanaryEffect(state: GameState, target: Position, card?: i
     if (tile && !tile.revealed && tile.owner !== 'empty') {
       if (tile.owner === 'mine') {
         // This is a mine - exclude everything else (only mine possible)
-        const mineOnlySubset = new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['mine'])
+        const mineOnlySubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['mine'])
         currentState = addOwnerSubsetAnnotation(currentState, pos, mineOnlySubset)
         mineFound = true
       } else {
         // This is not a mine - exclude mine from possibilities  
-        const noMineSubset = new Set<'player' | 'enemy' | 'neutral' | 'mine'>(['player', 'enemy', 'neutral'])
+        const noMineSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player', 'rival', 'neutral'])
         currentState = addOwnerSubsetAnnotation(currentState, pos, noMineSubset)
       }
     }

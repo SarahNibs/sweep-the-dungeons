@@ -8,7 +8,7 @@
       },
       "tileCounts": {
         "player": 9,
-        "enemy": 8,
+        "rival": 8,
         "neutral": 6,
         "mine": 1
       },
@@ -50,7 +50,7 @@
       },
       "tileCounts": {
         "player": 10,
-        "enemy": 9,
+        "rival": 9,
         "neutral": 7,
         "mine": 2
       },
@@ -74,7 +74,7 @@
       },
       "tileCounts": {
         "player": 12,
-        "enemy": 11,
+        "rival": 11,
         "neutral": 8,
         "mine": 2
       },
@@ -110,7 +110,7 @@
       },
       "tileCounts": {
         "player": 16,
-        "enemy": 14,
+        "rival": 14,
         "neutral": 10,
         "mine": 3
       },
@@ -127,7 +127,7 @@
             "type": "decoy",
             "count": 3,
             "placement": {
-              "owner": ["player", "enemy"]
+              "owner": ["player", "rival"]
             }
           },
           {

@@ -143,7 +143,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Enemy reveals one of their tiles at random, then you reveal one of your tiles at random. Does not end your turn',
+      base: 'Rival reveals one of their tiles at random, then you reveal one of your tiles at random. Does not end your turn',
       enhanced: 'Select target tile - rival and player each reveal tiles prioritized by distance from target'
     },
     icon: '🥺'
@@ -317,7 +317,7 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         type: 'ramble_active',
         icon: '🌀',
         name: 'Ramble Active',
-        description: 'Enemy\'s guaranteed bag pulls are disrupted for their next turn',
+        description: 'Rival\'s guaranteed bag pulls are disrupted for their next turn',
         enhanced
       }
     case 'manhattan_adjacency':

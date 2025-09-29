@@ -14,27 +14,36 @@ export function revealTileWithRelicEffects(state: GameState, position: Position,
     board: newBoard
   }
   
-  let underwireProtectionConsumed = false
-  
   // Handle Underwire protection if player revealed a mine
   if (revealer === 'player' && revealResult.revealed) {
     const tile = getTile(newBoard, position)
     if (tile && tile.owner === 'mine' && state.underwireProtection?.active) {
-      // Consume the underwire protection
+      // Mark the mine tile as protected and consume the underwire protection
       const isEnhanced = state.underwireProtection.enhanced
+      
+      // Mark the mine tile as protected
+      const newTiles = new Map(newBoard.tiles)
+      newTiles.set(`${position.x},${position.y}`, {
+        ...tile,
+        underwireProtected: true
+      })
+      
       stateWithBoard = {
         ...stateWithBoard,
+        board: {
+          ...newBoard,
+          tiles: newTiles
+        },
         underwireProtection: null,
         underwireUsedThisTurn: !isEnhanced // Only mark for turn end if basic Underwire
       }
       // Remove the status effect
       stateWithBoard = removeStatusEffect(stateWithBoard, 'underwire_protection')
-      underwireProtectionConsumed = true
     }
   }
   
   // Check game status after reveal (with potentially updated protection state)
-  const gameStatus = checkGameStatus(stateWithBoard, underwireProtectionConsumed)
+  const gameStatus = checkGameStatus(stateWithBoard)
   
   stateWithBoard = {
     ...stateWithBoard,
@@ -422,21 +431,21 @@ export function executeStretchClueEffect(state: GameState): GameState {
 
 
 
-export function checkGameStatus(state: GameState, underwireProtectionConsumed: boolean = false): GameStatusInfo {
+export function checkGameStatus(state: GameState): GameStatusInfo {
   const board = state.board
   
   // Count tiles first for potential rival tiles left calculation
   let playerTilesRevealed = 0
   let totalPlayerTiles = 0
   let rivalTilesRevealed = 0
-  let totalEnemyTiles = 0
+  let totalRivalTiles = 0
   
   for (const tile of board.tiles.values()) {
     if (tile.owner === 'player') {
       totalPlayerTiles++
       if (tile.revealed) playerTilesRevealed++
     } else if (tile.owner === 'rival') {
-      totalEnemyTiles++
+      totalRivalTiles++
       if (tile.revealed) rivalTilesRevealed++
     }
   }
@@ -444,15 +453,15 @@ export function checkGameStatus(state: GameState, underwireProtectionConsumed: b
   // Check if mine was revealed
   for (const tile of board.tiles.values()) {
     if (tile.revealed && tile.owner === 'mine') {
-      if (tile.revealedBy === 'player' && underwireProtectionConsumed) {
-        // Player had mine protection that was just consumed - don't end game, just turn
+      // Skip mines that were protected by Underwire
+      if (tile.underwireProtected) {
         continue
       }
       
       return {
         status: tile.revealedBy === 'player' ? 'player_lost' : 'player_won',
         reason: tile.revealedBy === 'player' ? 'player_revealed_mine' : 'rival_revealed_mine',
-        rivalTilesLeft: tile.revealedBy === 'rival' ? totalEnemyTiles - rivalTilesRevealed : undefined
+        rivalTilesLeft: tile.revealedBy === 'rival' ? totalRivalTiles - rivalTilesRevealed : undefined
       }
     }
   }
@@ -462,11 +471,11 @@ export function checkGameStatus(state: GameState, underwireProtectionConsumed: b
     return {
       status: 'player_won',
       reason: 'all_player_tiles_revealed',
-      rivalTilesLeft: totalEnemyTiles - rivalTilesRevealed
+      rivalTilesLeft: totalRivalTiles - rivalTilesRevealed
     }
   }
   
-  if (rivalTilesRevealed === totalEnemyTiles) {
+  if (rivalTilesRevealed === totalRivalTiles) {
     return {
       status: 'player_lost',
       reason: 'all_rival_tiles_revealed'
@@ -730,7 +739,7 @@ export function executeTrystEffect(state: GameState, target?: Position, card?: i
   
   const rivalTiles = getUnrevealedTilesByOwner(state, 'rival')
   if (rivalTiles.length > 0) {
-    let chosenEnemyTile: import('../types').Tile
+    let chosenRivalTile: import('../types').Tile
     
     if (card?.enhanced && target) {
       // Enhanced version: prioritize by Manhattan distance from target
@@ -744,14 +753,14 @@ export function executeTrystEffect(state: GameState, target?: Position, card?: i
       const closestTiles = tilesWithDistance.filter(t => t.distance === minDistance)
       
       // Random tiebreaker among tiles at same distance
-      chosenEnemyTile = closestTiles[Math.floor(Math.random() * closestTiles.length)].tile
+      chosenRivalTile = closestTiles[Math.floor(Math.random() * closestTiles.length)].tile
     } else {
       // Basic version: completely random
-      chosenEnemyTile = rivalTiles[Math.floor(Math.random() * rivalTiles.length)]
+      chosenRivalTile = rivalTiles[Math.floor(Math.random() * rivalTiles.length)]
     }
     
     // Reveal the rival tile
-    currentState = revealTileWithRelicEffects(currentState, chosenEnemyTile.position, 'rival')
+    currentState = revealTileWithRelicEffects(currentState, chosenRivalTile.position, 'rival')
   }
   
   // Then, player reveals one of their tiles at random  

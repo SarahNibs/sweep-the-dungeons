@@ -256,21 +256,21 @@ export function generatePlayerStretchClue(
   return generateClueFromBag([...chosenPlayerTiles, ...chosenRandomTiles], guaranteedTiles, bag, 10, params)
 }
 
-export function generateEnemyClueWithSharedSetup(
-  chosenEnemyTiles: Tile[],
+export function generateRivalClueWithSharedSetup(
+  chosenRivalTiles: Tile[],
   chosenRandomTiles: Tile[],
   clueOrder: number,
   clueRowPosition: number
 ): ClueGenerationResult {
   // Create bag: 12 copies of each rival tile + 4 copies of each random tile (with spoiler adjustments)
   const bag: Tile[] = [
-    ...buildBagWithAdjustments(chosenEnemyTiles, 12, 'rival', chosenEnemyTiles),
-    ...buildBagWithAdjustments(chosenRandomTiles, 4, 'rival', chosenEnemyTiles)
+    ...buildBagWithAdjustments(chosenRivalTiles, 12, 'rival', chosenRivalTiles),
+    ...buildBagWithAdjustments(chosenRandomTiles, 4, 'rival', chosenRivalTiles)
   ]
   
   // DEBUG: Log clue generation details
-  console.log('=== ENEMY CLUE GENERATION ===')
-  console.log('(1) Original tiles (targets):', chosenEnemyTiles.map(t => `${t.position.x},${t.position.y} (${t.owner})`))
+  console.log('=== RIVAL CLUE GENERATION ===')
+  console.log('(1) Original tiles (targets):', chosenRivalTiles.map(t => `${t.position.x},${t.position.y} (${t.owner})`))
   console.log('(2) Spoiler tiles:', chosenRandomTiles.map(t => `${t.position.x},${t.position.y} (${t.owner})`))
   console.log('(3) Complete bag before drawing:', bag.map(t => `${t.position.x},${t.position.y} (${t.owner})`))
   console.log('Bag summary:', bag.reduce((acc, tile) => {
@@ -280,7 +280,7 @@ export function generateEnemyClueWithSharedSetup(
   }, {} as Record<string, number>))
   
   // Guarantee first 2 draws are from chosen rival tiles
-  const guaranteedTiles = [...chosenEnemyTiles]
+  const guaranteedTiles = [...chosenRivalTiles]
   
   const params: ClueParams = {
     cardType: 'rival_clue',
@@ -288,11 +288,11 @@ export function generateEnemyClueWithSharedSetup(
     clueRowPosition
   }
   
-  return generateClueFromBag([...chosenEnemyTiles, ...chosenRandomTiles], guaranteedTiles, bag, 10, params)
+  return generateClueFromBag([...chosenRivalTiles, ...chosenRandomTiles], guaranteedTiles, bag, 10, params)
 }
 
-export function prepareEnemyClueSetup(state: GameState): {
-  chosenEnemyTiles: Tile[]
+export function prepareRivalClueSetup(state: GameState): {
+  chosenRivalTiles: Tile[]
   chosenRandomTiles: Tile[]
 } {
   const unrevealedTiles = Array.from(state.board.tiles.values())
@@ -300,15 +300,15 @@ export function prepareEnemyClueSetup(state: GameState): {
   const rivalTiles = unrevealedTiles.filter(tile => tile.owner === 'rival')
   
   // Choose 2 rival tiles
-  const chosenEnemyTiles = selectTilesForClue(rivalTiles, 2)
+  const chosenRivalTiles = selectTilesForClue(rivalTiles, 2)
   
   // Choose 6 other random tiles
   const remainingTiles = unrevealedTiles.filter(tile => 
-    !chosenEnemyTiles.some(chosen => 
+    !chosenRivalTiles.some(chosen => 
       chosen.position.x === tile.position.x && chosen.position.y === tile.position.y
     )
   )
   const chosenRandomTiles = selectTilesForClue(remainingTiles, 6)
   
-  return { chosenEnemyTiles, chosenRandomTiles }
+  return { chosenRivalTiles, chosenRandomTiles }
 }

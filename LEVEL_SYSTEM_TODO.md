@@ -29,11 +29,11 @@ Based on the 6-level game configuration in `levels-config.json`, here are the ta
 - [ ] Implement relic reward system
 - [ ] Create upgrade reward system with card upgrading and removal options
 - [ ] Implement shop system with copper currency and card removal options
-- [ ] Add copper reward calculation (1 per unrevealed enemy tile)
+- [ ] Add copper reward calculation (1 per unrevealed rival tile)
 - [ ] Create uponFinish reward handling system
 
-## Enemy AI Improvements
-- [ ] Modify enemy AI to avoid mine reveals (reduce mine instances in bag)
+## Rival AI Improvements
+- [ ] Modify rival AI to avoid mine reveals (reduce mine instances in bag)
 
 ## Win Conditions
 - [ ] Add winTheGame condition handling for final level
@@ -59,8 +59,8 @@ Based on the 6-level game configuration in `levels-config.json`, here are the ta
 - Shop system: Include card removal options
 - Copper: Display persistently, not just in shop
 
-### Enemy AI Mine Avoidance
-- When mine tile selected for enemy clues, reduce instances in bag by 1 before random draws
+### Rival AI Mine Avoidance
+- When mine tile selected for rival clues, reduce instances in bag by 1 before random draws
 - Reduces pure-luck wins on levels with many mines
 
 ## Dependencies

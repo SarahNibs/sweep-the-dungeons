@@ -17,7 +17,7 @@ export function TileCountsVertical({ board, annotationButtons, onToggleButton }:
   
   const tileInfo = [
     { type: 'player' as const, count: counts.player, color: '#81b366', label: 'Player tiles remaining' },
-    { type: 'rival' as const, count: counts.rival, color: '#c65757', label: 'Enemy tiles remaining' },
+    { type: 'rival' as const, count: counts.rival, color: '#c65757', label: 'Rival tiles remaining' },
     { type: 'neutral' as const, count: counts.neutral, color: '#d4aa5a', label: 'Neutral tiles remaining' },
     { type: 'mine' as const, count: counts.mine, color: '#8b6ba8', label: 'Mine tiles remaining' }
   ]

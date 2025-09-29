@@ -1,34 +1,34 @@
 import { GameState, Tile, ClueResult, Position } from '../types'
-import { prepareEnemyClueSetup, generateEnemyClueWithSharedSetup } from './clueSystem'
+import { prepareRivalClueSetup, generateRivalClueWithSharedSetup } from './clueSystem'
 import { getLevelConfig } from './levelSystem'
 
-export interface EnemyClueSet {
+export interface RivalClueSet {
   visible: ClueResult[] // X marks shown to player
   hidden: ClueResult[]  // AI-only information
   visiblePairs: { clueResult: ClueResult, targetPosition: Position }[]
   hiddenPairs: { clueResult: ClueResult, targetPosition: Position }[]
 }
 
-export function generateDualEnemyClues(
+export function generateDualRivalClues(
   state: GameState,
   clueOrder: number,
   clueRowPosition: number
-): EnemyClueSet {
+): RivalClueSet {
   // Share the same tile selection and bag construction
-  const { chosenEnemyTiles, chosenRandomTiles } = prepareEnemyClueSetup(state)
+  const { chosenRivalTiles, chosenRandomTiles } = prepareRivalClueSetup(state)
   
   // Generate two different clue sets using the same setup but different random draws
-  console.log('=== GENERATING PLAYER-FACING ENEMY CLUES (Xs) ===')
-  const visibleResult = generateEnemyClueWithSharedSetup(
-    chosenEnemyTiles, 
+  console.log('=== GENERATING PLAYER-FACING RIVAL CLUES (Xs) ===')
+  const visibleResult = generateRivalClueWithSharedSetup(
+    chosenRivalTiles, 
     chosenRandomTiles, 
     clueOrder, 
     clueRowPosition
   )
   
-  console.log('=== GENERATING AI-ONLY ENEMY CLUES (Hidden) ===')
-  const hiddenResult = generateEnemyClueWithSharedSetup(
-    chosenEnemyTiles, 
+  console.log('=== GENERATING AI-ONLY RIVAL CLUES (Hidden) ===')
+  const hiddenResult = generateRivalClueWithSharedSetup(
+    chosenRivalTiles, 
     chosenRandomTiles, 
     clueOrder + 1000, // Different ID space to avoid conflicts
     clueRowPosition
@@ -44,7 +44,7 @@ export function generateDualEnemyClues(
 
 export function calculateTilePriorityForAI(
   tile: Tile,
-  hiddenEnemyCluesPairs: { clueResult: ClueResult, targetPosition: Position }[]
+  hiddenRivalCluesPairs: { clueResult: ClueResult, targetPosition: Position }[]
 ): number {
   // Only use player clues and hidden rival clues for AI decisions
   // Completely ignore visible rival clues (X marks)
@@ -63,7 +63,7 @@ export function calculateTilePriorityForAI(
   }
   
   // Get hidden rival clue strength for this tile using proper mapping
-  hiddenEnemyCluesPairs.forEach(({ clueResult, targetPosition }) => {
+  hiddenRivalCluesPairs.forEach(({ clueResult, targetPosition }) => {
     if (targetPosition.x === tile.position.x && targetPosition.y === tile.position.y) {
       rivalScore += clueResult.strengthForThisTile
     }
@@ -75,9 +75,9 @@ export function calculateTilePriorityForAI(
   return priorityScore
 }
 
-export function selectEnemyTilesToRevealUsingAI(
+export function selectRivalTilesToRevealUsingAI(
   state: GameState, 
-  hiddenEnemyCluesPairs: { clueResult: ClueResult, targetPosition: Position }[]
+  hiddenRivalCluesPairs: { clueResult: ClueResult, targetPosition: Position }[]
 ): Tile[] {
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
@@ -96,7 +96,7 @@ export function selectEnemyTilesToRevealUsingAI(
     }
     return {
       tile,
-      priority: calculateTilePriorityForAI(tile, hiddenEnemyCluesPairs) + randomBoost
+      priority: calculateTilePriorityForAI(tile, hiddenRivalCluesPairs) + randomBoost
     }
   })
   
@@ -128,18 +128,18 @@ export function selectEnemyTilesToRevealUsingAI(
     
     // Get hidden rival clue information
     let rivalClueInfo = 'none'
-    const affectedByEnemyClues = hiddenEnemyCluesPairs.filter(({ targetPosition }) => {
+    const affectedByRivalClues = hiddenRivalCluesPairs.filter(({ targetPosition }) => {
       return targetPosition.x === tile.position.x && targetPosition.y === tile.position.y
     })
-    if (affectedByEnemyClues.length > 0) {
-      rivalClueInfo = affectedByEnemyClues.map(({ clueResult }) => `${clueResult.strengthForThisTile}pips`).join(', ')
+    if (affectedByRivalClues.length > 0) {
+      rivalClueInfo = affectedByRivalClues.map(({ clueResult }) => `${clueResult.strengthForThisTile}pips`).join(', ')
     }
     
-    console.log(`${index + 1}. ${pos} [${owner}] Priority: ${priority} | Player: ${playerClueInfo} | Enemy-Hidden: ${rivalClueInfo}`)
+    console.log(`${index + 1}. ${pos} [${owner}] Priority: ${priority} | Player: ${playerClueInfo} | Rival-Hidden: ${rivalClueInfo}`)
   })
   console.log('=====================================')
   if (rivalNeverMines) {
-    console.log('SPECIAL BEHAVIOR: Enemy will skip mine tiles')
+    console.log('SPECIAL BEHAVIOR: Rival will skip mine tiles')
   }
   
   // Return ordered list, stopping when we would reveal a non-rival tile
@@ -161,7 +161,7 @@ export function selectEnemyTilesToRevealUsingAI(
   return tilesToReveal
 }
 
-export function applyVisibleEnemyClues(
+export function applyVisibleRivalClues(
   state: GameState,
   visiblePairs: { clueResult: ClueResult, targetPosition: Position }[]
 ): GameState {
@@ -220,17 +220,17 @@ export function processRivalTurnWithDualClues(state: GameState): {
   tilesToReveal: Tile[]
 } {
   // Generate dual rival clues
-  const dualClues = generateDualEnemyClues(
+  const dualClues = generateDualRivalClues(
     state,
     state.rivalClueCounter + 1,
     state.rivalClueCounter + 1
   )
   
   // Apply only visible clues to the game state
-  const stateWithVisibleClues = applyVisibleEnemyClues(state, dualClues.visiblePairs)
+  const stateWithVisibleClues = applyVisibleRivalClues(state, dualClues.visiblePairs)
   
   // Use hidden clues for AI decision making
-  const tilesToReveal = selectEnemyTilesToRevealUsingAI(stateWithVisibleClues, dualClues.hiddenPairs)
+  const tilesToReveal = selectRivalTilesToRevealUsingAI(stateWithVisibleClues, dualClues.hiddenPairs)
   
   return {
     stateWithVisibleClues: {

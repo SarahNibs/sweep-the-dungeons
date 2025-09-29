@@ -74,7 +74,7 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
             positionToKey(pos) === key
           ) || false
           
-          const isEnemyHighlighted = !!(rivalAnimation?.highlightedTile && 
+          const isRivalHighlighted = !!(rivalAnimation?.highlightedTile && 
             rivalAnimation.highlightedTile.x === tile.position.x && 
             rivalAnimation.highlightedTile.y === tile.position.y)
             
@@ -89,7 +89,7 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
               onClick={onTileClick}
               isTargeting={isTargeting && (isAreaTargeting || !tile.revealed)}
               isSelected={isSelected}
-              isEnemyHighlighted={isEnemyHighlighted}
+              isEnemyHighlighted={isRivalHighlighted}
               isTrystHighlighted={isTrystHighlighted}
               isBrushHighlighted={isInAreaEffect || false}
               onMouseEnter={() => {

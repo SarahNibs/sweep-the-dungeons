@@ -272,7 +272,7 @@ export function getUnrevealedCounts(board: Board): Record<'player' | 'rival' | '
   return counts
 }
 
-export function getUnrevealedEnemyTiles(board: Board): Tile[] {
+export function getUnrevealedRivalTiles(board: Board): Tile[] {
   const rivalTiles: Tile[] = []
   
   for (const tile of board.tiles.values()) {
@@ -284,7 +284,7 @@ export function getUnrevealedEnemyTiles(board: Board): Tile[] {
   return rivalTiles
 }
 
-export function performEnemyTurn(board: Board): Board {
+export function performRivalTurn(board: Board): Board {
   // This function is now deprecated - the store handles rival turns with animation
   // Keeping it for backward compatibility but it should not be used for the new AI system
   return board

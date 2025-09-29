@@ -428,10 +428,10 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         
         // Define owner colors and positions in 2x2 grid (positioned from bottom-right)
         const ownerInfo = [
-          { owner: 'player' as const, color: '#81b366', position: { top: 4, left: 8 }, name: 'Player' },
-          { owner: 'rival' as const, color: '#c65757', position: { top: 4, left: 4 }, name: 'Enemy' },
-          { owner: 'neutral' as const, color: '#d4aa5a', position: { top: 0, left: 8 }, name: 'Neutral' },
-          { owner: 'mine' as const, color: '#8b6ba8', position: { top: 0, left: 4 }, name: 'Mine' }
+          { owner: 'player' as const, color: '#81b366', position: { top: 0, left: 4 }, name: 'Player' }, // upper-left
+          { owner: 'rival' as const, color: '#c65757', position: { top: 0, left: 8 }, name: 'Rival' }, // upper-right
+          { owner: 'neutral' as const, color: '#d4aa5a', position: { top: 4, left: 4 }, name: 'Neutral' }, // lower-left
+          { owner: 'mine' as const, color: '#8b6ba8', position: { top: 4, left: 8 }, name: 'Mine' } // lower-right
         ]
         
         const includedOwners = ownerInfo.filter(info => ownerSubset.has(info.owner))
@@ -543,7 +543,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         // Use same 2x2 grid system as subset annotations but in upper-right
         const ownerInfo = [
           { owner: 'player' as const, color: '#81b366', position: { top: 0, left: 4 }, name: 'Player' }, // upper-left
-          { owner: 'rival' as const, color: '#c65757', position: { top: 0, left: 8 }, name: 'Enemy' }, // upper-right
+          { owner: 'rival' as const, color: '#c65757', position: { top: 0, left: 8 }, name: 'Rival' }, // upper-right
           { owner: 'neutral' as const, color: '#d4aa5a', position: { top: 4, left: 4 }, name: 'Neutral' }, // lower-left
           { owner: 'mine' as const, color: '#8b6ba8', position: { top: 4, left: 8 }, name: 'Mine' } // lower-right
         ]
@@ -582,7 +582,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                 title={tooltipText}
                 style={{
                   position: 'absolute',
-                  top: `${2 + info.position.top}px`, // Upper-right instead of bottom-right
+                  top: `${2 + (4 - info.position.top)}px`, // Upper-right instead of bottom-right
                   right: `${2 + info.position.left}px`,
                   width: '4px',
                   height: '4px',
@@ -677,11 +677,23 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
   // Handle empty tiles (holes in the grid) after all hooks have been called
   if (tile.owner === 'empty') {
     return (
-      <div style={{
-        width: '56px',
-        height: '56px',
-        backgroundColor: 'transparent'
-      }} />
+      <div 
+        onClick={handleClick}
+        onMouseEnter={() => {
+          setIsHovered(true)
+          onMouseEnter?.()
+        }}
+        onMouseLeave={() => {
+          setIsHovered(false)
+          onMouseLeave?.()
+        }}
+        style={{
+          width: '56px',
+          height: '56px',
+          backgroundColor: 'transparent',
+          cursor: isTargeting ? 'pointer' : 'default'
+        }} 
+      />
     )
   }
 

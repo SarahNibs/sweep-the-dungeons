@@ -41,12 +41,12 @@ interface GameState {
 #### Adjacency Rule (Critical)
 When any tile is revealed, the number shown equals adjacent tiles of the **revealer's team**:
 - Player reveals their tile → count shows adjacent player tiles
-- Enemy reveals their tile → count shows adjacent enemy tiles
+- Rival reveals their tile → count shows adjacent rival tiles
 - This asymmetric information system is the core puzzle mechanic
 
 #### Tile Types
 - **Player tiles** (8-10): Must reveal all to complete floor
-- **Enemy tiles** (7-9): Safe to identify but not reveal
+- **Rival tiles** (7-9): Safe to identify but not reveal
 - **Neutral tiles** (5-8): Safe but ends turn
 - **Assassin** (1-3): Ends run immediately
 
@@ -58,8 +58,8 @@ When any tile is revealed, the number shown equals adjacent tiles of the **revea
 - **SCOUT** (Cost 1): Reveals if tile is safe/dangerous
 - **SCOUT** (Cost 1): Reveals if tile is safe/dangerous
 - **SCOUT** (Cost 1): Reveals if tile is safe/dangerous
-- **ELIMINATION** (Cost 1): Marks random enemy tile
-- **ELIMINATION** (Cost 1): Marks random enemy tile
+- **ELIMINATION** (Cost 1): Marks random rival tile
+- **ELIMINATION** (Cost 1): Marks random rival tile
 - **QUANTUM CHOICE** (Cost 1): Auto-reveals safer of 2 chosen tiles
 
 ## Development Guidelines
@@ -74,7 +74,7 @@ When any tile is revealed, the number shown equals adjacent tiles of the **revea
 
 ### Board Generation Rules
 - Support seeding for consistent testing
-- Recommended Floor 1 ratios: Player 9, Enemy 8, Neutral 6, Assassin 1
+- Recommended Floor 1 ratios: Player 9, Rival 8, Neutral 6, Assassin 1
 
 ### UI/UX Requirements
 - Fast input with hotkeys for common actions

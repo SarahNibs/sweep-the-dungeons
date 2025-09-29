@@ -10,7 +10,7 @@ export function TileCountInfo({ board }: TileCountInfoProps) {
   
   const tileColors = {
     player: '#81b366',
-    enemy: '#c65757', 
+    rival: '#c65757', 
     neutral: '#d4aa5a',
     mine: '#8b6ba8'
   }

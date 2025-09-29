@@ -123,7 +123,7 @@ describe('Board System', () => {
       const position = createPosition(1, 1)
       
       const firstReveal = revealTile(board, position, 'player')
-      const secondReveal = revealTile(firstReveal, position, 'enemy')
+      const secondReveal = revealTile(firstReveal, position, 'rival')
       
       const tile = getTile(secondReveal, position)
       expect(tile?.revealedBy).toBe('player') // Should still be first revealer
@@ -202,8 +202,8 @@ describe('Board System', () => {
       // E P A  
       // N A P
       const layout = [
-        ['player', 'enemy', 'neutral'],
-        ['enemy', 'player', 'assassin'],
+        ['player', 'rival', 'neutral'],
+        ['rival', 'player', 'assassin'],
         ['neutral', 'assassin', 'player']
       ]
 
@@ -211,7 +211,7 @@ describe('Board System', () => {
         for (let x = 0; x < 3; x++) {
           const position = createPosition(x, y)
           const key = positionToKey(position)
-          const owner = layout[y][x] as 'player' | 'enemy' | 'neutral' | 'assassin'
+          const owner = layout[y][x] as 'player' | 'rival' | 'neutral' | 'assassin'
           board.tiles.set(key, createTile(position, owner))
         }
       }
@@ -228,12 +228,12 @@ describe('Board System', () => {
       expect(adjacency).toBe(2)
     })
 
-    it('calculates correct adjacency for enemy reveal', () => {
+    it('calculates correct adjacency for rival reveal', () => {
       const board = createTestBoard()
       
-      // Reveal enemy tile at (1,0)
-      // Adjacent enemy tiles: (0,1) = 1 enemy tile
-      const adjacency = calculateAdjacency(board, createPosition(1, 0), 'enemy')
+      // Reveal rival tile at (1,0)
+      // Adjacent rival tiles: (0,1) = 1 rival tile
+      const adjacency = calculateAdjacency(board, createPosition(1, 0), 'rival')
       expect(adjacency).toBe(1)
     })
 
@@ -274,12 +274,12 @@ describe('Board System', () => {
       const playerReveal = revealTile(board, position, 'player')
       const playerTile = getTile(playerReveal, position)
       
-      // If enemy revealed it: would count adjacent enemy tiles  
-      const enemyReveal = revealTile(board, position, 'enemy')
-      const enemyTile = getTile(enemyReveal, position)
+      // If rival revealed it: would count adjacent rival tiles  
+      const rivalReveal = revealTile(board, position, 'rival')
+      const rivalTile = getTile(rivalReveal, position)
       
       expect(playerTile?.adjacencyCount).toBe(2) // 2 adjacent player tiles
-      expect(enemyTile?.adjacencyCount).toBe(2)  // 2 adjacent enemy tiles
+      expect(rivalTile?.adjacencyCount).toBe(2)  // 2 adjacent rival tiles
     })
 
     it('handles assassin and neutral tiles in adjacency', () => {
@@ -296,7 +296,7 @@ describe('Board System', () => {
     it('creates empty tiles for unusedLocations', () => {
       const board = createBoard(
         3, 3,
-        { player: 2, enemy: 2, neutral: 2, mine: 1 },
+        { player: 2, rival: 2, neutral: 2, mine: 1 },
         [[1, 1]] // Center hole
       )
       
@@ -308,7 +308,7 @@ describe('Board System', () => {
     it('empty tiles do not participate in adjacency calculation', () => {
       const board = createBoard(
         3, 3,
-        { player: 8, enemy: 0, neutral: 0, mine: 0 },
+        { player: 8, rival: 0, neutral: 0, mine: 0 },
         [[1, 1]] // Center hole - all other tiles are player tiles
       )
       
@@ -323,7 +323,7 @@ describe('Board System', () => {
     it('empty tiles cannot be revealed', () => {
       const board = createBoard(
         3, 3,
-        { player: 2, enemy: 2, neutral: 2, mine: 1 },
+        { player: 2, rival: 2, neutral: 2, mine: 1 },
         [[1, 1]] // Center hole
       )
       
@@ -340,20 +340,20 @@ describe('Board System', () => {
     it('creates correct tile counts with holes', () => {
       const board = createBoard(
         3, 3,
-        { player: 2, enemy: 2, neutral: 2, mine: 1 },
+        { player: 2, rival: 2, neutral: 2, mine: 1 },
         [[0, 0], [2, 2]] // Two corner holes
       )
       
       const tiles = Array.from(board.tiles.values())
       const emptyTiles = tiles.filter(t => t.owner === 'empty')
       const playerTiles = tiles.filter(t => t.owner === 'player') 
-      const enemyTiles = tiles.filter(t => t.owner === 'enemy')
+      const rivalTiles = tiles.filter(t => t.owner === 'rival')
       const neutralTiles = tiles.filter(t => t.owner === 'neutral')
       const mineTiles = tiles.filter(t => t.owner === 'mine')
       
       expect(emptyTiles.length).toBe(2)
       expect(playerTiles.length).toBe(2)
-      expect(enemyTiles.length).toBe(2)
+      expect(rivalTiles.length).toBe(2)
       expect(neutralTiles.length).toBe(2)
       expect(mineTiles.length).toBe(1)
       expect(tiles.length).toBe(9) // 3x3 grid still has 9 tiles total

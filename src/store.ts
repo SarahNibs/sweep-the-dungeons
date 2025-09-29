@@ -5,6 +5,7 @@ import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
 import { startRelicSelection, selectRelic } from './game/relicSystem'
 import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, checkGameStatus, executeTargetedReportEffect, getUnrevealedTilesByOwner, revealTileWithRelicEffects } from './game/cardEffects'
+import { triggerMopEffect } from './game/relicSystem'
 import { processRivalTurnWithDualClues } from './game/rivalAI'
 import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowRelicReward, shouldShowShopReward, calculateCopperReward } from './game/levelSystem'
 import { startShopSelection, purchaseShopItem, removeSelectedCard, exitShop } from './game/shopSystem'
@@ -20,8 +21,8 @@ interface GameStore extends GameState {
   cancelCardTargeting: () => void
   getTargetingInfo: () => { count: number; description: string; selected: Position[] } | null
   setHoveredClueId: (clueId: string | null) => void
-  startEnemyTurn: (board: Board) => void
-  performNextEnemyReveal: () => void
+  startRivalTurn: (board: Board) => void
+  performNextRivalReveal: () => void
   togglePlayerSlash: (position: Position) => void
   setPlayerAnnotationMode: (mode: 'slash' | 'big_checkmark' | 'small_checkmark') => void
   togglePlayerAnnotation: (position: Position) => void
@@ -127,7 +128,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     })
     // Update state with discarded hand, then start rival turn
     set(discardedState)
-    get().startEnemyTurn(discardedState.board)
+    get().startRivalTurn(discardedState.board)
   },
   
   resetGame: () => {
@@ -366,7 +367,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }))
   },
 
-  startEnemyTurn: (board: Board) => {
+  startRivalTurn: (board: Board) => {
     const currentState = get()
     
     // Clear any pending card targeting state
@@ -379,7 +380,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     // Process rival turn with dual clue system
     const rivalTurnResult = processRivalTurnWithDualClues(clearedState)
-    const stateWithEnemyClue = {
+    const stateWithRivalClue = {
       ...rivalTurnResult.stateWithVisibleClues,
       rivalHiddenClues: [...clearedState.rivalHiddenClues, ...rivalTurnResult.hiddenClues]
     }
@@ -387,7 +388,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     if (tilesToReveal.length === 0) {
       // No tiles to reveal, end rival turn immediately
-      const newTurnState = startNewTurn(stateWithEnemyClue)
+      const newTurnState = startNewTurn(stateWithRivalClue)
       set({
         ...newTurnState,
         currentPlayer: 'player'
@@ -400,14 +401,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     if (isTestEnvironment) {
       // In tests, run rival turn synchronously
-      let boardState = stateWithEnemyClue.board
+      let boardState = stateWithRivalClue.board
       for (const tile of tilesToReveal) {
         boardState = revealTile(boardState, tile.position, 'rival')
         if (tile.owner !== 'rival') break // Stop if non-rival tile revealed
       }
       
       const newTurnState = startNewTurn({
-        ...stateWithEnemyClue,
+        ...stateWithRivalClue,
         board: boardState
       })
       set({
@@ -419,7 +420,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     // Start the animation sequence
     set({
-      ...stateWithEnemyClue,
+      ...stateWithRivalClue,
       currentPlayer: 'rival',
       rivalAnimation: {
         isActive: true,
@@ -431,11 +432,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     // Start the first reveal after a short delay
     setTimeout(() => {
-      get().performNextEnemyReveal()
+      get().performNextRivalReveal()
     }, 500)
   },
 
-  performNextEnemyReveal: () => {
+  performNextRivalReveal: () => {
     const currentState = get()
     const animation = currentState.rivalAnimation
     
@@ -499,7 +500,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       } else if (shouldContinue && state.rivalAnimation!.currentRevealIndex + 1 < revealsRemaining.length) {
         // Continue with next reveal after delay
         setTimeout(() => {
-          get().performNextEnemyReveal()
+          get().performNextRivalReveal()
         }, 800)
       } else {
         // End rival turn
@@ -702,11 +703,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const rivalTiles = getUnrevealedTilesByOwner(state, 'rival')
     if (rivalTiles.length === 0) return
 
-    const tilesToMark = isEnhanced ? Math.min(2, rivalTiles.length) : 1
+    // Helper function to check if a tile is unambiguously rival-only based on game annotations
+    const isUnambiguouslyRival = (tile: Tile): boolean => {
+      const subsetAnnotations = tile.annotations.filter(a => a.type === 'owner_subset')
+      if (subsetAnnotations.length === 0) return false
+      
+      const latestSubset = subsetAnnotations[subsetAnnotations.length - 1]
+      const ownerSubset = latestSubset.ownerSubset || new Set()
+      
+      // Tile is unambiguous if it can only be rival (size 1 and contains only 'rival')
+      return ownerSubset.size === 1 && ownerSubset.has('rival')
+    }
+
+    // Separate rival tiles into ambiguous and unambiguous
+    const ambiguousRivalTiles = rivalTiles.filter(tile => !isUnambiguouslyRival(tile))
+
+    // Prefer ambiguous tiles if available, otherwise use all rival tiles
+    const preferredTiles = ambiguousRivalTiles.length > 0 ? ambiguousRivalTiles : rivalTiles
+
+    const tilesToMark = isEnhanced ? Math.min(2, preferredTiles.length) : 1
     const randomTiles: typeof rivalTiles = []
     
-    // Select random tiles without replacement
-    const availableTiles = [...rivalTiles]
+    // Select random tiles without replacement from preferred tiles
+    const availableTiles = [...preferredTiles]
     for (let i = 0; i < tilesToMark; i++) {
       const randomIndex = Math.floor(Math.random() * availableTiles.length)
       randomTiles.push(availableTiles[randomIndex])
@@ -771,7 +790,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     // First, rival reveals one of their tiles
     if (rivalTiles.length > 0) {
-      let chosenEnemyTile: Tile
+      let chosenRivalTile: Tile
       
       if (isEnhanced && target) {
         // Enhanced version: prioritize by Manhattan distance from target
@@ -787,13 +806,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const minDistance = Math.min(...tilesWithDistance.map(t => t.distance))
         const closestTiles = tilesWithDistance.filter(t => t.distance === minDistance)
         
-        chosenEnemyTile = closestTiles[Math.floor(Math.random() * closestTiles.length)].tile
+        chosenRivalTile = closestTiles[Math.floor(Math.random() * closestTiles.length)].tile
       } else {
         // Basic version: completely random
-        chosenEnemyTile = rivalTiles[Math.floor(Math.random() * rivalTiles.length)]
+        chosenRivalTile = rivalTiles[Math.floor(Math.random() * rivalTiles.length)]
       }
       
-      reveals.push({ tile: chosenEnemyTile, revealer: 'rival' })
+      reveals.push({ tile: chosenRivalTile, revealer: 'rival' })
     }
     
     // Then, player reveals one of their tiles
@@ -870,8 +889,37 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     const currentReveal = revealsRemaining[currentRevealIndex]
     
+    // Clean dirty tiles before revealing if this is a player tile
+    let currentStateForReveal = currentState
+    if (currentReveal.revealer === 'player' && currentReveal.tile.specialTile === 'extraDirty') {
+      // Clean the dirty tile first
+      const key = `${currentReveal.tile.position.x},${currentReveal.tile.position.y}`
+      const newTiles = new Map(currentStateForReveal.board.tiles)
+      const cleanedTile = { 
+        ...currentReveal.tile, 
+        specialTile: undefined // Remove the extraDirty status
+      }
+      newTiles.set(key, cleanedTile)
+      currentStateForReveal = {
+        ...currentStateForReveal,
+        board: {
+          ...currentStateForReveal.board,
+          tiles: newTiles
+        }
+      }
+      
+      // Trigger Mop effect for cleaning dirt
+      const stateWithMopEffect = triggerMopEffect(currentStateForReveal, 1)
+      currentStateForReveal = {
+        ...currentStateForReveal,
+        deck: stateWithMopEffect.deck,
+        hand: stateWithMopEffect.hand,
+        discard: stateWithMopEffect.discard
+      }
+    }
+    
     // Reveal the current tile
-    let newState = revealTileWithRelicEffects(currentState, currentReveal.tile.position, currentReveal.revealer)
+    let newState = revealTileWithRelicEffects(currentStateForReveal, currentReveal.tile.position, currentReveal.revealer)
     
     // Update animation state for next reveal
     const nextIndex = currentRevealIndex + 1

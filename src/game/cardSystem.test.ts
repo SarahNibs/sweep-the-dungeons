@@ -479,7 +479,7 @@ describe('Card System', () => {
       expect(state.currentLevelId).toBe('firstMine')
     })
 
-    it('intro level does not reveal enemy tiles at start', () => {
+    it('intro level does not reveal rival tiles at start', () => {
       const state = createInitialState('intro')
       const revealedTiles = Array.from(state.board.tiles.values()).filter(tile => tile.revealed)
       expect(revealedTiles.length).toBe(0)

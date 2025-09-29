@@ -63,6 +63,7 @@ export interface Tile {
   adjacencyCount: number | null
   annotations: TileAnnotation[]
   specialTile?: 'extraDirty'
+  underwireProtected?: boolean // True if this mine was protected by Underwire
 }
 
 export interface Board {

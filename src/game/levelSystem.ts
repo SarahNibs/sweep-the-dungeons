@@ -54,10 +54,10 @@ export function isWinningLevel(levelId: string): boolean {
 
 export function calculateCopperReward(state: import('../types').GameState): number {
   // Count unrevealed rival tiles
-  const unrevealedEnemyTiles = Array.from(state.board.tiles.values()).filter(tile =>
+  const unrevealedRivalTiles = Array.from(state.board.tiles.values()).filter(tile =>
     tile.owner === 'rival' && !tile.revealed
   )
-  return unrevealedEnemyTiles.length // 1 copper per unrevealed rival tile
+  return unrevealedRivalTiles.length // 1 copper per unrevealed rival tile
 }
 
 // No longer needed - we use proper empty tiles for holes

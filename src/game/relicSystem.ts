@@ -1,5 +1,5 @@
 import { Relic, RelicOption, GameState } from '../types'
-import { advanceToNextLevel } from './cardSystem'
+import { advanceToNextLevel, drawCards } from './cardSystem'
 import { shouldShowShopReward } from './levelSystem'
 import { startShopSelection } from './shopSystem'
 import { calculateAdjacency, getNeighbors } from './boardSystem'
@@ -359,41 +359,7 @@ export function triggerMopEffect(state: GameState, tilesCleanedCount: number): G
     return state
   }
   
-  // Draw one card per tile cleaned
-  let currentState = state
-  for (let i = 0; i < tilesCleanedCount; i++) {
-    const { deck, hand, discard } = currentState
-    let newHand = [...hand]
-    let newDeck = [...deck]  
-    let newDiscard = [...discard]
-
-    if (newDeck.length === 0) {
-      if (newDiscard.length === 0) {
-        // No cards to draw, break early
-        break
-      }
-      // Reshuffle discard into deck
-      const shuffled = [...newDiscard]
-      for (let j = shuffled.length - 1; j > 0; j--) {
-        const k = Math.floor(Math.random() * (j + 1))
-        ;[shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]]
-      }
-      newDeck = shuffled
-      newDiscard = []
-    }
-    
-    if (newDeck.length > 0) {
-      const drawnCard = newDeck.pop()!
-      newHand.push(drawnCard)
-    }
-
-    currentState = {
-      ...currentState,
-      deck: newDeck,
-      hand: newHand,
-      discard: newDiscard
-    }
-  }
-  
-  return currentState
+  // Draw one card per tile cleaned using centralized draw function
+  return drawCards(state, tilesCleanedCount)
 }
+

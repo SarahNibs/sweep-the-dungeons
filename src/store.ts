@@ -1,11 +1,11 @@
 import { create } from 'zustand'
 import { GameState, Tile, Position, CardEffect, Board, Card as CardType, PileType, Relic } from './types'
-import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel } from './game/cardSystem'
+import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel, queueCardDrawsFromDirtCleaning } from './game/cardSystem'
 import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
 import { startRelicSelection, selectRelic } from './game/relicSystem'
 import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
-import { executeCardEffect, getTargetingInfo, checkGameStatus, executeTargetedReportEffect, getUnrevealedTilesByOwner, revealTileWithRelicEffects } from './game/cardEffects'
-import { triggerMopEffect } from './game/relicSystem'
+import { executeCardEffect, getTargetingInfo, checkGameStatus, getUnrevealedTilesByOwner, revealTileWithRelicEffects } from './game/cardEffects'
+import { executeTargetedReportEffect } from './game/cards/report'
 import { processRivalTurnWithDualClues } from './game/rivalAI'
 import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowRelicReward, shouldShowShopReward, calculateCopperReward } from './game/levelSystem'
 import { startShopSelection, purchaseShopItem, removeSelectedCard, exitShop } from './game/shopSystem'
@@ -257,6 +257,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return
     } else if (effect.type === 'canary') {
       newEffect = { type: 'canary', target: position }
+      shouldExecute = true
+    } else if (effect.type === 'argument') {
+      newEffect = { type: 'argument', target: position }
       shouldExecute = true
     }
     
@@ -908,13 +911,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
       }
       
-      // Trigger Mop effect for cleaning dirt
-      const stateWithMopEffect = triggerMopEffect(currentStateForReveal, 1)
+      // Queue card draws for cleaning dirt by revealing (Mop relic effect)
+      const updatedState = queueCardDrawsFromDirtCleaning(currentStateForReveal, 1)
       currentStateForReveal = {
         ...currentStateForReveal,
-        deck: stateWithMopEffect.deck,
-        hand: stateWithMopEffect.hand,
-        discard: stateWithMopEffect.discard
+        queuedCardDraws: updatedState.queuedCardDraws
       }
     }
     

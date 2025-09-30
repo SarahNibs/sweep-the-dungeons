@@ -2,7 +2,7 @@ import { Card, GameState } from '../types'
 import { createBoard } from './boardSystem'
 import { executeCardEffect, requiresTargeting } from './cardEffects'
 import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
-import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerBusyCanaryEffect } from './relicSystem'
+import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerBusyCanaryEffect, hasRelic } from './relicSystem'
 
 import { createCard as createCardFromRepository, getRewardCardPool, getStarterCards, removeStatusEffect, addStatusEffect } from './gameRepository'
 
@@ -101,6 +101,9 @@ export function playCard(state: GameState, cardId: string): GameState {
       case 'Canary':
         effectType = 'canary'
         break
+      case 'Argument':
+        effectType = 'argument'
+        break
       default:
         effectType = card.name.toLowerCase().replace(' ', '_')
     }
@@ -137,6 +140,9 @@ export function playCard(state: GameState, cardId: string): GameState {
     case 'Underwire':
       newState = executeCardEffect(state, { type: 'underwire' }, card)
       break
+    case 'Monster':
+      newState = executeCardEffect(state, { type: 'monster' }, card)
+      break
     case 'Tryst':
       // Tryst needs animation - don't execute immediately
       newState = state
@@ -172,7 +178,11 @@ export function discardHand(state: GameState): GameState {
 
 export function startNewTurn(state: GameState): GameState {
   const discardedState = discardHand(state)
-  const drawnState = drawCards(discardedState, 5)
+  
+  // Draw regular 5 cards (or 4 with Monster relic) plus any queued card draws
+  const baseCardDraw = hasRelic(state, 'Monster') ? 4 : 5
+  const totalCardsToDraw = baseCardDraw + state.queuedCardDraws
+  const drawnState = drawCards(discardedState, totalCardsToDraw)
   
   // Remove ramble status effect at start of new turn
   const stateWithoutRamble = removeStatusEffect(drawnState, 'ramble_active')
@@ -185,7 +195,8 @@ export function startNewTurn(state: GameState): GameState {
     isFirstTurn: false, // No longer first turn after first turn
     hasRevealedNeutralThisTurn: false, // Reset neutral reveal tracking
     underwireUsedThisTurn: false, // Reset underwire usage tracking
-    shouldExhaustLastCard: false // Reset dynamic exhaust tracking
+    shouldExhaustLastCard: false, // Reset dynamic exhaust tracking
+    queuedCardDraws: 0 // Clear queued card draws
   }
 }
 
@@ -222,6 +233,9 @@ export function createInitialState(
     board = createBoard()
   }
   
+  // Determine max energy based on relics
+  const maxEnergy = startingRelics.some(relic => relic.name === 'Monster') ? 4 : 3
+  
   const initialState: GameState = {
     persistentDeck: startingPersistentDeck,
     deck,
@@ -229,8 +243,8 @@ export function createInitialState(
     discard: [],
     exhaust: [],
     selectedCardName: null,
-    energy: 3,
-    maxEnergy: 3,
+    energy: maxEnergy,
+    maxEnergy,
     board,
     currentPlayer: 'player',
     gameStatus: { status: 'playing' },
@@ -269,10 +283,13 @@ export function createInitialState(
       rival: true,   // Start depressed
       neutral: true, // Start depressed  
       mine: true     // Start depressed
-    }
+    },
+    queuedCardDraws: 0
   }
   
-  let finalState = drawCards(initialState, 5)
+  // Draw initial cards (4 with Monster relic, 5 without)
+  const initialCardDraw = startingRelics.some(relic => relic.name === 'Monster') ? 4 : 5
+  let finalState = drawCards(initialState, initialCardDraw)
   
   // Trigger Dust Bunny effect if present
   finalState = triggerDustBunnyEffect(finalState)
@@ -375,4 +392,17 @@ export function skipCardSelection(state: GameState): GameState {
 export function getAllCardsInCollection(state: GameState): Card[] {
   // Return all cards the player owns (persistent deck)
   return [...state.persistentDeck]
+}
+
+// Queue card draws for dirt cleaning when revealing dirty tiles (for Mop relic)
+export function queueCardDrawsFromDirtCleaning(state: GameState, tilesCleanedCount: number): GameState {
+  if (!hasRelic(state, 'Mop') || tilesCleanedCount <= 0) {
+    return state
+  }
+  
+  // Queue cards to be drawn at start of next turn
+  return {
+    ...state,
+    queuedCardDraws: state.queuedCardDraws + tilesCleanedCount
+  }
 }

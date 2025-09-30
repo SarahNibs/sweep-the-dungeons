@@ -1,22 +1,12 @@
 import { ShopOption, GameState } from '../types'
-import { createCard } from './gameRepository'
-import { getAllRelics } from './gameRepository'
+import { createCard, getRewardCardPool, getAllRelics } from './gameRepository'
 import { advanceToNextLevel } from './cardSystem'
 
 export function createShopOptions(state: GameState): ShopOption[] {
   const options: ShopOption[] = []
   
   // 2x random cards you can choose to add to your deck for 4 coppers apiece
-  const availableCards = [
-    createCard('Energized'),
-    createCard('Options'),
-    createCard('Brush'),
-    createCard('Ramble'),
-    createCard('Sweep'),
-    createCard('Underwire'),
-    createCard('Tryst'),
-    createCard('Canary')
-  ]
+  const availableCards = getRewardCardPool()
   
   // Shuffle and pick 2 random cards
   const shuffledCards = [...availableCards].sort(() => Math.random() - 0.5)
@@ -34,9 +24,10 @@ export function createShopOptions(state: GameState): ShopOption[] {
   
   // 1x random energy-upgraded card for 8 coppers
   // Filter out 0-cost cards for cost reduction (can't reduce cost below 0)
-  const costReducibleCardNames = ['Energized', 'Options', 'Brush', 'Ramble', 'Sweep', 'Tryst']
-  const energyCardName = costReducibleCardNames[Math.floor(Math.random() * costReducibleCardNames.length)]
-  const energyCard = createCard(energyCardName, { costReduced: true })
+  const costReducibleCards = getRewardCardPool().filter(card => card.cost > 0)
+  const energyCard = costReducibleCards.length > 0 
+    ? createCard(costReducibleCards[Math.floor(Math.random() * costReducibleCards.length)].name, { costReduced: true })
+    : createCard('Energized', { costReduced: true }) // Fallback if no cost-reducible cards
   options.push({
     type: 'add_energy_card',
     cost: 8,
@@ -46,9 +37,10 @@ export function createShopOptions(state: GameState): ShopOption[] {
   })
   
   // 1x random enhance-upgraded card for 8 coppers
-  const enhancedCardNames = ['Energized', 'Options', 'Brush', 'Ramble', 'Sweep', 'Underwire', 'Tryst', 'Canary']
-  const enhancedCardName = enhancedCardNames[Math.floor(Math.random() * enhancedCardNames.length)]
-  const enhancedCard = createCard(enhancedCardName, { enhanced: true })
+  const allRewardCards = getRewardCardPool()
+  const enhancedCard = allRewardCards.length > 0
+    ? createCard(allRewardCards[Math.floor(Math.random() * allRewardCards.length)].name, { enhanced: true })
+    : createCard('Energized', { enhanced: true }) // Fallback
   options.push({
     type: 'add_enhanced_card',
     cost: 8,

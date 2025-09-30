@@ -157,6 +157,27 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       enhanced: 'Select center of 3x3 area to detect mines - annotates tiles based on mine presence. Exhausts if mine found'
     },
     icon: '🐦'
+  },
+  'Monster': {
+    name: 'Monster',
+    cost: 0,
+    exhaust: true,
+    category: 'reward',
+    description: {
+      base: 'Draw 2 cards. Exhaust (remove from deck after use)',
+      enhanced: 'Draw 3 cards. Exhaust (remove from deck after use)'
+    },
+    icon: '🥤'
+  },
+  'Argument': {
+    name: 'Argument',
+    cost: 1,
+    category: 'reward',
+    description: {
+      base: 'Target a 3x3 area - annotate all neutral tiles as neutral and the rest as anything-but-neutral',
+      enhanced: 'Target a 3x3 area - annotate all neutral tiles as neutral and the rest as anything-but-neutral. Draw 1 card'
+    },
+    icon: '😡'
   }
 }
 
@@ -190,6 +211,12 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     name: 'Mop',
     description: 'efficient cleaning tool that rewards thoroughness',
     hoverText: 'Mop: whenever you clean dirt from a tile, draw a card',
+    category: 'common'
+  },
+  'Monster': {
+    name: 'Monster',
+    description: 'caffeine grants unimaginable energy with no downsides!',
+    hoverText: 'Monster: get 4 energy per turn instead of 3 but draw 1 fewer card at the start of your turns',
     category: 'common'
   }
 }
@@ -325,8 +352,8 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         id: baseId,
         type: 'manhattan_adjacency',
         icon: '🔢',
-        name: 'Manhattan Distance',
-        description: 'This level uses Manhattan distance (4-way) adjacency rules instead of standard 8-way'
+        name: 'Manhattan Distance 2',
+        description: 'This level uses Manhattan distance (4-way) adjacency rules at distance 2 instead of standard 8-way'
       }
     default:
       throw new Error(`Unknown status effect type: ${type}`)

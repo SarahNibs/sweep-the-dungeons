@@ -23,6 +23,8 @@ export type CardEffect =
   | { type: 'underwire' }
   | { type: 'tryst'; target?: Position }
   | { type: 'canary'; target: Position }
+  | { type: 'monster' }
+  | { type: 'argument'; target: Position }
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
@@ -187,6 +189,9 @@ export interface GameState {
     neutral: boolean // Whether neutral button is depressed
     mine: boolean   // Whether mine button is depressed
   }
+  
+  // Queued card draws (for Mop effect when cleaning by revealing dirty tiles)
+  queuedCardDraws: number // Number of cards to draw at start of next turn
 }
 
 export interface UpgradeOption {

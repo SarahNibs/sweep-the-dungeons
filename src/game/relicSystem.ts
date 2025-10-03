@@ -24,15 +24,22 @@ export function selectRelic(state: GameState, selectedRelic: Relic): GameState {
   let updatedState = {
     ...state,
     relics: newRelics,
-    gamePhase: 'playing' as const,
     relicOptions: undefined
   }
   
   // Apply special relic effects for Estrogen and Progesterone
   if (selectedRelic.name === 'Estrogen') {
-    updatedState = applyEstrogenEffect(updatedState)
+    // Estrogen triggers upgrade display, continuation handled by closeRelicUpgradeDisplay
+    return applyEstrogenEffect(updatedState)
   } else if (selectedRelic.name === 'Progesterone') {
-    updatedState = applyProgesteroneEffect(updatedState)
+    // Progesterone triggers upgrade display, continuation handled by closeRelicUpgradeDisplay
+    return applyProgesteroneEffect(updatedState)
+  } else {
+    // For other relics, set gamePhase to playing and continue normal flow
+    updatedState = {
+      ...updatedState,
+      gamePhase: 'playing' as const
+    }
   }
   
   // Check if this level should show shop rewards after relic selection

@@ -1,4 +1,5 @@
 import { useGameStore } from './store'
+import { getCardIcon } from './game/gameRepository'
 import { GameStats } from './components/GameStats'
 import { Hand } from './components/Hand'
 import { Board } from './components/Board'

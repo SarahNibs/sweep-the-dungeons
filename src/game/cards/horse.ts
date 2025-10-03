@@ -1,5 +1,5 @@
 import { GameState, Position } from '../../types'
-import { getTile, positionToKey } from '../boardSystem'
+import { getTile } from '../boardSystem'
 import { addStatusEffect } from '../gameRepository'
 import { revealTileWithRelicEffects } from '../cardEffects'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
@@ -61,13 +61,8 @@ export function executeHorseEffect(state: GameState, target: Position, card?: im
       newState = revealTileWithRelicEffects(newState, pos, 'player')
     })
     
-    // If safest owner is not player, this will end the turn
-    if (safestOwner !== 'player') {
-      newState = {
-        ...newState,
-        shouldEndTurn: true
-      }
-    }
+    // Note: If safest owner is not player, this should end the turn
+    // This will be handled by the store logic checking the card effect results
   }
   
   // Add Horse discount status effect

@@ -10,7 +10,7 @@ import { ShopSelectionScreen } from './components/ShopSelectionScreen'
 import { PileViewingScreen } from './components/PileViewingScreen'
 import { TileCountsVertical } from './components/TileCountsVertical'
 import { StatusEffects } from './components/StatusEffects'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 function getRelicIcon(relicName: string): string {
   switch (relicName) {
@@ -21,9 +21,17 @@ function getRelicIcon(relicName: string): string {
     case 'Frilly Dress':
       return '👗'
     case 'Busy Canary':
-      return '🐦' // Same as Canary card
+      return '🐦'
     case 'Mop':
-      return '🧽' // Different from default star
+      return '🧽'
+    case 'Monster':
+      return '🥤'
+    case 'Estrogen':
+      return '💉'
+    case 'Progesterone':
+      return '💊'
+    case 'Tiara':
+      return '👑'
     default:
       return '✨'
   }
@@ -72,8 +80,15 @@ function App() {
     viewPile,
     closePileView,
     debugWinLevel,
+    debugGiveRelic,
+    debugGiveCard,
     toggleAnnotationButton
   } = useGameStore()
+
+  // Debug UI state
+  const [showRelicDebug, setShowRelicDebug] = useState(false)
+  const [showCardDebug, setShowCardDebug] = useState(false)
+  const [cardUpgradeType, setCardUpgradeType] = useState<'normal' | 'cost-reduced' | 'enhanced'>('normal')
 
   // Add keyboard shortcuts for toggling annotation buttons
   useEffect(() => {
@@ -217,26 +232,68 @@ function App() {
               <StatusEffects statusEffects={activeStatusEffects} />
             </div>
             
-            {/* Debug Win Button at bottom */}
+            {/* Debug Buttons at bottom */}
             {gameStatus.status === 'playing' && (
-              <div
-                onClick={debugWinLevel}
-                style={{
-                  width: '30px',
-                  height: '30px',
-                  backgroundColor: '#28a745',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  color: 'white'
-                }}
-                title="Debug: Instantly win the current level"
-              >
-                ▶
-              </div>
+              <>
+                <div
+                  onClick={debugWinLevel}
+                  style={{
+                    width: '30px',
+                    height: '30px',
+                    backgroundColor: '#28a745',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    color: 'white',
+                    marginBottom: '5px'
+                  }}
+                  title="Debug: Instantly win the current level"
+                >
+                  ▶
+                </div>
+                
+                <div
+                  onClick={() => setShowRelicDebug(true)}
+                  style={{
+                    width: '30px',
+                    height: '30px',
+                    backgroundColor: '#6f42c1',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    color: 'white',
+                    marginBottom: '5px'
+                  }}
+                  title="Debug: Give relic"
+                >
+                  ✨
+                </div>
+                
+                <div
+                  onClick={() => setShowCardDebug(true)}
+                  style={{
+                    width: '30px',
+                    height: '30px',
+                    backgroundColor: '#fd7e14',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    color: 'white'
+                  }}
+                  title="Debug: Give card"
+                >
+                  🃏
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -305,6 +362,186 @@ function App() {
           cards={pileViewingType === 'deck' ? deck : pileViewingType === 'discard' ? discard : exhaust}
           onClose={closePileView}
         />
+      )}
+
+      {/* Debug Relic Selection Overlay */}
+      {showRelicDebug && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '10px',
+            maxWidth: '600px',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h3 style={{ margin: '0 0 15px 0', textAlign: 'center' }}>Debug: Give Relic</h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gap: '10px',
+              marginBottom: '15px'
+            }}>
+              {['Double Broom', 'Dust Bunny', 'Frilly Dress', 'Busy Canary', 'Mop', 'Monster', 'Estrogen', 'Progesterone', 'Tiara'].map(relicName => (
+                <button
+                  key={relicName}
+                  onClick={() => {
+                    console.log(`🖱️ UI: Clicking relic button for "${relicName}"`)
+                    debugGiveRelic(relicName)
+                    setShowRelicDebug(false)
+                    console.log(`🖱️ UI: Relic button click completed`)
+                  }}
+                  style={{
+                    padding: '10px',
+                    border: '1px solid #ccc',
+                    borderRadius: '5px',
+                    backgroundColor: '#f8f9fa',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  {getRelicIcon(relicName)} {relicName}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowRelicDebug(false)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ccc',
+                borderRadius: '5px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Debug Card Selection Overlay */}
+      {showCardDebug && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '10px',
+            maxWidth: '600px',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h3 style={{ margin: '0 0 15px 0', textAlign: 'center' }}>Debug: Give Card</h3>
+            
+            {/* Upgrade Type Selection */}
+            <div style={{ marginBottom: '15px', textAlign: 'center' }}>
+              <label style={{ marginRight: '10px' }}>
+                <input
+                  type="radio"
+                  name="cardUpgrade"
+                  checked={cardUpgradeType === 'normal'}
+                  onChange={() => setCardUpgradeType('normal')}
+                />
+                Normal
+              </label>
+              <label style={{ marginRight: '10px' }}>
+                <input
+                  type="radio"
+                  name="cardUpgrade"
+                  checked={cardUpgradeType === 'cost-reduced'}
+                  onChange={() => setCardUpgradeType('cost-reduced')}
+                />
+                Cost Reduced
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="cardUpgrade"
+                  checked={cardUpgradeType === 'enhanced'}
+                  onChange={() => setCardUpgradeType('enhanced')}
+                />
+                Enhanced
+              </label>
+            </div>
+            
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+              gap: '8px',
+              marginBottom: '15px'
+            }}>
+              {[
+                'Imperious Orders', 'Vague Orders', 'Spritz', 'Brush', 'Sweep', 'Elimination',
+                'Quantum Choice', 'Energized', 'Options', 'Ramble', 'Report', 'Underwire',
+                'Tryst', 'Canary', 'Tingle', 'Monster', 'Argument', 'Horse', 'Forgor'
+              ].map(cardName => (
+                <button
+                  key={cardName}
+                  onClick={() => {
+                    console.log(`🖱️ UI: Clicking card button for "${cardName}" with upgrade "${cardUpgradeType}"`)
+                    const upgrades = cardUpgradeType === 'cost-reduced' 
+                      ? { costReduced: true }
+                      : cardUpgradeType === 'enhanced'
+                      ? { enhanced: true }
+                      : undefined
+                    debugGiveCard(cardName, upgrades)
+                    setShowCardDebug(false)
+                    console.log(`🖱️ UI: Card button click completed`)
+                  }}
+                  style={{
+                    padding: '8px 4px',
+                    border: '1px solid #ccc',
+                    borderRadius: '5px',
+                    backgroundColor: '#f8f9fa',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    textAlign: 'center'
+                  }}
+                >
+                  {cardName}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowCardDebug(false)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ccc',
+                borderRadius: '5px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

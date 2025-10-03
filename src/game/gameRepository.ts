@@ -178,6 +178,27 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       enhanced: 'Target a 3x3 area - annotate all neutral tiles as neutral and the rest as anything-but-neutral. Draw 1 card'
     },
     icon: '😡'
+  },
+  'Horse': {
+    name: 'Horse',
+    cost: 3,
+    category: 'reward',
+    description: {
+      base: 'Target a small burst area (Manhattan distance 1) and pick the safest owner in area and reveal ALL tiles with that owner in area. Gain status: Horse cards cost 0 for rest of level. This will end your turn when safest owner is not player!',
+      enhanced: 'Target a small burst area (Manhattan distance 1) and pick the safest owner in area. If safest owner is player, reveal ALL tiles with that owner in area. Otherwise, annotate all tiles with that owner. Gain status: Horse cards cost 0 for rest of level'
+    },
+    icon: '🐴'
+  },
+  'Forgor': {
+    name: 'Forgor',
+    cost: 0,
+    category: 'reward',
+    exhaust: true,
+    description: {
+      base: 'When you play your next card, play it twice then exhaust Forgor',
+      enhanced: 'When you play your next card, play it twice. Does not exhaust'
+    },
+    icon: '😵‍💫'
   }
 }
 
@@ -218,6 +239,24 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     description: 'caffeine grants unimaginable energy with no downsides!',
     hoverText: 'Monster: get 4 energy per turn instead of 3 but draw 1 fewer card at the start of your turns',
     category: 'common'
+  },
+  'Estrogen': {
+    name: 'Estrogen',
+    description: 'everything is just... smoother',
+    hoverText: 'Estrogen: replaces three random non-upgraded cards in your deck with their energy-upgraded versions',
+    category: 'rare'
+  },
+  'Progesterone': {
+    name: 'Progesterone',
+    description: "nothing's easier but everything's better",
+    hoverText: 'Progesterone: replaces three random non-upgraded cards in your deck with their enhance-upgraded versions',
+    category: 'rare'
+  },
+  'Tiara': {
+    name: 'Tiara',
+    description: 'now *you* are the princess',
+    hoverText: 'Tiara: receive double the copper after each level',
+    category: 'rare'
   }
 }
 
@@ -355,6 +394,23 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         name: 'Manhattan Distance 2',
         description: 'This level uses Manhattan distance (4-way) adjacency rules at distance 2 instead of standard 8-way'
       }
+    case 'horse_discount':
+      return {
+        id: baseId,
+        type: 'horse_discount',
+        icon: '🐴',
+        name: 'Horse Discount',
+        description: 'Horse cards cost 0 energy for the rest of this level'
+      }
+    case 'forgor_next':
+      return {
+        id: baseId,
+        type: 'forgor_next',
+        icon: '😵‍💫',
+        name: 'Forgor Effect',
+        description: enhanced ? 'Next card will be played twice' : 'Next card will be played twice, then Forgor exhausts',
+        enhanced
+      }
     default:
       throw new Error(`Unknown status effect type: ${type}`)
   }
@@ -375,10 +431,22 @@ export function addStatusEffect(state: GameState, effectType: StatusEffect['type
 }
 
 export function removeStatusEffect(state: GameState, effectType: StatusEffect['type']): GameState {
-  return {
+  console.log('🗑️ REMOVE STATUS EFFECT DEBUG')
+  console.log('  - Removing effect type:', effectType)
+  console.log('  - Before removal:', state.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
+  
+  const filteredEffects = state.activeStatusEffects.filter(effect => effect.type !== effectType)
+  
+  console.log('  - After filtering:', filteredEffects.map(e => ({ type: e.type, id: e.id })))
+  
+  const result = {
     ...state,
-    activeStatusEffects: state.activeStatusEffects.filter(effect => effect.type !== effectType)
+    activeStatusEffects: filteredEffects
   }
+  
+  console.log('  - Final result activeStatusEffects:', result.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
+  
+  return result
 }
 
 export function clearAllStatusEffects(state: GameState): GameState {

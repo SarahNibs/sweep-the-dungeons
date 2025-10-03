@@ -6,11 +6,15 @@ import { calculateAdjacency, getNeighbors } from './boardSystem'
 
 import { getAllRelics } from './gameRepository'
 
-export function createRelicOptions(): RelicOption[] {
+export function createRelicOptions(ownedRelics: Relic[] = []): RelicOption[] {
   const allRelics = getAllRelics()
   
-  // Shuffle the relics and take 3
-  const shuffled = [...allRelics].sort(() => Math.random() - 0.5)
+  // Filter out relics the player already owns
+  const ownedRelicNames = new Set(ownedRelics.map(relic => relic.name))
+  const availableRelics = allRelics.filter(relic => !ownedRelicNames.has(relic.name))
+  
+  // If we don't have enough unique relics, just use all available
+  const shuffled = [...availableRelics].sort(() => Math.random() - 0.5)
   return shuffled.slice(0, 3).map(relic => ({ relic }))
 }
 
@@ -34,7 +38,7 @@ export function selectRelic(state: GameState, selectedRelic: Relic): GameState {
 }
 
 export function startRelicSelection(state: GameState): GameState {
-  const relicOptions = createRelicOptions()
+  const relicOptions = createRelicOptions(state.relics)
   return {
     ...state,
     gamePhase: 'relic_selection',
@@ -355,11 +359,22 @@ function addBusyCanaryOwnerSubsetAnnotation(state: GameState, position: { x: num
 }
 
 export function triggerMopEffect(state: GameState, tilesCleanedCount: number): GameState {
+  console.log('🧽 MOP EFFECT DEBUG')
+  console.log('  - Has Mop relic:', hasRelic(state, 'Mop'))
+  console.log('  - Tiles cleaned count:', tilesCleanedCount)
+  console.log('  - Player relics:', state.relics.map(r => r.name))
+  
   if (!hasRelic(state, 'Mop') || tilesCleanedCount <= 0) {
+    console.log('  - Mop effect not triggered (no relic or no tiles cleaned)')
     return state
   }
   
+  console.log(`  - Triggering Mop effect: drawing ${tilesCleanedCount} cards`)
+  
   // Draw one card per tile cleaned using centralized draw function
-  return drawCards(state, tilesCleanedCount)
+  const result = drawCards(state, tilesCleanedCount)
+  
+  console.log('  - Mop effect completed')
+  return result
 }
 

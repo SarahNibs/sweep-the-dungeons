@@ -1,5 +1,6 @@
 import { Card as CardType } from '../types'
 import { getCardIcon, getCardDescription } from '../game/gameRepository'
+import { useGameStore } from '../store'
 
 // Energy pips display
 const renderEnergyPips = (cost: number, isPlayable: boolean) => {
@@ -45,6 +46,23 @@ interface CardProps {
 }
 
 export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isHovered = false, onHover, customOverlap, showUpgradeIndicator }: CardProps) {
+  const { activeStatusEffects } = useGameStore()
+  
+  // Calculate effective cost considering status effects
+  const getEffectiveCost = (card: CardType): number => {
+    let cost = card.cost
+    
+    // Horse discount: Horse cards cost 0
+    const hasHorseDiscount = activeStatusEffects.some(effect => effect.type === 'horse_discount')
+    if (hasHorseDiscount && card.name === 'Horse') {
+      cost = 0
+    }
+    
+    return cost
+  }
+  
+  const effectiveCost = getEffectiveCost(card)
+  
   const handleClick = () => {
     if (isPlayable) {
       onClick(card.id)
@@ -98,7 +116,7 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
           border: '2px solid #00b894'
         })
       }}>
-        {renderEnergyPips(card.cost, isPlayable)}
+        {renderEnergyPips(effectiveCost, isPlayable)}
       </div>
       
       {/* Enhanced effect indicator - positioned in bottom-left corner */}

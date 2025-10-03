@@ -37,23 +37,46 @@ export function shuffleDeck(cards: Card[]): Card[] {
 }
 
 export function drawCards(state: GameState, count: number): GameState {
+  console.log(`🃏 DRAW CARDS DEBUG - Attempting to draw ${count} cards`)
+  console.log('Before drawing:')
+  console.log('  - deck size:', state.deck.length)
+  console.log('  - hand size:', state.hand.length)
+  console.log('  - discard size:', state.discard.length)
+  
   let { deck, hand, discard } = state
   const newHand = [...hand]
   let newDeck = [...deck]
   let newDiscard = [...discard]
 
   for (let i = 0; i < count; i++) {
+    console.log(`  Drawing card ${i + 1}/${count}:`)
+    console.log(`    - deck size: ${newDeck.length}`)
+    console.log(`    - discard size: ${newDiscard.length}`)
+    
     if (newDeck.length === 0) {
-      if (newDiscard.length === 0) break
+      console.log('    - Deck empty, shuffling discard...')
+      if (newDiscard.length === 0) {
+        console.log('    - No cards to shuffle, breaking')
+        break
+      }
       newDeck = shuffleDeck(newDiscard)
       newDiscard = []
+      console.log(`    - Shuffled ${newDeck.length} cards from discard`)
     }
     
     if (newDeck.length > 0) {
       const drawnCard = newDeck.pop()!
       newHand.push(drawnCard)
+      console.log(`    - Drew card: ${drawnCard.name}`)
+    } else {
+      console.log('    - No cards available to draw!')
     }
   }
+
+  console.log('After drawing:')
+  console.log('  - deck size:', newDeck.length)
+  console.log('  - hand size:', newHand.length)
+  console.log('  - discard size:', newDiscard.length)
 
   return {
     ...state,
@@ -66,7 +89,17 @@ export function drawCards(state: GameState, count: number): GameState {
 export function canPlayCard(state: GameState, cardId: string): boolean {
   const card = state.hand.find(card => card.id === cardId)
   if (!card) return false
-  return state.energy >= card.cost
+  
+  // Apply cost reductions from status effects
+  let finalCost = card.cost
+  
+  // Horse discount: Horse cards cost 0
+  const hasHorseDiscount = state.activeStatusEffects.some(effect => effect.type === 'horse_discount')
+  if (hasHorseDiscount && card.name === 'Horse') {
+    finalCost = 0
+  }
+  
+  return state.energy >= finalCost
 }
 
 export function playCard(state: GameState, cardId: string): GameState {
@@ -75,8 +108,17 @@ export function playCard(state: GameState, cardId: string): GameState {
 
   const card = state.hand[cardIndex]
   
+  // Apply cost reductions from status effects
+  let finalCost = card.cost
+  
+  // Horse discount: Horse cards cost 0
+  const hasHorseDiscount = state.activeStatusEffects.some(effect => effect.type === 'horse_discount')
+  if (hasHorseDiscount && card.name === 'Horse') {
+    finalCost = 0
+  }
+  
   // Check if we have enough energy
-  if (state.energy < card.cost) return state
+  if (state.energy < finalCost) return state
 
   // If card requires targeting, set up pending effect
   if (requiresTargeting(card.name, card.enhanced)) {
@@ -103,6 +145,9 @@ export function playCard(state: GameState, cardId: string): GameState {
         break
       case 'Argument':
         effectType = 'argument'
+        break
+      case 'Horse':
+        effectType = 'horse'
         break
       default:
         effectType = card.name.toLowerCase().replace(' ', '_')
@@ -147,11 +192,14 @@ export function playCard(state: GameState, cardId: string): GameState {
       // Tryst needs animation - don't execute immediately
       newState = state
       break
+    case 'Forgor':
+      newState = executeCardEffect(state, { type: 'forgor' }, card)
+      break
   }
 
   const newHand = newState.hand.filter((_, index) => index !== cardIndex)
-  // Enhanced Energized cards no longer exhaust
-  const shouldExhaust = card.exhaust && !(card.name === 'Energized' && card.enhanced)
+  // Enhanced Energized and Forgor cards no longer exhaust
+  const shouldExhaust = card.exhaust && !(card.name === 'Energized' && card.enhanced) && !(card.name === 'Forgor' && card.enhanced)
   // If card has exhaust, put it in exhaust pile; otherwise put in discard
   const newDiscard = shouldExhaust ? newState.discard : [...newState.discard, card]
   const newExhaust = shouldExhaust ? [...newState.exhaust, card] : newState.exhaust
@@ -162,7 +210,7 @@ export function playCard(state: GameState, cardId: string): GameState {
     discard: newDiscard,
     exhaust: newExhaust,
     selectedCardName: card.name,
-    energy: newState.energy - card.cost
+    energy: newState.energy - finalCost
   }
 }
 
@@ -177,11 +225,20 @@ export function discardHand(state: GameState): GameState {
 }
 
 export function startNewTurn(state: GameState): GameState {
+  console.log('🔄 START NEW TURN DEBUG')
+  console.log('  - Current queued card draws:', state.queuedCardDraws)
+  console.log('  - Has Monster relic:', hasRelic(state, 'Monster'))
+  
   const discardedState = discardHand(state)
   
   // Draw regular 5 cards (or 4 with Monster relic) plus any queued card draws
   const baseCardDraw = hasRelic(state, 'Monster') ? 4 : 5
   const totalCardsToDraw = baseCardDraw + state.queuedCardDraws
+  
+  console.log('  - Base card draw:', baseCardDraw)
+  console.log('  - Queued card draws:', state.queuedCardDraws)
+  console.log('  - Total cards to draw:', totalCardsToDraw)
+  
   const drawnState = drawCards(discardedState, totalCardsToDraw)
   
   // Remove ramble status effect at start of new turn
@@ -396,13 +453,22 @@ export function getAllCardsInCollection(state: GameState): Card[] {
 
 // Queue card draws for dirt cleaning when revealing dirty tiles (for Mop relic)
 export function queueCardDrawsFromDirtCleaning(state: GameState, tilesCleanedCount: number): GameState {
+  console.log('🧽 QUEUE CARD DRAWS DEBUG')
+  console.log('  - Has Mop relic:', hasRelic(state, 'Mop'))
+  console.log('  - Tiles cleaned count:', tilesCleanedCount)
+  console.log('  - Current queued draws:', state.queuedCardDraws)
+  
   if (!hasRelic(state, 'Mop') || tilesCleanedCount <= 0) {
+    console.log('  - Not queueing cards (no relic or no tiles cleaned)')
     return state
   }
+  
+  const newQueuedDraws = state.queuedCardDraws + tilesCleanedCount
+  console.log(`  - Queueing ${tilesCleanedCount} additional card draws (total: ${newQueuedDraws})`)
   
   // Queue cards to be drawn at start of next turn
   return {
     ...state,
-    queuedCardDraws: state.queuedCardDraws + tilesCleanedCount
+    queuedCardDraws: newQueuedDraws
   }
 }

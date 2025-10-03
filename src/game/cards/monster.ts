@@ -4,5 +4,11 @@ import { drawCards } from '../cardSystem'
 export function executeMonsterEffect(state: GameState, card?: import('../../types').Card): GameState {
   // Enhanced: Draw 3 cards, Normal: Draw 2 cards
   const cardCount = card?.enhanced ? 3 : 2
-  return drawCards(state, cardCount)
+  console.log('🥤 MONSTER CARD DEBUG')
+  console.log('  - Enhanced:', card?.enhanced)
+  console.log('  - Cards to draw:', cardCount)
+  
+  const result = drawCards(state, cardCount)
+  console.log('  - Monster effect completed')
+  return result
 }

@@ -1,6 +1,6 @@
 import { GameState, Position } from '../../types'
 import { getTile, positionToKey, clearSpecialTileState } from '../boardSystem'
-import { queueCardDrawsFromDirtCleaning } from '../cardSystem'
+import { triggerMopEffect } from '../relicSystem'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
 
 export function executeScoutEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
@@ -24,8 +24,8 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
       }
     }
     
-    // Queue card draws for cleaning dirt by revealing (Mop relic effect)
-    newState = queueCardDrawsFromDirtCleaning(newState, 1)
+    // Draw card immediately for cleaning dirt (Mop relic effect)
+    newState = triggerMopEffect(newState, 1)
   }
   
   const isSafe = tile.owner === 'player' || tile.owner === 'neutral'

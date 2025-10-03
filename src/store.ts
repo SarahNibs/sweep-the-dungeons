@@ -5,6 +5,7 @@ import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
 import { startRelicSelection, selectRelic } from './game/relicSystem'
 import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, checkGameStatus, getUnrevealedTilesByOwner, revealTileWithRelicEffects } from './game/cardEffects'
+import { removeStatusEffect } from './game/gameRepository'
 import { executeTargetedReportEffect } from './game/cards/report'
 import { processRivalTurnWithDualClues } from './game/rivalAI'
 import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowRelicReward, shouldShowShopReward, calculateCopperReward } from './game/levelSystem'
@@ -44,6 +45,8 @@ interface GameStore extends GameState {
   viewPile: (pileType: PileType) => void
   closePileView: () => void
   debugWinLevel: () => void
+  debugGiveRelic: (relicName: string) => void
+  debugGiveCard: (cardName: string, upgrades?: { costReduced?: boolean; enhanced?: boolean }) => void
   startRelicSelection: () => void
   selectRelic: (relic: Relic) => void
   startShopSelection: () => void
@@ -54,21 +57,38 @@ interface GameStore extends GameState {
 
 // Helper function to update state and award copper if game was just won
 const updateStateWithCopperReward = (set: any, get: any, newState: GameState) => {
+  console.log('🏪 UPDATE STATE WITH COPPER REWARD DEBUG')
+  console.log('  - Input state underwireProtection:', newState.underwireProtection)
+  console.log('  - Input state activeStatusEffects:', newState.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
+  console.log('  - Input state hand size:', newState.hand.length)
+  console.log('  - Input state deck size:', newState.deck.length)
+  
   const previousState = get()
   const wasPlaying = previousState.gameStatus.status === 'playing'
   const isNowWon = newState.gameStatus.status === 'player_won'
   
+  let finalState
   if (wasPlaying && isNowWon) {
     // Player just won - award copper immediately
     const copperReward = calculateCopperReward(newState)
-    const stateWithCopper = {
+    finalState = {
       ...newState,
       copper: newState.copper + copperReward
     }
-    set(stateWithCopper)
+    console.log('  - Added copper reward, setting state with copper')
   } else {
-    set(newState)
+    finalState = newState
+    console.log('  - No copper reward, setting state as-is')
   }
+  
+  console.log('  - Final state underwireProtection:', finalState.underwireProtection)
+  console.log('  - Final state activeStatusEffects:', finalState.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
+  console.log('  - Final state hand size:', finalState.hand.length)
+  console.log('  - Final state deck size:', finalState.deck.length)
+  
+  set(finalState)
+  
+  console.log('🏪 STATE SET COMPLETE')
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -89,8 +109,40 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const basicState = playCard(currentState, cardId) // This won't execute the effect
       get().executeTrystWithAnimation(basicState, card.enhanced || false, undefined)
     } else {
+      // Check if forgor_next status effect is active (cards played twice)
+      const hasForgorNext = currentState.activeStatusEffects.some(effect => effect.type === 'forgor_next')
+      
       const newState = playCard(currentState, cardId)
-      set(newState)
+      
+      if (hasForgorNext && card && card.name !== 'Forgor') {
+        console.log('🔄 FORGOR DOUBLE-PLAY (immediate) - Executing card twice for:', card.name)
+        
+        // Play the card again (double effect)
+        // Find the card again in the new state (it should be in discard/exhaust)
+        const playedCard = [...newState.discard, ...newState.exhaust].find(c => c.id === cardId)
+        if (playedCard) {
+          // Temporarily add the card back to hand for the second play
+          const tempState = {
+            ...newState,
+            hand: [...newState.hand, playedCard],
+            discard: newState.discard.filter(c => c.id !== cardId),
+            exhaust: newState.exhaust.filter(c => c.id !== cardId)
+          }
+          
+          // Play the card again
+          const secondPlayState = playCard(tempState, cardId)
+          // Remove forgor_next status effect after both executions
+          const finalState = removeStatusEffect(secondPlayState, 'forgor_next')
+          console.log('🔄 FORGOR DOUBLE-PLAY (immediate) - Completed double execution and removed status effect')
+          set(finalState)
+        } else {
+          console.log('🔄 FORGOR DOUBLE-PLAY (immediate) - Could not find played card, removing status effect')
+          const stateWithoutForgor = removeStatusEffect(newState, 'forgor_next')
+          set(stateWithoutForgor)
+        }
+      } else {
+        set(newState)
+      }
     }
   },
   
@@ -188,8 +240,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // Game ended, update state with potential copper reward
       updateStateWithCopperReward(set, get, stateWithBoard)
     } else if (shouldEndTurn) {
-      // End player turn and start rival turn immediately using shared logic
-      get().performTurnEnd(stateWithBoard.board)
+      console.log('🔄 SHOULD END TURN - Passing full stateWithBoard instead of just board')
+      console.log('  - stateWithBoard underwireProtection:', stateWithBoard.underwireProtection)
+      console.log('  - stateWithBoard activeStatusEffects:', stateWithBoard.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
+      console.log('  - stateWithBoard hand size:', stateWithBoard.hand.length)
+      
+      // BUGFIX: Pass the full state instead of just the board to preserve status effects and card changes
+      const discardedState = discardHand(stateWithBoard)
+      set(discardedState)
+      get().startRivalTurn(discardedState.board)
     } else {
       // Always use the copper reward helper to ensure consistency
       updateStateWithCopperReward(set, get, stateWithBoard)
@@ -261,6 +320,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } else if (effect.type === 'argument') {
       newEffect = { type: 'argument', target: position }
       shouldExecute = true
+    } else if (effect.type === 'horse') {
+      newEffect = { type: 'horse', target: position }
+      shouldExecute = true
     }
     
     if (shouldExecute && newEffect) {
@@ -277,12 +339,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
         return
       }
       
-      // Execute the effect with the card for enhanced effects
-      const effectState = executeCardEffect(currentState, newEffect, card)
+      // Check if forgor_next status effect is active (cards played twice)
+      const hasForgorNext = currentState.activeStatusEffects.some(effect => effect.type === 'forgor_next')
       
-      const newHand = currentState.hand.filter(c => c.id !== card.id)
-      // Enhanced Energized cards no longer exhaust
-      const baseExhaust = card.exhaust && !(card.name === 'Energized' && card.enhanced)
+      // Execute the effect with the card for enhanced effects
+      let effectState = executeCardEffect(currentState, newEffect, card)
+      
+      // If forgor_next is active and this isn't Forgor card, execute the effect again
+      if (hasForgorNext && card.name !== 'Forgor') {
+        console.log('🔄 FORGOR DOUBLE-PLAY - Executing card effect twice for:', card.name)
+        // Execute the card effect again BEFORE removing the status
+        effectState = executeCardEffect(effectState, newEffect, card)
+        // Remove forgor_next status effect after both executions
+        effectState = removeStatusEffect(effectState, 'forgor_next')
+        console.log('🔄 FORGOR DOUBLE-PLAY - Completed double execution and removed status effect')
+      }
+      
+      // BUGFIX: Remove card from the hand AFTER card effects (which may have drawn cards)
+      const newHand = effectState.hand.filter(c => c.id !== card.id)
+      // Enhanced Energized and Forgor cards no longer exhaust
+      const baseExhaust = card.exhaust && !(card.name === 'Energized' && card.enhanced) && !(card.name === 'Forgor' && card.enhanced)
       const shouldExhaust = baseExhaust || effectState.shouldExhaustLastCard
       // If card has exhaust, put it in exhaust pile; otherwise put in discard
       const newDiscard = shouldExhaust ? effectState.discard : [...effectState.discard, card]
@@ -317,10 +393,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
         
         if (revealedTile && shouldEndPlayerTurn(revealedTile)) {
-          get().performTurnEnd(finalState.board)
+          console.log('🔄 QUANTUM ENDING TURN - Using finalState instead of just board')
+          const discardedState = discardHand(finalState)
+          set(discardedState)
+          get().startRivalTurn(discardedState.board)
           return
         }
       }
+      
+      console.log('🎯 SETTING FINAL STATE FROM CARD EFFECT')
+      console.log('  - Card played:', card.name)
+      console.log('  - Effect type:', newEffect.type)
+      console.log('  - Final state hand size:', finalState.hand.length)
+      console.log('  - Final state deck size:', finalState.deck.length)
+      console.log('  - Final state activeStatusEffects:', finalState.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
       
       set(finalState)
     } else if (newEffect) {
@@ -1004,6 +1090,66 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameStatus
     }
     updateStateWithCopperReward(set, get, stateWithGameStatus)
+  },
+  
+  debugGiveRelic: (relicName: string) => {
+    console.log(`🎯 DEBUG: debugGiveRelic called with "${relicName}"`)
+    const currentState = get()
+    console.log('Current relics:', currentState.relics.map(r => r.name))
+    
+    // Import dynamically to avoid require issues
+    import('./game/gameRepository').then(({ getAllRelics }) => {
+      const allRelics = getAllRelics()
+      console.log('All available relics:', allRelics.map((r: any) => r.name))
+      
+      const relic = allRelics.find((r: any) => r.name === relicName)
+      
+      if (!relic) {
+        console.warn(`❌ Relic "${relicName}" not found in getAllRelics()`)
+        return
+      }
+      
+      // Check if already has this relic
+      if (currentState.relics.some(r => r.name === relicName)) {
+        console.warn(`❌ Already has relic "${relicName}"`)
+        return
+      }
+      
+      console.log(`🎁 DEBUG: Giving relic "${relicName}"`, relic)
+      const newState = {
+        ...currentState,
+        relics: [...currentState.relics, relic]
+      }
+      console.log('New relics after update:', newState.relics.map(r => r.name))
+      set(newState)
+      console.log('✅ debugGiveRelic completed')
+    }).catch(err => {
+      console.error('Failed to import gameRepository:', err)
+    })
+  },
+  
+  debugGiveCard: (cardName: string, upgrades?: { costReduced?: boolean; enhanced?: boolean }) => {
+    console.log(`🎯 DEBUG: debugGiveCard called with "${cardName}"`, upgrades)
+    const currentState = get()
+    console.log('Current hand size:', currentState.hand.length)
+    console.log('Current hand cards:', currentState.hand.map(c => c.name))
+    
+    // Import dynamically to avoid require issues
+    import('./game/cardSystem').then(({ createCard }) => {
+      const card = createCard(cardName, upgrades)
+      
+      console.log(`🎁 DEBUG: Created card:`, card)
+      const newState = {
+        ...currentState,
+        hand: [...currentState.hand, card]
+      }
+      console.log('New hand size after update:', newState.hand.length)
+      console.log('New hand cards:', newState.hand.map(c => c.name))
+      set(newState)
+      console.log('✅ debugGiveCard completed')
+    }).catch(err => {
+      console.error('Failed to import cardSystem:', err)
+    })
   },
 
   startUpgradeSelection: () => {

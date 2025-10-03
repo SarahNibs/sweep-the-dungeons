@@ -18,7 +18,8 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
   const isSweepTargeting = selectedCardName === 'Sweep' && pendingCardEffect?.type === 'sweep'
   const isCanaryTargeting = selectedCardName === 'Canary' && pendingCardEffect?.type === 'canary'
   const isArgumentTargeting = selectedCardName === 'Argument' && pendingCardEffect?.type === 'argument'
-  const isAreaTargeting = isBrushTargeting || isSweepTargeting || isCanaryTargeting || isArgumentTargeting
+  const isHorseTargeting = selectedCardName === 'Horse' && pendingCardEffect?.type === 'horse'
+  const isAreaTargeting = isBrushTargeting || isSweepTargeting || isCanaryTargeting || isArgumentTargeting || isHorseTargeting
   
   // Find the current selected card to check if enhanced
   const selectedCard = hand.find(card => card.name === selectedCardName)
@@ -29,6 +30,7 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
     if (cardName === 'Sweep') return { size: isEnhanced ? 3 : 2, pattern: 'square' } // Enhanced: 7x7 (range = 3), Normal: 5x5 (range = 2)
     if (cardName === 'Canary') return { size: isEnhanced ? 1 : 1, pattern: isEnhanced ? 'square' : 'manhattan' } // Enhanced: 3x3, Normal: star
     if (cardName === 'Argument') return { size: 1, pattern: 'square' } // Always 3x3 for Argument (range = 1)
+    if (cardName === 'Horse') return { size: 1, pattern: 'manhattan' } // Manhattan distance 1 (cross shape)
     return { size: 1, pattern: 'square' } // Default
   }
   

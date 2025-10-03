@@ -16,6 +16,8 @@ import { executeTrystEffect } from './cards/tryst'
 import { executeCanaryEffect } from './cards/canary'
 import { executeMonsterEffect } from './cards/monster'
 import { executeArgumentEffect } from './cards/argument'
+import { executeHorseEffect } from './cards/horse'
+import { executeForgorEffect } from './cards/forgor'
 
 // Shared reveal function that includes relic effects
 export function revealTileWithRelicEffects(state: GameState, position: Position, revealer: 'player' | 'rival'): GameState {
@@ -30,9 +32,19 @@ export function revealTileWithRelicEffects(state: GameState, position: Position,
   // Handle Underwire protection if player revealed a mine
   if (revealer === 'player' && revealResult.revealed) {
     const tile = getTile(newBoard, position)
+    console.log('🔍 UNDERWIRE DEBUG - Player revealed tile:', {
+      position,
+      tileExists: !!tile,
+      tileOwner: tile?.owner,
+      underwireProtection: state.underwireProtection,
+      activeStatusEffects: state.activeStatusEffects.map(e => e.type)
+    })
+    
     if (tile && tile.owner === 'mine' && state.underwireProtection?.active) {
-      console.log('🛡️ Underwire protection triggered! Removing status effect...')
-      console.log('Before removal - activeStatusEffects:', state.activeStatusEffects)
+      console.log('🛡️ UNDERWIRE TRIGGERED - Mine revealed with active protection!')
+      console.log('Before protection logic:')
+      console.log('  - underwireProtection:', state.underwireProtection)
+      console.log('  - activeStatusEffects:', state.activeStatusEffects)
       
       // Mark the mine tile as protected and consume the underwire protection
       const isEnhanced = state.underwireProtection.enhanced
@@ -53,9 +65,20 @@ export function revealTileWithRelicEffects(state: GameState, position: Position,
         underwireProtection: null,
         underwireUsedThisTurn: !isEnhanced // Only mark for turn end if basic Underwire
       }
+      
+      console.log('After setting state (before removeStatusEffect):')
+      console.log('  - underwireProtection:', stateWithBoard.underwireProtection)
+      console.log('  - activeStatusEffects:', stateWithBoard.activeStatusEffects)
+      
       // Remove the status effect
       stateWithBoard = removeStatusEffect(stateWithBoard, 'underwire_protection')
-      console.log('After removal - activeStatusEffects:', stateWithBoard.activeStatusEffects)
+      
+      console.log('After removeStatusEffect:')
+      console.log('  - underwireProtection:', stateWithBoard.underwireProtection)
+      console.log('  - activeStatusEffects:', stateWithBoard.activeStatusEffects)
+      console.log('🛡️ UNDERWIRE PROTECTION CONSUMED')
+    } else if (tile && tile.owner === 'mine') {
+      console.log('💥 MINE REVEALED WITHOUT PROTECTION - Game should end')
     }
   }
   
@@ -89,6 +112,12 @@ export function revealTileWithRelicEffects(state: GameState, position: Position,
       }
     }
   }
+  
+  console.log('🔚 REVEAL TILE WITH RELIC EFFECTS - FINAL STATE')
+  console.log('  - Final underwireProtection:', stateWithBoard.underwireProtection)
+  console.log('  - Final activeStatusEffects:', stateWithBoard.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
+  console.log('  - Final hand size:', stateWithBoard.hand.length)
+  console.log('  - Final deck size:', stateWithBoard.deck.length)
   
   return stateWithBoard
 }
@@ -355,6 +384,10 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
       return executeMonsterEffect(state, card)
     case 'argument':
       return executeArgumentEffect(state, effect.target, card)
+    case 'horse':
+      return executeHorseEffect(state, effect.target, card)
+    case 'forgor':
+      return executeForgorEffect(state, card)
     default:
       return state
   }
@@ -364,7 +397,7 @@ export function requiresTargeting(cardName: string, enhanced?: boolean): boolean
   if (cardName === 'Tryst') {
     return enhanced || false // Only enhanced Tryst requires targeting
   }
-  return cardName === 'Spritz' || cardName === 'Easiest' || cardName === 'Brush' || cardName === 'Sweep' || cardName === 'Canary' || cardName === 'Argument'
+  return cardName === 'Spritz' || cardName === 'Easiest' || cardName === 'Brush' || cardName === 'Sweep' || cardName === 'Canary' || cardName === 'Argument' || cardName === 'Horse'
 }
 
 export function getTargetingInfo(cardName: string, enhanced?: boolean): { count: number; description: string } | null {
@@ -383,6 +416,8 @@ export function getTargetingInfo(cardName: string, enhanced?: boolean): { count:
       return { count: 1, description: enhanced ? 'Click center of 3x3 area to detect mines' : 'Click center of star area to detect mines' }
     case 'Argument':
       return { count: 1, description: enhanced ? 'Click center of 3x3 area to identify neutral tiles and draw 1 card' : 'Click center of 3x3 area to identify neutral tiles' }
+    case 'Horse':
+      return { count: 1, description: enhanced ? 'Click center of small area - reveal/annotate all tiles of safest owner in area, Horse cards cost 0' : 'Click center of small area - reveal all tiles of safest owner in area, Horse cards cost 0 (ends turn if not player!)' }
     default:
       return null
   }

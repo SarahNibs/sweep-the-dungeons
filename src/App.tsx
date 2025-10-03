@@ -54,6 +54,7 @@ function App() {
     upgradeOptions,
     relicOptions,
     relics,
+    relicUpgradeResults,
     shopOptions,
     purchasedShopItems,
     pileViewingType,
@@ -73,6 +74,7 @@ function App() {
     selectCardForRemoval,
     waitingForCardRemoval,
     selectRelic,
+    closeRelicUpgradeDisplay,
     purchaseShopItem,
     removeSelectedCard,
     exitShop,
@@ -339,6 +341,139 @@ function App() {
           relicOptions={relicOptions}
           onRelicSelect={selectRelic}
         />
+      )}
+
+      {/* Relic Upgrade Display */}
+      {gamePhase === 'relic_upgrade_display' && relicUpgradeResults && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+        >
+          <div 
+            style={{
+              backgroundColor: '#2d3748',
+              borderRadius: '8px',
+              padding: '30px',
+              border: '2px solid #4a5568',
+              maxWidth: '600px',
+              width: '90%',
+              maxHeight: '80%',
+              overflow: 'auto'
+            }}
+          >
+            <h2 style={{ 
+              color: '#e2e8f0', 
+              marginBottom: '20px', 
+              textAlign: 'center',
+              fontSize: '24px',
+              fontWeight: 'bold'
+            }}>
+              Cards Upgraded!
+            </h2>
+            
+            <div style={{ marginBottom: '20px' }}>
+              {relicUpgradeResults.map((result, index) => (
+                <div key={index} style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  marginBottom: '15px',
+                  padding: '10px',
+                  backgroundColor: '#1a202c',
+                  borderRadius: '6px',
+                  border: '1px solid #4a5568'
+                }}>
+                  {/* Before Card */}
+                  <div style={{ flex: 1, textAlign: 'center' }}>
+                    <div style={{ 
+                      backgroundColor: '#374151',
+                      borderRadius: '4px',
+                      padding: '8px',
+                      border: '1px solid #6b7280'
+                    }}>
+                      <div style={{ 
+                        fontSize: '14px', 
+                        color: '#9ca3af',
+                        marginBottom: '4px'
+                      }}>
+                        {getCardIcon(result.before.name)} {result.before.name}
+                      </div>
+                      <div style={{ 
+                        fontSize: '12px', 
+                        color: '#6b7280'
+                      }}>
+                        Cost: {result.before.cost}
+                        {result.before.enhanced && ' • Enhanced'}
+                        {result.before.costReduced && ' • Cost Reduced'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Arrow */}
+                  <div style={{ 
+                    margin: '0 15px', 
+                    fontSize: '24px', 
+                    color: '#10b981'
+                  }}>
+                    →
+                  </div>
+                  
+                  {/* After Card */}
+                  <div style={{ flex: 1, textAlign: 'center' }}>
+                    <div style={{ 
+                      backgroundColor: '#065f46',
+                      borderRadius: '4px',
+                      padding: '8px',
+                      border: '1px solid #10b981'
+                    }}>
+                      <div style={{ 
+                        fontSize: '14px', 
+                        color: '#d1fae5',
+                        marginBottom: '4px'
+                      }}>
+                        {getCardIcon(result.after.name)} {result.after.name}
+                      </div>
+                      <div style={{ 
+                        fontSize: '12px', 
+                        color: '#a7f3d0'
+                      }}>
+                        Cost: {result.after.cost}
+                        {result.after.enhanced && ' • Enhanced'}
+                        {result.after.costReduced && ' • Cost Reduced'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <button
+              onClick={closeRelicUpgradeDisplay}
+              style={{
+                width: '100%',
+                padding: '12px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Shop Selection Screen */}

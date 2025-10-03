@@ -132,12 +132,13 @@ export interface GameState {
   playerClueCounter: number // Counter for player clue rows
   rivalClueCounter: number // Counter for rival clue rows
   currentLevelId: string
-  gamePhase: 'playing' | 'card_selection' | 'viewing_pile' | 'upgrade_selection' | 'relic_selection' | 'shop_selection'
+  gamePhase: 'playing' | 'card_selection' | 'viewing_pile' | 'upgrade_selection' | 'relic_selection' | 'shop_selection' | 'relic_upgrade_display'
   pileViewingType?: PileType
   cardSelectionOptions?: Card[] // Three cards to choose from when advancing level
   upgradeOptions?: UpgradeOption[] // Three upgrade options to choose from
   waitingForCardRemoval?: boolean // True when remove card option was selected
   pendingUpgradeOption?: UpgradeOption // The upgrade option waiting to be applied after card removal
+  relicUpgradeResults?: { before: Card; after: Card }[] // Results from Estrogen/Progesterone relic effects
   relicOptions?: RelicOption[] // Three relic options to choose from
   relics: Relic[] // Relics the player currently has
   isFirstTurn: boolean // True if this is the first turn of the level (for Frilly Dress)

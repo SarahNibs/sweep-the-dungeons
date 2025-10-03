@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { GameState, Tile, Position, CardEffect, Board, Card as CardType, PileType, Relic } from './types'
 import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel, queueCardDrawsFromDirtCleaning } from './game/cardSystem'
 import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
-import { startRelicSelection, selectRelic } from './game/relicSystem'
+import { startRelicSelection, selectRelic, closeRelicUpgradeDisplay } from './game/relicSystem'
 import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, checkGameStatus, getUnrevealedTilesByOwner, revealTileWithRelicEffects } from './game/cardEffects'
 import { removeStatusEffect } from './game/gameRepository'
@@ -49,6 +49,7 @@ interface GameStore extends GameState {
   debugGiveCard: (cardName: string, upgrades?: { costReduced?: boolean; enhanced?: boolean }) => void
   startRelicSelection: () => void
   selectRelic: (relic: Relic) => void
+  closeRelicUpgradeDisplay: () => void
   startShopSelection: () => void
   purchaseShopItem: (optionIndex: number) => void
   removeSelectedCard: (cardId: string) => void
@@ -1193,6 +1194,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const currentState = get()
     const nextLevelState = selectRelic(currentState, relic)
     set(nextLevelState)
+  },
+
+  closeRelicUpgradeDisplay: () => {
+    const currentState = get()
+    const nextState = closeRelicUpgradeDisplay(currentState)
+    set(nextState)
   },
 
   startShopSelection: () => {

@@ -4,7 +4,7 @@ import { shouldShowShopReward } from './levelSystem'
 import { startShopSelection } from './shopSystem'
 import { calculateAdjacency, getNeighbors } from './boardSystem'
 
-import { getAllRelics } from './gameRepository'
+import { getAllRelics, createCard } from './gameRepository'
 
 export function createRelicOptions(ownedRelics: Relic[] = []): RelicOption[] {
   const allRelics = getAllRelics()
@@ -21,11 +21,18 @@ export function createRelicOptions(ownedRelics: Relic[] = []): RelicOption[] {
 export function selectRelic(state: GameState, selectedRelic: Relic): GameState {
   const newRelics = [...state.relics, selectedRelic]
   
-  const updatedState = {
+  let updatedState = {
     ...state,
     relics: newRelics,
     gamePhase: 'playing' as const,
     relicOptions: undefined
+  }
+  
+  // Apply special relic effects for Estrogen and Progesterone
+  if (selectedRelic.name === 'Estrogen') {
+    updatedState = applyEstrogenEffect(updatedState)
+  } else if (selectedRelic.name === 'Progesterone') {
+    updatedState = applyProgesteroneEffect(updatedState)
   }
   
   // Check if this level should show shop rewards after relic selection
@@ -48,6 +55,121 @@ export function startRelicSelection(state: GameState): GameState {
 
 export function hasRelic(state: GameState, relicName: string): boolean {
   return state.relics.some(relic => relic.name === relicName)
+}
+
+function getEligibleCardsForUpgrade(cards: import('../types').Card[], upgradeType: 'cost_reduction' | 'enhance_effect'): import('../types').Card[] {
+  return cards.filter(card => {
+    if (upgradeType === 'cost_reduction') {
+      // Can only reduce cost if cost > 0 and not already cost-reduced
+      return card.cost > 0 && !card.costReduced
+    } else {
+      // Can only enhance if not already enhanced
+      return !card.enhanced
+    }
+  })
+}
+
+function selectRandomCards(cards: import('../types').Card[], count: number): import('../types').Card[] {
+  const shuffled = [...cards].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, Math.min(count, cards.length))
+}
+
+export function applyEstrogenEffect(state: GameState): GameState {
+  console.log('💉 ESTROGEN EFFECT - Applying cost reduction to 3 random cards')
+  
+  // Find eligible cards for cost reduction
+  const eligibleCards = getEligibleCardsForUpgrade(state.persistentDeck, 'cost_reduction')
+  console.log('💉 ESTROGEN - Eligible cards for cost reduction:', eligibleCards.length)
+  
+  if (eligibleCards.length === 0) {
+    console.log('💉 ESTROGEN - No eligible cards, returning state unchanged')
+    return state
+  }
+  
+  // Select up to 3 random cards
+  const selectedCards = selectRandomCards(eligibleCards, 3)
+  console.log('💉 ESTROGEN - Selected cards for upgrade:', selectedCards.map(c => c.name))
+  
+  // Apply cost reduction upgrades
+  const upgradeResults: { before: import('../types').Card; after: import('../types').Card }[] = []
+  let newPersistentDeck = [...state.persistentDeck]
+  
+  selectedCards.forEach(card => {
+    const upgradedCard = createCard(card.name, { costReduced: true, enhanced: card.enhanced })
+    const cardIndex = newPersistentDeck.findIndex(c => c.id === card.id)
+    
+    if (cardIndex !== -1) {
+      newPersistentDeck[cardIndex] = upgradedCard
+      upgradeResults.push({ before: card, after: upgradedCard })
+    }
+  })
+  
+  console.log('💉 ESTROGEN - Applied upgrades to', upgradeResults.length, 'cards')
+  
+  return {
+    ...state,
+    persistentDeck: newPersistentDeck,
+    gamePhase: 'relic_upgrade_display',
+    relicUpgradeResults: upgradeResults
+  }
+}
+
+export function applyProgesteroneEffect(state: GameState): GameState {
+  console.log('💊 PROGESTERONE EFFECT - Applying enhanced effects to 3 random cards')
+  
+  // Find eligible cards for enhancement
+  const eligibleCards = getEligibleCardsForUpgrade(state.persistentDeck, 'enhance_effect')
+  console.log('💊 PROGESTERONE - Eligible cards for enhancement:', eligibleCards.length)
+  
+  if (eligibleCards.length === 0) {
+    console.log('💊 PROGESTERONE - No eligible cards, returning state unchanged')
+    return state
+  }
+  
+  // Select up to 3 random cards
+  const selectedCards = selectRandomCards(eligibleCards, 3)
+  console.log('💊 PROGESTERONE - Selected cards for upgrade:', selectedCards.map(c => c.name))
+  
+  // Apply enhancement upgrades
+  const upgradeResults: { before: import('../types').Card; after: import('../types').Card }[] = []
+  let newPersistentDeck = [...state.persistentDeck]
+  
+  selectedCards.forEach(card => {
+    const upgradedCard = createCard(card.name, { costReduced: card.costReduced, enhanced: true })
+    const cardIndex = newPersistentDeck.findIndex(c => c.id === card.id)
+    
+    if (cardIndex !== -1) {
+      newPersistentDeck[cardIndex] = upgradedCard
+      upgradeResults.push({ before: card, after: upgradedCard })
+    }
+  })
+  
+  console.log('💊 PROGESTERONE - Applied upgrades to', upgradeResults.length, 'cards')
+  
+  return {
+    ...state,
+    persistentDeck: newPersistentDeck,
+    gamePhase: 'relic_upgrade_display',
+    relicUpgradeResults: upgradeResults
+  }
+}
+
+export function closeRelicUpgradeDisplay(state: GameState): GameState {
+  console.log('📋 CLOSING RELIC UPGRADE DISPLAY')
+  
+  const updatedState = {
+    ...state,
+    gamePhase: 'playing' as const,
+    relicUpgradeResults: undefined
+  }
+  
+  // Check if this level should show shop rewards after closing display
+  if (shouldShowShopReward(state.currentLevelId)) {
+    return startShopSelection(updatedState)
+  } else {
+    // No shop rewards - advance to next level immediately
+    return advanceToNextLevel(updatedState)
+  }
 }
 
 // Relic effect implementations

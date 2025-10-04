@@ -26,7 +26,6 @@ export type CardEffect =
   | { type: 'monster' }
   | { type: 'argument'; target: Position }
   | { type: 'horse'; target: Position }
-  | { type: 'forgor' }
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
@@ -225,7 +224,7 @@ export interface ShopOption {
 
 export interface StatusEffect {
   id: string
-  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount' | 'forgor_next'
+  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount'
   icon: string
   name: string
   description: string

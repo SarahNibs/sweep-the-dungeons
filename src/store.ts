@@ -110,40 +110,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const basicState = playCard(currentState, cardId) // This won't execute the effect
       get().executeTrystWithAnimation(basicState, card.enhanced || false, undefined)
     } else {
-      // Check if forgor_next status effect is active (cards played twice)
-      const hasForgorNext = currentState.activeStatusEffects.some(effect => effect.type === 'forgor_next')
-      
       const newState = playCard(currentState, cardId)
-      
-      if (hasForgorNext && card && card.name !== 'Forgor') {
-        console.log('🔄 FORGOR DOUBLE-PLAY (immediate) - Executing card twice for:', card.name)
-        
-        // Play the card again (double effect)
-        // Find the card again in the new state (it should be in discard/exhaust)
-        const playedCard = [...newState.discard, ...newState.exhaust].find(c => c.id === cardId)
-        if (playedCard) {
-          // Temporarily add the card back to hand for the second play
-          const tempState = {
-            ...newState,
-            hand: [...newState.hand, playedCard],
-            discard: newState.discard.filter(c => c.id !== cardId),
-            exhaust: newState.exhaust.filter(c => c.id !== cardId)
-          }
-          
-          // Play the card again
-          const secondPlayState = playCard(tempState, cardId)
-          // Remove forgor_next status effect after both executions
-          const finalState = removeStatusEffect(secondPlayState, 'forgor_next')
-          console.log('🔄 FORGOR DOUBLE-PLAY (immediate) - Completed double execution and removed status effect')
-          set(finalState)
-        } else {
-          console.log('🔄 FORGOR DOUBLE-PLAY (immediate) - Could not find played card, removing status effect')
-          const stateWithoutForgor = removeStatusEffect(newState, 'forgor_next')
-          set(stateWithoutForgor)
-        }
-      } else {
-        set(newState)
-      }
+      set(newState)
     }
   },
   
@@ -340,26 +308,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
         return
       }
       
-      // Check if forgor_next status effect is active (cards played twice)
-      const hasForgorNext = currentState.activeStatusEffects.some(effect => effect.type === 'forgor_next')
-      
       // Execute the effect with the card for enhanced effects
       let effectState = executeCardEffect(currentState, newEffect, card)
       
-      // If forgor_next is active and this isn't Forgor card, execute the effect again
-      if (hasForgorNext && card.name !== 'Forgor') {
-        console.log('🔄 FORGOR DOUBLE-PLAY - Executing card effect twice for:', card.name)
-        // Execute the card effect again BEFORE removing the status
-        effectState = executeCardEffect(effectState, newEffect, card)
-        // Remove forgor_next status effect after both executions
-        effectState = removeStatusEffect(effectState, 'forgor_next')
-        console.log('🔄 FORGOR DOUBLE-PLAY - Completed double execution and removed status effect')
-      }
-      
       // BUGFIX: Remove card from the hand AFTER card effects (which may have drawn cards)
       const newHand = effectState.hand.filter(c => c.id !== card.id)
-      // Enhanced Energized and Forgor cards no longer exhaust
-      const baseExhaust = card.exhaust && !(card.name === 'Energized' && card.enhanced) && !(card.name === 'Forgor' && card.enhanced)
+      // Enhanced Energized cards no longer exhaust
+      const baseExhaust = card.exhaust && !(card.name === 'Energized' && card.enhanced)
       const shouldExhaust = baseExhaust || effectState.shouldExhaustLastCard
       // If card has exhaust, put it in exhaust pile; otherwise put in discard
       const newDiscard = shouldExhaust ? effectState.discard : [...effectState.discard, card]

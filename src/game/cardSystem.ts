@@ -192,14 +192,11 @@ export function playCard(state: GameState, cardId: string): GameState {
       // Tryst needs animation - don't execute immediately
       newState = state
       break
-    case 'Forgor':
-      newState = executeCardEffect(state, { type: 'forgor' }, card)
-      break
   }
 
   const newHand = newState.hand.filter((_, index) => index !== cardIndex)
-  // Enhanced Energized and Forgor cards no longer exhaust
-  const shouldExhaust = card.exhaust && !(card.name === 'Energized' && card.enhanced) && !(card.name === 'Forgor' && card.enhanced)
+  // Enhanced Energized cards no longer exhaust
+  const shouldExhaust = card.exhaust && !(card.name === 'Energized' && card.enhanced)
   // If card has exhaust, put it in exhaust pile; otherwise put in discard
   const newDiscard = shouldExhaust ? newState.discard : [...newState.discard, card]
   const newExhaust = shouldExhaust ? [...newState.exhaust, card] : newState.exhaust

@@ -17,7 +17,6 @@ import { executeCanaryEffect } from './cards/canary'
 import { executeMonsterEffect } from './cards/monster'
 import { executeArgumentEffect } from './cards/argument'
 import { executeHorseEffect } from './cards/horse'
-import { executeForgorEffect } from './cards/forgor'
 
 // Shared reveal function that includes relic effects
 export function revealTileWithRelicEffects(state: GameState, position: Position, revealer: 'player' | 'rival'): GameState {
@@ -386,8 +385,6 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
       return executeArgumentEffect(state, effect.target, card)
     case 'horse':
       return executeHorseEffect(state, effect.target, card)
-    case 'forgor':
-      return executeForgorEffect(state, card)
     default:
       return state
   }

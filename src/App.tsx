@@ -633,7 +633,7 @@ function App() {
               {[
                 'Imperious Orders', 'Vague Orders', 'Spritz', 'Brush', 'Sweep', 'Elimination',
                 'Quantum Choice', 'Energized', 'Options', 'Ramble', 'Report', 'Underwire',
-                'Tryst', 'Canary', 'Tingle', 'Monster', 'Argument', 'Horse', 'Forgor'
+                'Tryst', 'Canary', 'Tingle', 'Monster', 'Argument', 'Horse'
               ].map(cardName => (
                 <button
                   key={cardName}

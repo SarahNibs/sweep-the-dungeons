@@ -378,12 +378,9 @@ export function triggerBusyCanaryEffect(state: GameState): GameState {
   
   let currentState = state
   let mineFound = false
-  let attempts = 0
-  const maxAttempts = 50 // Safety limit to prevent infinite loops
+  const maxReveals = 2 // Try at most 2 area reveals
   
-  while (!mineFound && attempts < maxAttempts) {
-    attempts++
-    
+  for (let revealAttempt = 0; revealAttempt < maxReveals && !mineFound; revealAttempt++) {
     // Get all tiles on the board
     const allTiles = Array.from(currentState.board.tiles.values()).filter(tile => 
       tile.owner !== 'empty' && !tile.revealed

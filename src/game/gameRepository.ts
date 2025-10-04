@@ -189,17 +189,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     },
     icon: '🐴'
   },
-  'Forgor': {
-    name: 'Forgor',
-    cost: 0,
-    category: 'reward',
-    exhaust: true,
-    description: {
-      base: 'When you play your next card, play it twice then exhaust Forgor',
-      enhanced: 'When you play your next card, play it twice. Does not exhaust'
-    },
-    icon: '😵‍💫'
-  }
 }
 
 // Centralized relic definitions
@@ -225,7 +214,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   'Busy Canary': {
     name: 'Busy Canary',
     description: 'industrious bird who scans for mines at level start',
-    hoverText: 'Busy Canary: at the beginning of every level, randomly scan areas for mines until at least one mine is detected',
+    hoverText: 'Busy Canary: at the beginning of every level, randomly scan up to 2 areas for mines',
     category: 'common'
   },
   'Mop': {
@@ -401,15 +390,6 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         icon: '🐴',
         name: 'Horse Discount',
         description: 'Horse cards cost 0 energy for the rest of this level'
-      }
-    case 'forgor_next':
-      return {
-        id: baseId,
-        type: 'forgor_next',
-        icon: '😵‍💫',
-        name: 'Forgor Effect',
-        description: enhanced ? 'Next card will be played twice' : 'Next card will be played twice, then Forgor exhausts',
-        enhanced
       }
     default:
       throw new Error(`Unknown status effect type: ${type}`)

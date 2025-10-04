@@ -36,5 +36,47 @@ export function executeArgumentEffect(state: GameState, target: Position, card?:
     currentState = drawCards(currentState, 1)
   }
   
+  // Add game annotations to unrevealed tiles in the 3x3 area
+  const unrevealedTilesInArea: Position[] = []
+  for (let x = centerX - 1; x <= centerX + 1; x++) {
+    for (let y = centerY - 1; y <= centerY + 1; y++) {
+      const pos = { x, y }
+      const key = `${x},${y}`
+      const tile = currentState.board.tiles.get(key)
+      
+      if (tile && !tile.revealed && tile.owner !== 'empty') {
+        unrevealedTilesInArea.push(pos)
+      }
+    }
+  }
+  
+  // Check what neutral tiles were found in the area to determine annotations
+  let hasNeutralTiles = false
+  for (let x = centerX - 1; x <= centerX + 1; x++) {
+    for (let y = centerY - 1; y <= centerY + 1; y++) {
+      const key = `${x},${y}`
+      const tile = currentState.board.tiles.get(key)
+      
+      if (tile && !tile.revealed && tile.owner === 'neutral') {
+        hasNeutralTiles = true
+        break
+      }
+    }
+  }
+  
+  // If there are neutral tiles in the area, annotate other unrevealed tiles as "anything but neutral"
+  if (hasNeutralTiles) {
+    const anythingButNeutralSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player', 'rival', 'mine'])
+    unrevealedTilesInArea.forEach(pos => {
+      const key = `${pos.x},${pos.y}`
+      const tile = currentState.board.tiles.get(key)
+      
+      // Only annotate non-neutral tiles
+      if (tile && tile.owner !== 'neutral') {
+        currentState = addOwnerSubsetAnnotation(currentState, pos, anythingButNeutralSubset)
+      }
+    })
+  }
+  
   return currentState
 }

@@ -65,6 +65,36 @@ export function executeHorseEffect(state: GameState, target: Position, card?: im
     // This will be handled by the store logic checking the card effect results
   }
   
+  // Add game annotations to unrevealed tiles in the area
+  const unrevealedTilesInArea = area
+    .map(pos => ({ pos, tile: getTile(newState.board, pos) }))
+    .filter(({ tile }) => tile && !tile.revealed && tile.owner !== 'empty')
+  
+  // Determine what to exclude based on what was revealed
+  let exclusionSet: Set<'player' | 'rival' | 'neutral' | 'mine'>
+  
+  if (safestOwner === 'player') {
+    // All player tiles were revealed, so remaining tiles are anything but player
+    exclusionSet = new Set(['rival', 'neutral', 'mine'])
+  } else if (safestOwner === 'neutral') {
+    // All neutral tiles were revealed, and since player has higher priority but wasn't chosen,
+    // there were no player tiles. So remaining tiles are anything but player or neutral
+    exclusionSet = new Set(['rival', 'mine'])
+  } else if (safestOwner === 'rival') {
+    // All rival tiles were revealed, and since player/neutral have higher priority but weren't chosen,
+    // there were no player or neutral tiles. So remaining tiles must be mines
+    exclusionSet = new Set(['mine'])
+  } else {
+    // safestOwner === 'mine' - all mines revealed, game probably lost anyway
+    // But for completeness, remaining tiles are anything but mines
+    exclusionSet = new Set(['player', 'rival', 'neutral'])
+  }
+  
+  // Apply annotations to unrevealed tiles
+  unrevealedTilesInArea.forEach(({ pos }) => {
+    newState = addOwnerSubsetAnnotation(newState, pos, exclusionSet)
+  })
+  
   // Add Horse discount status effect
   newState = addStatusEffect(newState, 'horse_discount')
   

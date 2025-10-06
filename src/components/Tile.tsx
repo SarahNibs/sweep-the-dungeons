@@ -633,6 +633,81 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         )
       }
       
+      // Render adjacency info from Eavesdropping card (center of tile)
+      const adjacencyAnnotation = tile.annotations.find(a => a.type === 'adjacency_info')
+      if (adjacencyAnnotation?.adjacencyInfo) {
+        const { player, neutral, rival, mine } = adjacencyAnnotation.adjacencyInfo
+        
+        // Count how many values we have to determine layout
+        const values = [player, neutral, rival, mine].filter(v => v !== undefined)
+        
+        if (values.length === 1) {
+          // Basic version: single blue circle with player count
+          elements.push(
+            <div
+              key="adjacency-single"
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '16px',
+                height: '16px',
+                backgroundColor: '#3b82f6', // Blue
+                color: 'white',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                fontWeight: 'bold',
+                zIndex: 1010
+              }}
+            >
+              {player}
+            </div>
+          )
+        } else if (values.length > 1) {
+          // Enhanced version: four smaller circles in 2x2 grid
+          const positions = [
+            { top: '30%', left: '30%', label: 'P', value: player, color: '#22c55e' }, // Green for player
+            { top: '30%', left: '70%', label: 'N', value: neutral, color: '#6b7280' }, // Gray for neutral
+            { top: '70%', left: '30%', label: 'R', value: rival, color: '#ef4444' }, // Red for rival
+            { top: '70%', left: '70%', label: 'M', value: mine, color: '#000000' }  // Black for mine
+          ]
+          
+          positions.forEach((pos, index) => {
+            if (pos.value !== undefined) {
+              elements.push(
+                <div
+                  key={`adjacency-${index}`}
+                  style={{
+                    position: 'absolute',
+                    top: pos.top,
+                    left: pos.left,
+                    transform: 'translate(-50%, -50%)',
+                    width: '12px',
+                    height: '12px',
+                    backgroundColor: pos.color,
+                    color: 'white',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '8px',
+                    fontWeight: 'bold',
+                    zIndex: 1010
+                  }}
+                  title={`${pos.label}: ${pos.value}`}
+                >
+                  {pos.value}
+                </div>
+              )
+            }
+          })
+        }
+      }
+      
       return <>{elements}</>
     }
 

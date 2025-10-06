@@ -166,7 +166,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     category: 'reward',
     description: {
       base: 'Draw 2 cards. Exhaust (remove from deck after use)',
-      enhanced: 'Draw 3 cards. Exhaust (remove from deck after use)'
+      enhanced: 'Draw 4 cards. Exhaust (remove from deck after use)'
     },
     icon: '🥤'
   },
@@ -189,6 +189,16 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       enhanced: 'Target a small burst area (Manhattan distance 1) and pick the safest owner in area. If safest owner is player, reveal ALL tiles with that owner in area. Otherwise, annotate all tiles with that owner. Gain status: Horse cards cost 0 for rest of level'
     },
     icon: '🐴'
+  },
+  'Eavesdropping': {
+    name: 'Eavesdropping',
+    cost: 1,
+    category: 'reward',
+    description: {
+      base: 'Target an unrevealed tile and get player adjacency info about that tile',
+      enhanced: 'Target an unrevealed tile and get ALL adjacency info (player, neutral, rival, mines) about that tile'
+    },
+    icon: '👂'
   },
 }
 
@@ -256,6 +266,13 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     hoverText: 'Tiara: receive double the copper after each level',
     category: 'rare',
     icon: '👑'
+  },
+  'Intercepted Note': {
+    name: 'Intercepted Note',
+    description: 'intel from enemy communications',
+    hoverText: 'Intercepted Note: at the beginning of each level, one of the rival\'s tiles is revealed at random, giving info about adjacent player tiles',
+    category: 'common',
+    icon: '📝'
   }
 }
 

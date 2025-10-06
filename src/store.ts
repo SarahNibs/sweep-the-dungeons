@@ -292,6 +292,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } else if (effect.type === 'horse') {
       newEffect = { type: 'horse', target: position }
       shouldExecute = true
+    } else if (effect.type === 'eavesdropping') {
+      newEffect = { type: 'eavesdropping', target: position }
+      shouldExecute = true
     }
     
     if (shouldExecute && newEffect) {

@@ -304,10 +304,10 @@
         "relicReward": false,
         "upgradeReward": false,
         "shopReward": false,
-        "winTheGame": true,
-        "nextLevel": []
+        "winTheGame": false,
+        "nextLevel": ["L8"]
       },
-      "description": "Our first alternate adjacency level. All reveals include info from all tiles within Manhattan distance 2. Temporarily, it is the last level.",
+      "description": "Our first alternate adjacency level. All reveals include info from all tiles within Manhattan distance 2.",
       "dimensions": {
         "columns": 6,
         "rows": 6
@@ -329,6 +329,47 @@
       ],
       "specialBehaviors": {
         "adjacencyRule": "manhattan-2"
+      }
+    },
+    {
+      "levelNumber": 8,
+      "levelId": "L7",
+      "uponFinish": {
+        "cardReward": true,
+        "relicReward": false,
+        "upgradeReward": false,
+        "shopReward": false,
+        "winTheGame": true,
+        "nextLevel": []
+      },
+      "description": "Adjacency plus weird layout plus rival immediate advantage.",
+      "dimensions": {
+        "columns": 7,
+        "rows": 7
+      },
+      "tileCounts": {
+        "player": 13,
+        "rival": 11,
+        "neutral": 8,
+        "mine": 4
+      },
+      "unusedLocations": [
+                        [3, 1],
+                [2, 2], [3, 2], [4, 2],
+        [1, 3], [2, 3], [3, 3], [4, 3], [5, 3],
+                [2, 4], [3, 4], [4, 4],
+                        [3, 5]
+      ],
+      "specialTiles": [
+        {
+          "type": "extraDirty",
+          "count": 4,
+          "placement": "random"
+        }
+      ],
+      "specialBehaviors": {
+        "adjacencyRule": "manhattan-2",
+        "initialRivalReveal": 2
       }
     }
   ],

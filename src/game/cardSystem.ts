@@ -1,8 +1,8 @@
 import { Card, GameState } from '../types'
-import { createBoard } from './boardSystem'
+import { createBoard, revealTileWithResult } from './boardSystem'
 import { executeCardEffect, requiresTargeting } from './cardEffects'
 import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
-import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerBusyCanaryEffect, hasRelic } from './relicSystem'
+import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerBusyCanaryEffect, triggerInterceptedNoteEffect, hasRelic } from './relicSystem'
 
 import { createCard as createCardFromRepository, getRewardCardPool, getStarterCards, removeStatusEffect, addStatusEffect } from './gameRepository'
 
@@ -149,6 +149,9 @@ export function playCard(state: GameState, cardId: string): GameState {
       case 'Horse':
         effectType = 'horse'
         break
+      case 'Eavesdropping':
+        effectType = 'eavesdropping'
+        break
       default:
         effectType = card.name.toLowerCase().replace(' ', '_')
     }
@@ -288,6 +291,24 @@ export function createInitialState(
     board = createBoard()
   }
   
+  // Handle initial rival reveals if specified in level config
+  if (levelConfig?.specialBehaviors.initialRivalReveal) {
+    const rivalTiles = Array.from(board.tiles.values()).filter(tile => 
+      tile.owner === 'rival' && !tile.revealed
+    )
+    
+    // Randomly select and reveal the specified number of rival tiles
+    const tilesToReveal = Math.min(levelConfig.specialBehaviors.initialRivalReveal, rivalTiles.length)
+    const shuffledRivalTiles = [...rivalTiles].sort(() => Math.random() - 0.5)
+    
+    for (let i = 0; i < tilesToReveal; i++) {
+      const tile = shuffledRivalTiles[i]
+      const position = { x: tile.x, y: tile.y }
+      const revealResult = revealTileWithResult(board, position, 'rival')
+      board = revealResult.board
+    }
+  }
+  
   // Determine max energy based on relics
   const maxEnergy = startingRelics.some(relic => relic.name === 'Monster') ? 4 : 3
   
@@ -355,6 +376,9 @@ export function createInitialState(
   
   // Trigger Busy Canary effect if present
   finalState = triggerBusyCanaryEffect(finalState)
+  
+  // Trigger Intercepted Note effect if present
+  finalState = triggerInterceptedNoteEffect(finalState)
   
   // Add manhattan adjacency status effect if board uses it
   if (finalState.board.adjacencyRule === 'manhattan-2') {

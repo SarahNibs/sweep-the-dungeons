@@ -26,6 +26,7 @@ export type CardEffect =
   | { type: 'monster' }
   | { type: 'argument'; target: Position }
   | { type: 'horse'; target: Position }
+  | { type: 'eavesdropping'; target: Position }
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
@@ -37,10 +38,11 @@ export interface ClueResult {
 }
 
 export interface TileAnnotation {
-  type: 'safe' | 'unsafe' | 'rival' | 'clue_results' | 'owner_subset' | 'player_slash' | 'player_big_checkmark' | 'player_small_checkmark' | 'player_owner_possibility'
+  type: 'safe' | 'unsafe' | 'rival' | 'clue_results' | 'owner_subset' | 'player_slash' | 'player_big_checkmark' | 'player_small_checkmark' | 'player_owner_possibility' | 'adjacency_info'
   clueResults?: ClueResult[] // For clue strength annotations
   ownerSubset?: Set<'player' | 'rival' | 'neutral' | 'mine'> // For subset annotations (lower-right, from cards/relics)
   playerOwnerPossibility?: Set<'player' | 'rival' | 'neutral' | 'mine'> // For player's upper-right annotations
+  adjacencyInfo?: { player?: number; neutral?: number; rival?: number; mine?: number } // For eavesdropping card results
 }
 
 export interface GameStatusInfo {
@@ -107,6 +109,7 @@ export interface LevelConfig {
   specialBehaviors: {
     rivalNeverMines?: boolean
     adjacencyRule?: 'standard' | 'manhattan-2'
+    initialRivalReveal?: number
   }
 }
 

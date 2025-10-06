@@ -10,6 +10,18 @@ export function createCard(name: string, upgrades?: { costReduced?: boolean; enh
   return createCardFromRepository(name, upgrades)
 }
 
+export function getEffectiveCardCost(card: Card, activeStatusEffects: any[]): number {
+  let finalCost = card.cost
+  
+  // Horse discount: Horse cards cost 0
+  const hasHorseDiscount = activeStatusEffects.some(effect => effect.type === 'horse_discount')
+  if (hasHorseDiscount && card.name === 'Horse') {
+    finalCost = 0
+  }
+  
+  return finalCost
+}
+
 export function createNewLevelCards(): Card[] {
   const availableCards = getRewardCardPool()
   
@@ -91,13 +103,7 @@ export function canPlayCard(state: GameState, cardId: string): boolean {
   if (!card) return false
   
   // Apply cost reductions from status effects
-  let finalCost = card.cost
-  
-  // Horse discount: Horse cards cost 0
-  const hasHorseDiscount = state.activeStatusEffects.some(effect => effect.type === 'horse_discount')
-  if (hasHorseDiscount && card.name === 'Horse') {
-    finalCost = 0
-  }
+  const finalCost = getEffectiveCardCost(card, state.activeStatusEffects)
   
   return state.energy >= finalCost
 }
@@ -109,13 +115,7 @@ export function playCard(state: GameState, cardId: string): GameState {
   const card = state.hand[cardIndex]
   
   // Apply cost reductions from status effects
-  let finalCost = card.cost
-  
-  // Horse discount: Horse cards cost 0
-  const hasHorseDiscount = state.activeStatusEffects.some(effect => effect.type === 'horse_discount')
-  if (hasHorseDiscount && card.name === 'Horse') {
-    finalCost = 0
-  }
+  const finalCost = getEffectiveCardCost(card, state.activeStatusEffects)
   
   // Check if we have enough energy
   if (state.energy < finalCost) return state
@@ -249,6 +249,7 @@ export function startNewTurn(state: GameState): GameState {
     isFirstTurn: false, // No longer first turn after first turn
     hasRevealedNeutralThisTurn: false, // Reset neutral reveal tracking
     underwireUsedThisTurn: false, // Reset underwire usage tracking
+    horseRevealedNonPlayer: false, // Reset horse turn ending tracking
     shouldExhaustLastCard: false, // Reset dynamic exhaust tracking
     queuedCardDraws: 0 // Clear queued card draws
   }
@@ -326,6 +327,7 @@ export function createInitialState(
     temporaryBunnyBuffs,
     underwireProtection: null,
     underwireUsedThisTurn: false,
+    horseRevealedNonPlayer: false,
     shouldExhaustLastCard: false,
     playerAnnotationMode: playerAnnotationMode || 'slash',
     useDefaultAnnotations: useDefaultAnnotations !== undefined ? useDefaultAnnotations : true,

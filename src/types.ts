@@ -171,6 +171,7 @@ export interface GameState {
   // Underwire protection
   underwireProtection: { active: boolean; enhanced: boolean } | null // Mine protection status
   underwireUsedThisTurn: boolean // True if underwire protection was consumed this turn (for turn ending logic)
+  horseRevealedNonPlayer: boolean // True if Horse card revealed non-player tiles (for turn ending logic)
   
   // Dynamic exhaust (for cards that conditionally exhaust)
   shouldExhaustLastCard: boolean // True if the last played card should exhaust regardless of its exhaust property

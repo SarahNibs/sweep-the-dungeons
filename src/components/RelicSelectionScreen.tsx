@@ -1,4 +1,5 @@
 import { RelicOption, Relic } from '../types'
+import { getRelicIcon } from '../game/gameRepository'
 
 interface RelicSelectionScreenProps {
   relicOptions: RelicOption[]
@@ -108,17 +109,4 @@ export function RelicSelectionScreen({ relicOptions, onRelicSelect }: RelicSelec
       </div>
     </div>
   )
-}
-
-function getRelicIcon(relicName: string): string {
-  switch (relicName) {
-    case 'Double Broom':
-      return '🧹'
-    case 'Dust Bunny':
-      return '🐰'
-    case 'Frilly Dress':
-      return '👗'
-    default:
-      return '✨'
-  }
 }

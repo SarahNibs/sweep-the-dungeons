@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { GameState, Tile, Position, CardEffect, Board, Card as CardType, PileType, Relic } from './types'
-import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel, queueCardDrawsFromDirtCleaning } from './game/cardSystem'
+import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel, queueCardDrawsFromDirtCleaning, getEffectiveCardCost } from './game/cardSystem'
 import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
 import { startRelicSelection, selectRelic, closeRelicUpgradeDisplay } from './game/relicSystem'
 import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
@@ -276,7 +276,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           ...currentState,
           hand: currentState.hand.filter(c => c.id !== card.id),
           discard: [...currentState.discard, card],
-          energy: currentState.energy - card.cost,
+          energy: currentState.energy - getEffectiveCardCost(card, currentState.activeStatusEffects),
           pendingCardEffect: null,
           selectedCardName: null
         }
@@ -325,7 +325,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         hand: newHand,
         discard: newDiscard,
         exhaust: newExhaust,
-        energy: effectState.energy - card.cost,
+        energy: effectState.energy - getEffectiveCardCost(card, currentState.activeStatusEffects),
         pendingCardEffect: null,
         shouldExhaustLastCard: false // Reset after use
       }
@@ -355,6 +355,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
           get().startRivalTurn(discardedState.board)
           return
         }
+      }
+      
+      // Check if Horse card revealed non-player tiles and should end turn
+      if (newEffect.type === 'horse' && effectState.horseRevealedNonPlayer) {
+        console.log('🐴 HORSE ENDING TURN - Revealed non-player tiles')
+        const discardedState = discardHand(finalState)
+        set(discardedState)
+        get().startRivalTurn(discardedState.board)
+        return
       }
       
       console.log('🎯 SETTING FINAL STATE FROM CARD EFFECT')

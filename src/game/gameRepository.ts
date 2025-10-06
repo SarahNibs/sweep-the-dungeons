@@ -19,6 +19,7 @@ export interface RelicDefinition {
   description: string
   hoverText: string
   category: 'common' | 'rare'
+  icon: string
 }
 
 // Centralized card definitions
@@ -197,55 +198,64 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     name: 'Double Broom',
     description: 'brush some nearby tiles when cleaning',
     hoverText: 'Double Broom: whenever you reveal a tile, apply the Brush effect to two random unrevealed adjacent tiles',
-    category: 'common'
+    category: 'common',
+    icon: '🧹'
   },
   'Dust Bunny': {
     name: 'Dust Bunny',
     description: 'animal companion who helps you clean',
     hoverText: 'Dust Bunny: when you start a new level, you immediately reveal one of your non-dirty tiles at random, getting adjacency info just as if you revealed it normally',
-    category: 'common'
+    category: 'common',
+    icon: '🐰'
   },
   'Frilly Dress': {
     name: 'Frilly Dress',
     description: 'your counterpart sometimes watches you clean rather than cleaning themselves',
     hoverText: 'Frilly Dress: revealing neutral tiles on your first turn of any level does not end your turn',
-    category: 'common'
+    category: 'common',
+    icon: '👗'
   },
   'Busy Canary': {
     name: 'Busy Canary',
     description: 'industrious bird who scans for mines at level start',
     hoverText: 'Busy Canary: at the beginning of every level, randomly scan up to 2 areas for mines',
-    category: 'common'
+    category: 'common',
+    icon: '🐦'
   },
   'Mop': {
     name: 'Mop',
     description: 'efficient cleaning tool that rewards thoroughness',
     hoverText: 'Mop: whenever you clean dirt from a tile, draw a card',
-    category: 'common'
+    category: 'common',
+    icon: '🪣'
   },
   'Monster': {
     name: 'Monster',
     description: 'caffeine grants unimaginable energy with no downsides!',
     hoverText: 'Monster: get 4 energy per turn instead of 3 but draw 1 fewer card at the start of your turns',
-    category: 'common'
+    category: 'common',
+    icon: '🥤'
   },
   'Estrogen': {
     name: 'Estrogen',
     description: 'everything is just... smoother',
     hoverText: 'Estrogen: replaces three random non-upgraded cards in your deck with their energy-upgraded versions',
-    category: 'rare'
+    category: 'rare',
+    icon: '💊'
   },
   'Progesterone': {
     name: 'Progesterone',
     description: "nothing's easier but everything's better",
     hoverText: 'Progesterone: replaces three random non-upgraded cards in your deck with their enhance-upgraded versions',
-    category: 'rare'
+    category: 'rare',
+    icon: '💉'
   },
   'Tiara': {
     name: 'Tiara',
     description: 'now *you* are the princess',
     hoverText: 'Tiara: receive double the copper after each level',
-    category: 'rare'
+    category: 'rare',
+    icon: '👑'
   }
 }
 
@@ -345,6 +355,11 @@ export function getCardDescription(card: Card): string {
 export function getCardIcon(cardName: string): string {
   const definition = CARD_DEFINITIONS[cardName]
   return definition?.icon || '❓'
+}
+
+export function getRelicIcon(relicName: string): string {
+  const definition = RELIC_DEFINITIONS[relicName]
+  return definition?.icon || '✨'
 }
 
 // Status Effects System

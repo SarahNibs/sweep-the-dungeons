@@ -98,5 +98,13 @@ export function executeHorseEffect(state: GameState, target: Position, card?: im
   // Add Horse discount status effect
   newState = addStatusEffect(newState, 'horse_discount')
   
+  // Mark if we revealed non-player tiles (for turn ending logic)
+  if (!card?.enhanced && safestOwner !== 'player' && tilesToProcess.length > 0) {
+    newState = {
+      ...newState,
+      horseRevealedNonPlayer: true
+    }
+  }
+  
   return newState
 }

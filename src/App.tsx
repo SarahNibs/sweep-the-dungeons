@@ -529,7 +529,7 @@ function App() {
               gap: '10px',
               marginBottom: '15px'
             }}>
-              {['Double Broom', 'Dust Bunny', 'Frilly Dress', 'Busy Canary', 'Mop', 'Monster', 'Estrogen', 'Progesterone', 'Tiara'].map(relicName => (
+              {['Double Broom', 'Dust Bunny', 'Frilly Dress', 'Busy Canary', 'Mop', 'Monster', 'Estrogen', 'Progesterone', 'Tiara', 'Intercepted Communications'].map(relicName => (
                 <button
                   key={relicName}
                   onClick={() => {

@@ -267,10 +267,10 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     category: 'rare',
     icon: '👑'
   },
-  'Intercepted Note': {
-    name: 'Intercepted Note',
+  'Intercepted Communications': {
+    name: 'Intercepted Communications',
     description: 'intel from enemy communications',
-    hoverText: 'Intercepted Note: at the beginning of each level, one of the rival\'s tiles is revealed at random, giving info about adjacent player tiles',
+    hoverText: 'Intercepted Communications: at the beginning of each level, one of the rival\'s tiles is revealed at random, giving info about adjacent player tiles',
     category: 'common',
     icon: '📝'
   }

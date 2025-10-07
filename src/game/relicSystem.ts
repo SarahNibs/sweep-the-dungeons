@@ -505,11 +505,11 @@ export function triggerMopEffect(state: GameState, tilesCleanedCount: number): G
 }
 
 export function triggerInterceptedNoteEffect(state: GameState): GameState {
-  if (!hasRelic(state, 'Intercepted Note')) {
+  if (!hasRelic(state, 'Intercepted Communications')) {
     return state
   }
   
-  console.log('🕵️ Triggering Intercepted Note effect')
+  console.log('🕵️ Triggering Intercepted Communications effect')
   
   // Find all unrevealed rival tiles
   const unrevealedRivalTiles = Array.from(state.board.tiles.values()).filter(tile =>
@@ -532,7 +532,7 @@ export function triggerInterceptedNoteEffect(state: GameState): GameState {
   const { revealTileWithRelicEffects } = require('./cardEffects')
   const newState = revealTileWithRelicEffects(state, position, 'rival')
   
-  console.log('  - Intercepted Note effect completed')
+  console.log('  - Intercepted Communications effect completed')
   return newState
 }
 

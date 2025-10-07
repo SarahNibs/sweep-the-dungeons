@@ -377,7 +377,7 @@ export function createInitialState(
   // Trigger Busy Canary effect if present
   finalState = triggerBusyCanaryEffect(finalState)
   
-  // Trigger Intercepted Note effect if present
+  // Trigger Intercepted Communications effect if present
   finalState = triggerInterceptedNoteEffect(finalState)
   
   // Add manhattan adjacency status effect if board uses it

@@ -303,7 +303,7 @@ export function createInitialState(
     
     for (let i = 0; i < tilesToReveal; i++) {
       const tile = shuffledRivalTiles[i]
-      const position = { x: tile.x, y: tile.y }
+      const position = tile.position
       const revealResult = revealTileWithResult(board, position, 'rival')
       board = revealResult.board
     }

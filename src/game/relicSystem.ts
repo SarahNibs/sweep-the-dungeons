@@ -3,6 +3,7 @@ import { advanceToNextLevel, drawCards } from './cardSystem'
 import { shouldShowShopReward } from './levelSystem'
 import { startShopSelection } from './shopSystem'
 import { calculateAdjacency, getNeighbors } from './boardSystem'
+import { revealTileWithRelicEffects } from './cardEffects'
 
 import { getAllRelics, createCard } from './gameRepository'
 
@@ -524,12 +525,11 @@ export function triggerInterceptedNoteEffect(state: GameState): GameState {
   // Pick a random rival tile to reveal
   const randomIndex = Math.floor(Math.random() * unrevealedRivalTiles.length)
   const tileToReveal = unrevealedRivalTiles[randomIndex]
-  const position = { x: tileToReveal.x, y: tileToReveal.y }
+  const position = tileToReveal.position
   
   console.log(`  - Revealing rival tile at (${position.x}, ${position.y})`)
   
-  // Import revealTileWithRelicEffects to maintain consistency with other reveals
-  const { revealTileWithRelicEffects } = require('./cardEffects')
+  // Reveal the tile using the imported function
   const newState = revealTileWithRelicEffects(state, position, 'rival')
   
   console.log('  - Intercepted Communications effect completed')

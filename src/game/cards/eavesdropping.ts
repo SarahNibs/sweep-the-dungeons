@@ -9,21 +9,55 @@ export function executeEavesdroppingEffect(state: GameState, target: Position, c
     return state
   }
   
-  // Get all neighbors of the target tile
-  const neighbors = getNeighbors(state.board, target)
+  // Get all neighbor positions of the target tile
+  const neighborPositions = getNeighbors(state.board, target)
   
   // Count adjacent tiles by type
   const adjacencyInfo: { player?: number; neutral?: number; rival?: number; mine?: number } = {}
   
   if (card?.enhanced) {
     // Enhanced version: show all adjacency info
-    adjacencyInfo.player = neighbors.filter(neighbor => neighbor.owner === 'player').length
-    adjacencyInfo.neutral = neighbors.filter(neighbor => neighbor.owner === 'neutral').length
-    adjacencyInfo.rival = neighbors.filter(neighbor => neighbor.owner === 'rival').length
-    adjacencyInfo.mine = neighbors.filter(neighbor => neighbor.owner === 'mine').length
+    let playerCount = 0
+    let neutralCount = 0
+    let rivalCount = 0
+    let mineCount = 0
+    
+    for (const neighborPos of neighborPositions) {
+      const neighborTile = getTile(state.board, neighborPos)
+      if (neighborTile) {
+        switch (neighborTile.owner) {
+          case 'player':
+            playerCount++
+            break
+          case 'neutral':
+            neutralCount++
+            break
+          case 'rival':
+            rivalCount++
+            break
+          case 'mine':
+            mineCount++
+            break
+        }
+      }
+    }
+    
+    adjacencyInfo.player = playerCount
+    adjacencyInfo.neutral = neutralCount
+    adjacencyInfo.rival = rivalCount
+    adjacencyInfo.mine = mineCount
   } else {
     // Basic version: only show player adjacency info
-    adjacencyInfo.player = neighbors.filter(neighbor => neighbor.owner === 'player').length
+    let playerCount = 0
+    
+    for (const neighborPos of neighborPositions) {
+      const neighborTile = getTile(state.board, neighborPos)
+      if (neighborTile && neighborTile.owner === 'player') {
+        playerCount++
+      }
+    }
+    
+    adjacencyInfo.player = playerCount
   }
   
   // Remove any existing adjacency info annotation

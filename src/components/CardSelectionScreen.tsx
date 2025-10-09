@@ -51,6 +51,7 @@ export function CardSelectionScreen({ cards, onCardSelect, onSkip, currentDeck }
               card={card}
               onClick={() => {}} // Remove duplicate click handler
               isPlayable={true}
+              applyStatusEffects={false}
             />
           </div>
         ))}
@@ -135,6 +136,7 @@ export function CardSelectionScreen({ cards, onCardSelect, onSkip, currentDeck }
                       card={card}
                       onClick={() => {}}
                       isPlayable={true}
+                      applyStatusEffects={false}
                     />
                   </div>
                 )

@@ -70,6 +70,7 @@ export function UpgradeSelectionScreen({
                 card={card}
                 onClick={() => {}} 
                 isPlayable={true}
+                applyStatusEffects={false}
               />
             </div>
           ))}
@@ -177,6 +178,7 @@ export function UpgradeSelectionScreen({
                     onClick={() => {}} 
                     isPlayable={true}
                     showUpgradeIndicator={option.type}
+                    applyStatusEffects={false}
                   />
                 </div>
                 <div style={{
@@ -257,6 +259,7 @@ export function UpgradeSelectionScreen({
                       card={card}
                       onClick={() => {}}
                       isPlayable={true}
+                      applyStatusEffects={false}
                     />
                   </div>
                 )

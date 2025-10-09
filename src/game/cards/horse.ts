@@ -48,6 +48,7 @@ export function executeHorseEffect(state: GameState, target: Position, card?: im
   const tilesToProcess = validTiles.filter(({ tile }) => tile?.owner === safestOwner)
   
   let newState = state
+  let processedNonPlayerTiles = false
   
   if (card?.enhanced && safestOwner !== 'player') {
     // Enhanced version: annotate instead of reveal for non-player owners
@@ -57,8 +58,24 @@ export function executeHorseEffect(state: GameState, target: Position, card?: im
     })
   } else {
     // Normal version: reveal all tiles with safest owner
-    tilesToProcess.forEach(({ pos }) => {
-      newState = revealTileWithRelicEffects(newState, pos, 'player')
+    // Handle dirty tiles specially - annotate instead of reveal/clean
+    tilesToProcess.forEach(({ pos, tile }) => {
+      if (tile?.specialTile === 'extraDirty') {
+        // For dirty tiles, annotate with the exact owner instead of revealing/cleaning
+        const ownerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>([tile.owner as any])
+        newState = addOwnerSubsetAnnotation(newState, pos, ownerSubset)
+        // Track that we processed a non-player tile (for turn ending logic)
+        if (safestOwner !== 'player') {
+          processedNonPlayerTiles = true
+        }
+      } else {
+        // For non-dirty tiles, reveal normally
+        newState = revealTileWithRelicEffects(newState, pos, 'player')
+        // Track that we processed a non-player tile (for turn ending logic)
+        if (safestOwner !== 'player') {
+          processedNonPlayerTiles = true
+        }
+      }
     })
     
     // Note: If safest owner is not player, this should end the turn
@@ -66,9 +83,16 @@ export function executeHorseEffect(state: GameState, target: Position, card?: im
   }
   
   // Add game annotations to unrevealed tiles in the area
+  // Exclude tiles that were already processed (revealed or annotated)
+  const processedPositions = new Set(tilesToProcess.map(({ pos }) => `${pos.x},${pos.y}`))
   const unrevealedTilesInArea = area
     .map(pos => ({ pos, tile: getTile(newState.board, pos) }))
-    .filter(({ tile }) => tile && !tile.revealed && tile.owner !== 'empty')
+    .filter(({ tile, pos }) => 
+      tile && 
+      !tile.revealed && 
+      tile.owner !== 'empty' && 
+      !processedPositions.has(`${pos.x},${pos.y}`)
+    )
   
   // Determine what to exclude based on what was revealed
   let exclusionSet: Set<'player' | 'rival' | 'neutral' | 'mine'>
@@ -98,8 +122,9 @@ export function executeHorseEffect(state: GameState, target: Position, card?: im
   // Add Horse discount status effect
   newState = addStatusEffect(newState, 'horse_discount')
   
-  // Mark if we revealed non-player tiles (for turn ending logic)
-  if (!card?.enhanced && safestOwner !== 'player' && tilesToProcess.length > 0) {
+  // Mark if we processed non-player tiles (for turn ending logic)
+  // This includes both revealing and annotating dirty tiles
+  if (!card?.enhanced && processedNonPlayerTiles) {
     newState = {
       ...newState,
       horseRevealedNonPlayer: true

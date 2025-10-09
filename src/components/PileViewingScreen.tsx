@@ -96,6 +96,7 @@ export function PileViewingScreen({ cards, onClose }: PileViewingScreenProps) {
                         card={card}
                         onClick={() => {}}
                         isPlayable={true}
+                        applyStatusEffects={false}
                       />
                     </div>
                   )

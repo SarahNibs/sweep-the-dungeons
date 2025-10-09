@@ -43,19 +43,23 @@ interface CardProps {
   onHover?: (hovered: boolean) => void
   customOverlap?: number
   showUpgradeIndicator?: 'cost_reduction' | 'enhance_effect'
+  applyStatusEffects?: boolean
 }
 
-export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isHovered = false, onHover, customOverlap, showUpgradeIndicator }: CardProps) {
+export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isHovered = false, onHover, customOverlap, showUpgradeIndicator, applyStatusEffects = true }: CardProps) {
   const { activeStatusEffects } = useGameStore()
   
   // Calculate effective cost considering status effects
   const getEffectiveCost = (card: CardType): number => {
     let cost = card.cost
     
-    // Horse discount: Horse cards cost 0
-    const hasHorseDiscount = activeStatusEffects.some(effect => effect.type === 'horse_discount')
-    if (hasHorseDiscount && card.name === 'Horse') {
-      cost = 0
+    // Only apply status effects if applyStatusEffects is true (default)
+    if (applyStatusEffects) {
+      // Horse discount: Horse cards cost 0
+      const hasHorseDiscount = activeStatusEffects.some(effect => effect.type === 'horse_discount')
+      if (hasHorseDiscount && card.name === 'Horse') {
+        cost = 0
+      }
     }
     
     return cost

@@ -241,6 +241,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
   }
 
   const getOverlay = () => {
+    const elements: JSX.Element[] = []
+    
     // Show adjacency info if revealed
     if (tile.revealed && tile.adjacencyCount !== null) {
       const getAdjacencyColor = () => {
@@ -252,8 +254,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         return '#6c757d'
       }
       
-      return (
-        <div style={{
+      elements.push(
+        <div key="adjacency-count" style={{
           position: 'absolute',
           top: '50%',
           left: '50%',
@@ -268,16 +270,20 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           justifyContent: 'center',
           fontSize: '12px',
           fontWeight: 'bold',
-          border: '1px solid black'
+          border: '1px solid black',
+          zIndex: 1000
         }}>
           {tile.adjacencyCount}
         </div>
       )
     }
 
-    // Show all annotations if unrevealed
-    if (!tile.revealed && tile.annotations.length > 0) {
-      const elements: JSX.Element[] = []
+    // Show all annotations for unrevealed tiles, or just adjacency info for revealed tiles
+    const shouldShowAnnotations = !tile.revealed && tile.annotations.length > 0
+    const shouldShowAdjacencyOnRevealed = tile.revealed && tile.annotations.some(a => a.type === 'adjacency_info')
+    
+    if (shouldShowAnnotations || shouldShowAdjacencyOnRevealed) {
+      // Note: Use the same elements array from above
       
       // Group annotations by type
       const clueResultsAnnotation = tile.annotations.find(a => a.type === 'clue_results')
@@ -290,7 +296,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       const playerSmallCheckmarkAnnotation = tile.annotations.find(a => a.type === 'player_small_checkmark')
       
       // Render clue pips - player clues (top-left) and rival clues (bottom-left) 
-      if (clueResultsAnnotation?.clueResults) {
+      // Only show these for unrevealed tiles
+      if (!tile.revealed && clueResultsAnnotation?.clueResults) {
         
         clueResultsAnnotation.clueResults.forEach((clueResult, clueIndex) => {
           const strength = clueResult.strengthForThisTile
@@ -360,7 +367,9 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         })
       }
       
-      // Render safety annotations (top-right)
+      // Only render non-adjacency annotations for unrevealed tiles
+      if (!tile.revealed) {
+        // Render safety annotations (top-right)
       if (safetyAnnotations.length > 0) {
         const annotation = safetyAnnotations[safetyAnnotations.length - 1] // Show latest
         const display = annotation.type === 'safe' 
@@ -632,9 +641,12 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           </div>
         )
       }
+      } // End of non-adjacency annotations for unrevealed tiles
       
       // Render adjacency info from Eavesdropping card (center of tile)
+      // This is shown for both revealed and unrevealed tiles
       const adjacencyAnnotation = tile.annotations.find(a => a.type === 'adjacency_info')
+      
       if (adjacencyAnnotation?.adjacencyInfo) {
         const { player, neutral, rival, mine } = adjacencyAnnotation.adjacencyInfo
         
@@ -643,13 +655,15 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         
         if (values.length === 1) {
           // Basic version: single blue circle with player count
+          // For revealed tiles, position it offset from center to avoid conflict with adjacency count
+          const isRevealed = tile.revealed
           elements.push(
             <div
               key="adjacency-single"
               style={{
                 position: 'absolute',
-                top: '50%',
-                left: '50%',
+                top: isRevealed ? '30%' : '50%',
+                left: isRevealed ? '70%' : '50%',
                 transform: 'translate(-50%, -50%)',
                 width: '16px',
                 height: '16px',
@@ -670,10 +684,10 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         } else if (values.length > 1) {
           // Enhanced version: four smaller circles in 2x2 grid
           const positions = [
-            { top: '30%', left: '30%', label: 'P', value: player, color: '#22c55e' }, // Green for player
-            { top: '30%', left: '70%', label: 'N', value: neutral, color: '#6b7280' }, // Gray for neutral
-            { top: '70%', left: '30%', label: 'R', value: rival, color: '#ef4444' }, // Red for rival
-            { top: '70%', left: '70%', label: 'M', value: mine, color: '#000000' }  // Black for mine
+            { top: '30%', left: '30%', label: 'P', name: 'Player', value: player, color: '#22c55e' }, // Green for player
+            { top: '30%', left: '70%', label: 'N', name: 'Neutral', value: neutral, color: '#6b7280' }, // Gray for neutral
+            { top: '70%', left: '30%', label: 'R', name: 'Rival', value: rival, color: '#ef4444' }, // Red for rival
+            { top: '70%', left: '70%', label: 'M', name: 'Mine', value: mine, color: '#000000' }  // Black for mine
           ]
           
           positions.forEach((pos, index) => {
@@ -698,7 +712,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                     fontWeight: 'bold',
                     zIndex: 1010
                   }}
-                  title={`${pos.label}: ${pos.value}`}
+                  title={`${pos.name}: ${pos.value}`}
                 >
                   {pos.value}
                 </div>
@@ -746,7 +760,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       )
     }
 
-    return null
+    // Return all overlay elements (adjacency count + any annotations)
+    return elements.length > 0 ? <>{elements}</> : null
   }
 
   // Handle empty tiles (holes in the grid) after all hooks have been called

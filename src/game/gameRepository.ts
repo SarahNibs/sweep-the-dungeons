@@ -423,6 +423,14 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         name: 'Horse Discount',
         description: 'Horse cards cost 0 energy for the rest of this level'
       }
+    case 'rival_never_mines':
+      return {
+        id: baseId,
+        type: 'rival_never_mines',
+        icon: '🚫',
+        name: 'Rival Mine Avoidance',
+        description: 'Your rival will never reveal mine tiles this level'
+      }
     default:
       throw new Error(`Unknown status effect type: ${type}`)
   }

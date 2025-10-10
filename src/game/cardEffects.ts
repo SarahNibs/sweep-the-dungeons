@@ -1,7 +1,7 @@
 import { GameState, CardEffect, Position, Tile, TileAnnotation, ClueResult, GameStatusInfo } from '../types'
 import { positionToKey, getTile, revealTileWithResult } from './boardSystem'
 import { triggerDoubleBroomEffect, checkFrillyDressEffect } from './relicSystem'
-import { addStatusEffect, removeStatusEffect } from './gameRepository'
+import { removeStatusEffect } from './gameRepository'
 import { executeScoutEffect } from './cards/scout'
 import { executeQuantumEffect } from './cards/quantumChoice'
 import { executeReportEffect } from './cards/report'
@@ -370,8 +370,9 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
         rambleActive: true,
         ramblePriorityBoosts: [...state.ramblePriorityBoosts, maxBoost] // Collect boost values
       }
-      // Add ramble status effect
-      return addStatusEffect(stateWithRamble, 'ramble_active', card?.enhanced)
+      // Remove existing ramble status effect first, then add updated one with count
+      const stateWithoutOldRamble = removeStatusEffect(stateWithRamble, 'ramble_active')
+      return addRambleStatusEffectWithCount(stateWithoutOldRamble, card?.enhanced)
     case 'sweep':
       return executeSweepEffect(state, effect.target, card)
     case 'underwire':
@@ -422,6 +423,27 @@ export function getTargetingInfo(cardName: string, enhanced?: boolean): { count:
       return { count: 1, description: enhanced ? 'Click an unrevealed tile to get ALL adjacency info (player, neutral, rival, mines)' : 'Click an unrevealed tile to get player adjacency info' }
     default:
       return null
+  }
+}
+
+function addRambleStatusEffectWithCount(state: GameState, enhanced?: boolean): GameState {
+  const rambleCount = state.ramblePriorityBoosts.length
+  
+  // Create custom status effect with count in the name/description
+  const rambleStatusEffect = {
+    id: crypto.randomUUID(),
+    type: 'ramble_active' as const,
+    icon: '🌀',
+    name: rambleCount > 1 ? `Ramble Active (×${rambleCount})` : 'Ramble Active',
+    description: rambleCount > 1 
+      ? `Rival's guaranteed bag pulls are disrupted for their next turn (${rambleCount} rambles played)`
+      : "Rival's guaranteed bag pulls are disrupted for their next turn",
+    enhanced
+  }
+  
+  return {
+    ...state,
+    activeStatusEffects: [...state.activeStatusEffects, rambleStatusEffect]
   }
 }
 

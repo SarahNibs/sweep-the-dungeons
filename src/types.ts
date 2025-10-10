@@ -228,7 +228,7 @@ export interface ShopOption {
 
 export interface StatusEffect {
   id: string
-  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount'
+  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines'
   icon: string
   name: string
   description: string

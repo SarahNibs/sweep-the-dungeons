@@ -385,6 +385,11 @@ export function createInitialState(
     finalState = addStatusEffect(finalState, 'manhattan_adjacency')
   }
   
+  // Add rival never mines status effect if special behavior is active
+  if (levelConfig?.specialBehaviors.rivalNeverMines) {
+    finalState = addStatusEffect(finalState, 'rival_never_mines')
+  }
+  
   return finalState
 }
 

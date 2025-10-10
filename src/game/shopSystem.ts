@@ -1,6 +1,7 @@
 import { ShopOption, GameState } from '../types'
 import { createCard, getRewardCardPool, getAllRelics } from './gameRepository'
 import { advanceToNextLevel } from './cardSystem'
+import { applyEstrogenEffect, applyProgesteroneEffect } from './relicSystem'
 
 export function createShopOptions(state: GameState): ShopOption[] {
   const options: ShopOption[] = []
@@ -152,9 +153,29 @@ export function purchaseShopItem(state: GameState, optionIndex: number): GameSta
       
     case 'add_relic':
       if (option.relic) {
+        // Add the relic to the collection first
         newState = {
           ...newState,
           relics: [...newState.relics, option.relic]
+        }
+        
+        // Apply special relic effects for Estrogen and Progesterone
+        if (option.relic.name === 'Estrogen') {
+          const relicEffectState = applyEstrogenEffect(newState)
+          newState = {
+            ...relicEffectState,
+            // Preserve shop context
+            copper: newState.copper,
+            purchasedShopItems: newState.purchasedShopItems
+          }
+        } else if (option.relic.name === 'Progesterone') {
+          const relicEffectState = applyProgesteroneEffect(newState)
+          newState = {
+            ...relicEffectState,
+            // Preserve shop context
+            copper: newState.copper,
+            purchasedShopItems: newState.purchasedShopItems
+          }
         }
       }
       break

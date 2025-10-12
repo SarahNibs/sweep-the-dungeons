@@ -1,12 +1,12 @@
 import { create } from 'zustand'
 import { GameState, Tile, Position, CardEffect, Board, Card as CardType, PileType, Relic } from './types'
-import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel, queueCardDrawsFromDirtCleaning, getEffectiveCardCost } from './game/cardSystem'
+import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel, queueCardDrawsFromDirtCleaning, getEffectiveCardCost, deductEnergy } from './game/cardSystem'
 import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
 import { startRelicSelection, selectRelic, closeRelicUpgradeDisplay } from './game/relicSystem'
 import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, checkGameStatus, getUnrevealedTilesByOwner, revealTileWithRelicEffects } from './game/cardEffects'
 import { executeTargetedReportEffect } from './game/cards/report'
-import { processRivalTurnWithDualClues } from './game/rivalAI'
+import { AIController } from './game/ai/AIController'
 import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowRelicReward, shouldShowShopReward, calculateCopperReward } from './game/levelSystem'
 import { startShopSelection, purchaseShopItem, removeSelectedCard, exitShop } from './game/shopSystem'
 
@@ -46,6 +46,7 @@ interface GameStore extends GameState {
   debugWinLevel: () => void
   debugGiveRelic: (relicName: string) => void
   debugGiveCard: (cardName: string, upgrades?: { costReduced?: boolean; enhanced?: boolean }) => void
+  debugSetAIType: (aiType: string) => void
   startRelicSelection: () => void
   selectRelic: (relic: Relic) => void
   closeRelicUpgradeDisplay: () => void
@@ -97,17 +98,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   playCard: (cardId: string) => {
     const currentState = get()
     if (currentState.gameStatus.status !== 'playing') return
-    
+
     // Check if this card needs special animation handling
     const card = currentState.hand.find(c => c.id === cardId)
     if (card?.name === 'Tingle') {
       // Handle Tingle specially with animation
       const basicState = playCard(currentState, cardId) // This won't execute the effect
       get().executeTingleWithAnimation(basicState, card.enhanced || false)
-    } else if (card?.name === 'Tryst') {
-      // Handle Tryst specially with animation
+    } else if (card?.name === 'Tryst' && !card.enhanced) {
+      // Handle BASIC Tryst specially with animation (enhanced Tryst uses targeting flow)
       const basicState = playCard(currentState, cardId) // This won't execute the effect
-      get().executeTrystWithAnimation(basicState, card.enhanced || false, undefined)
+      get().executeTrystWithAnimation(basicState, false, undefined)
     } else {
       const newState = playCard(currentState, cardId)
       set(newState)
@@ -271,14 +272,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // Handle Tryst targeting specially with animation
       const card = currentState.hand.find(c => c.name === currentState.selectedCardName)
       if (card) {
-        const basicState = {
+        const stateBeforeEnergy = {
           ...currentState,
           hand: currentState.hand.filter(c => c.id !== card.id),
           discard: [...currentState.discard, card],
-          energy: currentState.energy - getEffectiveCardCost(card, currentState.activeStatusEffects),
           pendingCardEffect: null,
           selectedCardName: null
         }
+        const basicState = deductEnergy(stateBeforeEnergy, card, 'targetTileForCard (Tryst)')
         get().executeTrystWithAnimation(basicState, card.enhanced || false, position)
       }
       return
@@ -322,15 +323,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const newDiscard = shouldExhaust ? effectState.discard : [...effectState.discard, card]
       const newExhaust = shouldExhaust ? [...effectState.exhaust, card] : effectState.exhaust
       
-      const finalState = {
+      const stateBeforeEnergy = {
         ...effectState,
         hand: newHand,
         discard: newDiscard,
         exhaust: newExhaust,
-        energy: effectState.energy - getEffectiveCardCost(card, currentState.activeStatusEffects),
         pendingCardEffect: null,
         shouldExhaustLastCard: false // Reset after use
       }
+
+      const finalState = deductEnergy(stateBeforeEnergy, card, 'targetTileForCard (general)')
       
       // Check if the effect revealed a tile that should end the turn (e.g., quantum)
       if (newEffect.type === 'quantum') {
@@ -434,8 +436,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       selectedCardName: null
     }
     
-    // Process rival turn with dual clue system
-    const rivalTurnResult = processRivalTurnWithDualClues(clearedState)
+    // Process rival turn with dual clue system using AI controller
+    const aiController = new AIController()
+    const rivalTurnResult = aiController.processRivalTurn(clearedState)
     const stateWithRivalClue = {
       ...rivalTurnResult.stateWithVisibleClues,
       rivalHiddenClues: [...clearedState.rivalHiddenClues, ...rivalTurnResult.hiddenClues]
@@ -1100,11 +1103,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const currentState = get()
     console.log('Current hand size:', currentState.hand.length)
     console.log('Current hand cards:', currentState.hand.map(c => c.name))
-    
+
     // Import dynamically to avoid require issues
     import('./game/cardSystem').then(({ createCard }) => {
       const card = createCard(cardName, upgrades)
-      
+
       console.log(`🎁 DEBUG: Created card:`, card)
       const newState = {
         ...currentState,
@@ -1116,6 +1119,46 @@ export const useGameStore = create<GameStore>((set, get) => ({
       console.log('✅ debugGiveCard completed')
     }).catch(err => {
       console.error('Failed to import cardSystem:', err)
+    })
+  },
+
+  debugSetAIType: (aiType: string) => {
+    console.log(`🤖 DEBUG: debugSetAIType called with "${aiType}"`)
+    const currentState = get()
+
+    // Import dynamically
+    import('./game/ai/AIRegistry').then(({ AIRegistry }) => {
+      // Check if AI type exists
+      if (!AIRegistry.hasType(aiType)) {
+        console.error(`❌ Unknown AI type: ${aiType}`)
+        console.log('Available types:', AIRegistry.getAvailableTypes())
+        return
+      }
+
+      // Get AI info for status effect
+      const ai = AIRegistry.create(aiType)
+
+      // Remove existing AI status effect and add new one
+      const filteredEffects = currentState.activeStatusEffects.filter(e => e.type !== 'rival_ai_type')
+      const newStatusEffect = {
+        id: crypto.randomUUID(),
+        type: 'rival_ai_type' as const,
+        icon: ai.icon,
+        name: ai.name,
+        description: ai.description
+      }
+
+      const newState = {
+        ...currentState,
+        aiTypeOverride: aiType, // Set the override for AIController to use
+        activeStatusEffects: [...filteredEffects, newStatusEffect]
+      }
+
+      console.log(`✅ Changed rival AI to: ${ai.name}`)
+      console.log(`   Next rival turn will use AI type: ${aiType}`)
+      set(newState)
+    }).catch(err => {
+      console.error('Failed to change AI type:', err)
     })
   },
 

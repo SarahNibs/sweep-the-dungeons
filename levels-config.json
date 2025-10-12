@@ -293,7 +293,8 @@
         }
       ],
       "specialBehaviors": {
-        "rivalNeverMines": true
+        "rivalNeverMines": true,
+        "rivalAI": "conservative"
       }
     },
     {
@@ -505,7 +506,8 @@
       "specialBehaviors": {
         "adjacencyRule": "manhattan-2",
         "initialRivalReveal": 2,
-        "rivalNeverMines": true
+        "rivalNeverMines": true,
+        "rivalAI": "conservative"
       }
     }
   ],

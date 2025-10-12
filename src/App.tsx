@@ -93,11 +93,16 @@ function App() {
   const [showCardDebug, setShowCardDebug] = useState(false)
   const [cardUpgradeType, setCardUpgradeType] = useState<'normal' | 'cost-reduced' | 'enhanced'>('normal')
 
+  // Expose store to window for debugging
+  useEffect(() => {
+    (window as any).useGameStore = useGameStore
+  }, [])
+
   // Add keyboard shortcuts for toggling annotation buttons
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Only handle keys when not in an input field and game is playing
-      if (event.target instanceof HTMLInputElement || 
+      if (event.target instanceof HTMLInputElement ||
           event.target instanceof HTMLTextAreaElement ||
           gamePhase !== 'playing') {
         return

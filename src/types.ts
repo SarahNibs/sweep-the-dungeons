@@ -110,6 +110,11 @@ export interface LevelConfig {
     rivalNeverMines?: boolean
     adjacencyRule?: 'standard' | 'manhattan-2'
     initialRivalReveal?: number
+    rivalAI?: string  // AI type to use for this level (e.g., 'conservative', 'random', 'noguess')
+  }
+  aiConfig?: {
+    aiType: string           // e.g., "noguess", "conservative", "reasoning"
+    aiParameters?: Record<string, any>  // AI-specific configuration
   }
 }
 
@@ -187,7 +192,10 @@ export interface GameState {
   
   // Status effects system
   activeStatusEffects: StatusEffect[] // Active temporary status effects
-  
+
+  // AI system override (for debugging/testing)
+  aiTypeOverride?: string // If set, overrides the level's configured AI type
+
   // Player annotation button states
   annotationButtons: {
     player: boolean // Whether player button is depressed
@@ -228,7 +236,7 @@ export interface ShopOption {
 
 export interface StatusEffect {
   id: string
-  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines'
+  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines' | 'rival_ai_type'
   icon: string
   name: string
   description: string

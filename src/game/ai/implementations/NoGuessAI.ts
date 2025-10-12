@@ -1,0 +1,50 @@
+import { RivalAI, AIContext } from '../AITypes'
+import { GameState, Tile, ClueResult, Position } from '../../../types'
+import { calculateTilePriorities } from '../utils/priorityScoring'
+import { logAIPriorityAnalysis } from '../utils/aiCommon'
+
+/**
+ * NoGuessAI - The current default AI implementation
+ * Uses clue-based priority scoring to select rival tiles
+ * Never uses revealed adjacency information for deductions
+ */
+export class NoGuessAI implements RivalAI {
+  readonly name = 'NoGuess Rival'
+  readonly description = 'Uses clues but never makes logical deductions'
+  readonly icon = '🛡️'
+
+  selectTilesToReveal(
+    state: GameState,
+    hiddenClues: { clueResult: ClueResult; targetPosition: Position }[],
+    context: AIContext
+  ): Tile[] {
+    // Calculate priorities for all unrevealed tiles
+    const tilesWithPriority = calculateTilePriorities(state, hiddenClues)
+
+    if (tilesWithPriority.length === 0) return []
+
+    // Check if this level has the rivalNeverMines special behavior
+    const rivalNeverMines = context.specialBehaviors.rivalNeverMines || false
+
+    // Log the top tiles for debugging
+    logAIPriorityAnalysis(tilesWithPriority, hiddenClues, rivalNeverMines)
+
+    // Return ordered list, stopping when we would reveal a non-rival tile
+    // Skip mines if rivalNeverMines is enabled
+    const tilesToReveal: Tile[] = []
+    for (const item of tilesWithPriority) {
+      // Skip mine tiles if rivalNeverMines is enabled
+      if (rivalNeverMines && item.tile.owner === 'mine') {
+        continue
+      }
+
+      tilesToReveal.push(item.tile)
+      // Stop after adding a non-rival tile (this will be the last tile revealed)
+      if (item.tile.owner !== 'rival') {
+        break
+      }
+    }
+
+    return tilesToReveal
+  }
+}

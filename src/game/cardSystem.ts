@@ -3,6 +3,7 @@ import { createBoard, revealTileWithResult } from './boardSystem'
 import { executeCardEffect, requiresTargeting } from './cardEffects'
 import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
 import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerBusyCanaryEffect, triggerInterceptedNoteEffect, hasRelic } from './relicSystem'
+import { AIController } from './ai/AIController'
 
 import { createCard as createCardFromRepository, getRewardCardPool, getStarterCards, removeStatusEffect, addStatusEffect } from './gameRepository'
 
@@ -12,14 +13,40 @@ export function createCard(name: string, upgrades?: { costReduced?: boolean; enh
 
 export function getEffectiveCardCost(card: Card, activeStatusEffects: any[]): number {
   let finalCost = card.cost
-  
+
   // Horse discount: Horse cards cost 0
   const hasHorseDiscount = activeStatusEffects.some(effect => effect.type === 'horse_discount')
   if (hasHorseDiscount && card.name === 'Horse') {
     finalCost = 0
   }
-  
+
   return finalCost
+}
+
+/**
+ * Safely deduct energy from state with validation
+ * Prevents negative energy and logs warnings if something goes wrong
+ */
+export function deductEnergy(state: GameState, card: Card, context: string): GameState {
+  const cost = getEffectiveCardCost(card, state.activeStatusEffects)
+  const newEnergy = state.energy - cost
+
+  if (newEnergy < 0) {
+    console.error(`❌ ENERGY BUG DETECTED in ${context}:`)
+    console.error(`  - Current energy: ${state.energy}`)
+    console.error(`  - Card cost: ${cost}`)
+    console.error(`  - Card name: ${card.name}`)
+    console.error(`  - Would result in: ${newEnergy} energy`)
+    console.error(`  - This should have been caught by canPlayCard check!`)
+
+    // Return state unchanged to prevent negative energy
+    return state
+  }
+
+  return {
+    ...state,
+    energy: newEnergy
+  }
 }
 
 export function createNewLevelCards(): Card[] {
@@ -204,14 +231,16 @@ export function playCard(state: GameState, cardId: string): GameState {
   const newDiscard = shouldExhaust ? newState.discard : [...newState.discard, card]
   const newExhaust = shouldExhaust ? [...newState.exhaust, card] : newState.exhaust
 
-  return {
+  // Deduct energy safely
+  const stateWithoutEnergy = {
     ...newState,
     hand: newHand,
     discard: newDiscard,
     exhaust: newExhaust,
-    selectedCardName: card.name,
-    energy: newState.energy - finalCost
+    selectedCardName: card.name
   }
+
+  return deductEnergy(stateWithoutEnergy, card, 'playCard (immediate effect)')
 }
 
 export function discardHand(state: GameState): GameState {
@@ -389,7 +418,27 @@ export function createInitialState(
   if (levelConfig?.specialBehaviors.rivalNeverMines) {
     finalState = addStatusEffect(finalState, 'rival_never_mines')
   }
-  
+
+  // Add AI type status effect by getting AI info from controller
+  if (levelConfig) {
+    const aiController = new AIController()
+    const currentAI = aiController.getCurrentAI(finalState)
+
+    // Create a custom status effect for this AI type
+    const aiStatusEffect = {
+      id: crypto.randomUUID(),
+      type: 'rival_ai_type' as const,
+      icon: currentAI.icon,
+      name: currentAI.name,
+      description: currentAI.description
+    }
+
+    finalState = {
+      ...finalState,
+      activeStatusEffects: [...finalState.activeStatusEffects, aiStatusEffect]
+    }
+  }
+
   return finalState
 }
 

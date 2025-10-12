@@ -338,46 +338,58 @@ export function triggerTemporaryBunnyBuffs(state: GameState): GameState {
   if (state.temporaryBunnyBuffs <= 0) {
     return state
   }
-  
-  // Find all unrevealed player tiles that are not dirty
-  const unrevealedPlayerTiles = Array.from(state.board.tiles.values()).filter(tile => 
-    tile.owner === 'player' && 
-    !tile.revealed && 
-    tile.specialTile !== 'extraDirty'
-  )
-  
-  if (unrevealedPlayerTiles.length === 0) {
-    // No tiles to reveal, just consume the buff
-    return {
-      ...state,
-      temporaryBunnyBuffs: state.temporaryBunnyBuffs - 1
+
+  // Reveal tiles for all buffs in a loop
+  let currentState = state
+  let buffsRemaining = state.temporaryBunnyBuffs
+
+  while (buffsRemaining > 0) {
+    // Find all unrevealed player tiles that are not dirty
+    const unrevealedPlayerTiles = Array.from(currentState.board.tiles.values()).filter(tile =>
+      tile.owner === 'player' &&
+      !tile.revealed &&
+      tile.specialTile !== 'extraDirty'
+    )
+
+    if (unrevealedPlayerTiles.length === 0) {
+      // No tiles to reveal, consume remaining buffs and exit
+      return {
+        ...currentState,
+        temporaryBunnyBuffs: 0
+      }
     }
+
+    // Select a random player tile
+    const randomTile = unrevealedPlayerTiles[Math.floor(Math.random() * unrevealedPlayerTiles.length)]
+
+    // Reveal the tile
+    const key = `${randomTile.position.x},${randomTile.position.y}`
+    const newTiles = new Map(currentState.board.tiles)
+
+    // Calculate adjacency count using the board's adjacency rule
+    const adjacencyCount = calculateAdjacency(currentState.board, randomTile.position, 'player')
+
+    newTiles.set(key, {
+      ...randomTile,
+      revealed: true,
+      revealedBy: 'player',
+      adjacencyCount
+    })
+
+    currentState = {
+      ...currentState,
+      board: {
+        ...currentState.board,
+        tiles: newTiles
+      }
+    }
+
+    buffsRemaining--
   }
-  
-  // Select a random player tile
-  const randomTile = unrevealedPlayerTiles[Math.floor(Math.random() * unrevealedPlayerTiles.length)]
-  
-  // Reveal the tile
-  const key = `${randomTile.position.x},${randomTile.position.y}`
-  const newTiles = new Map(state.board.tiles)
-  
-  // Calculate adjacency count using the board's adjacency rule
-  const adjacencyCount = calculateAdjacency(state.board, randomTile.position, 'player')
-  
-  newTiles.set(key, {
-    ...randomTile,
-    revealed: true,
-    revealedBy: 'player',
-    adjacencyCount
-  })
-  
+
   return {
-    ...state,
-    board: {
-      ...state.board,
-      tiles: newTiles
-    },
-    temporaryBunnyBuffs: state.temporaryBunnyBuffs - 1
+    ...currentState,
+    temporaryBunnyBuffs: 0
   }
 }
 

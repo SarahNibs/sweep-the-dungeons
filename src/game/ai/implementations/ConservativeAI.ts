@@ -67,17 +67,28 @@ export class ConservativeAI implements RivalAI {
 
       let nextTile: Tile | null = null
 
-      // Step 4: Prefer guaranteed rivals
+      // Step 4: Prefer guaranteed rivals (but skip mines if rivalNeverMines)
       if (guaranteedRivals.length > 0) {
-        nextTile = guaranteedRivals[0]
-        console.log(`  ✓ Selected guaranteed rival at (${nextTile.position.x},${nextTile.position.y})`)
-      } else {
-        // Step 5: Fall back to priority-based selection, skipping ruled-out tiles
+        // Filter out mines if rivalNeverMines behavior is enabled
+        const selectableGuaranteed = context.specialBehaviors.rivalNeverMines
+          ? guaranteedRivals.filter(tile => tile.owner !== 'mine')
+          : guaranteedRivals
+
+        if (selectableGuaranteed.length > 0) {
+          nextTile = selectableGuaranteed[0]
+          console.log(`  ✓ Selected guaranteed rival at (${nextTile.position.x},${nextTile.position.y})`)
+        }
+      }
+
+      if (!nextTile) {
+        // Step 5: Fall back to priority-based selection, skipping ruled-out tiles and mines
         const availableTiles = Array.from(simulatedState.board.tiles.values())
           .filter(tile =>
             !tile.revealed &&
             tile.owner !== 'empty' &&
-            !ruledOutRivals.has(positionToKey(tile.position))
+            !ruledOutRivals.has(positionToKey(tile.position)) &&
+            // Skip mines if rivalNeverMines is enabled (only affects tile selection, not deduction)
+            !(context.specialBehaviors.rivalNeverMines && tile.owner === 'mine')
           )
 
         if (availableTiles.length === 0) {
@@ -160,6 +171,10 @@ export class ConservativeAI implements RivalAI {
 
   /**
    * Propagate constraints until convergence (no flags change)
+   *
+   * IMPORTANT: rivalNeverMines is NOT applied here to avoid giving the AI
+   * unfair knowledge of mine locations during logical deduction. It only
+   * applies during final tile selection to prevent accidental mine reveals.
    */
   private propagateConstraintsUntilConvergence(
     state: GameState,
@@ -171,20 +186,6 @@ export class ConservativeAI implements RivalAI {
     let changed = true
 
     console.log('  🔄 Starting constraint propagation...')
-
-    // Handle rivalNeverMines special behavior
-    if (context.specialBehaviors.rivalNeverMines) {
-      for (const tile of state.board.tiles.values()) {
-        if (tile.owner === 'mine' && !tile.revealed) {
-          const key = positionToKey(tile.position)
-          const tileFlags = flaggedState.flags.get(key)
-          if (tileFlags && tileFlags.rival) {
-            tileFlags.rival = false // Rival can't reveal mines
-          }
-        }
-      }
-      console.log('    ⚙ Applied rivalNeverMines behavior')
-    }
 
     while (changed && iteration < maxIterations) {
       iteration++

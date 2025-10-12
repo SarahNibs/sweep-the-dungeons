@@ -56,6 +56,40 @@ interface GameStore extends GameState {
   exitShop: () => void
 }
 
+/**
+ * Check if a card needs special animation handling instead of immediate execution
+ */
+function needsAnimationOnPlay(card: CardType): 'tingle' | 'tryst' | null {
+  if (card.name === 'Tingle') return 'tingle'
+  if (card.name === 'Tryst' && !card.enhanced) return 'tryst'
+  return null
+}
+
+/**
+ * Helper to remove card from hand and deduct energy for animated cards
+ * Returns state with card moved to discard/exhaust and energy deducted
+ */
+function removeCardAndDeductEnergy(
+  state: GameState,
+  card: CardType
+): GameState {
+  const stateBeforeEnergy = {
+    ...state,
+    hand: state.hand.filter(c => c.id !== card.id),
+    discard: [...state.discard, card],
+    pendingCardEffect: null,
+    selectedCardName: null
+  }
+  return deductEnergy(stateBeforeEnergy, card, 'removeCardAndDeductEnergy (animated card)')
+}
+
+/**
+ * Check if a targeting card needs animation handling
+ */
+function needsAnimationOnTarget(cardName: string): boolean {
+  return cardName === 'Tryst'
+}
+
 // Helper function to update state and award copper if game was just won
 const updateStateWithCopperReward = (set: any, get: any, newState: GameState) => {
   console.log('🏪 UPDATE STATE WITH COPPER REWARD DEBUG')
@@ -99,17 +133,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const currentState = get()
     if (currentState.gameStatus.status !== 'playing') return
 
-    // Check if this card needs special animation handling
     const card = currentState.hand.find(c => c.id === cardId)
-    if (card?.name === 'Tingle') {
-      // Handle Tingle specially with animation
-      const basicState = playCard(currentState, cardId) // This won't execute the effect
+    if (!card) return
+
+    const animationType = needsAnimationOnPlay(card)
+
+    if (animationType === 'tingle') {
+      const basicState = playCard(currentState, cardId)
       get().executeTingleWithAnimation(basicState, card.enhanced || false)
-    } else if (card?.name === 'Tryst' && !card.enhanced) {
-      // Handle BASIC Tryst specially with animation (enhanced Tryst uses targeting flow)
-      const basicState = playCard(currentState, cardId) // This won't execute the effect
+    } else if (animationType === 'tryst') {
+      const basicState = playCard(currentState, cardId)
       get().executeTrystWithAnimation(basicState, false, undefined)
     } else {
+      // Normal card execution (includes enhanced Tryst which uses targeting)
       const newState = playCard(currentState, cardId)
       set(newState)
     }
@@ -268,21 +304,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } else if (effect.type === 'sweep') {
       newEffect = { type: 'sweep', target: position }
       shouldExecute = true
-    } else if (effect.type === 'tryst') {
-      // Handle Tryst targeting specially with animation
-      const card = currentState.hand.find(c => c.name === currentState.selectedCardName)
-      if (card) {
-        const stateBeforeEnergy = {
-          ...currentState,
-          hand: currentState.hand.filter(c => c.id !== card.id),
-          discard: [...currentState.discard, card],
-          pendingCardEffect: null,
-          selectedCardName: null
-        }
-        const basicState = deductEnergy(stateBeforeEnergy, card, 'targetTileForCard (Tryst)')
-        get().executeTrystWithAnimation(basicState, card.enhanced || false, position)
-      }
-      return
     } else if (effect.type === 'canary') {
       newEffect = { type: 'canary', target: position }
       shouldExecute = true
@@ -295,14 +316,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } else if (effect.type === 'eavesdropping') {
       newEffect = { type: 'eavesdropping', target: position }
       shouldExecute = true
+    } else if (effect.type === 'tryst') {
+      newEffect = { type: 'tryst', target: position }
+      shouldExecute = true
     }
-    
+
     if (shouldExecute && newEffect) {
-      // Remove the card from hand first so we can pass it to executeCardEffect
+      // Check if this card needs animation handling
       const cardName = currentState.selectedCardName
       const card = currentState.hand.find(c => c.name === cardName)
+
       if (!card) {
-        // Card not found in hand, clear targeting state and return
         set({
           ...currentState,
           pendingCardEffect: null,
@@ -310,7 +334,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
         })
         return
       }
-      
+
+      if (needsAnimationOnTarget(card.name)) {
+        // Handle animated targeting cards (currently just Tryst)
+        const stateAfterCardRemoval = removeCardAndDeductEnergy(currentState, card)
+        get().executeTrystWithAnimation(stateAfterCardRemoval, card.enhanced || false, position)
+        return
+      }
+
       // Execute the effect with the card for enhanced effects
       let effectState = executeCardEffect(currentState, newEffect, card)
       

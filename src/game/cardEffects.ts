@@ -354,9 +354,9 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
     case 'report':
       return executeReportEffect(state)
     case 'solid_clue':
-      return executeSolidClueEffect(state)
+      return executeSolidClueEffect(state, card)
     case 'stretch_clue':
-      return executeStretchClueEffect(state)
+      return executeStretchClueEffect(state, card)
     case 'energized':
       return executeEnergizedEffect(state, card)
     case 'options':

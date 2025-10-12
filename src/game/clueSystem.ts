@@ -2,6 +2,7 @@ import { GameState, Position, Tile, ClueResult } from '../types'
 
 export interface ClueParams {
   cardType: 'solid_clue' | 'stretch_clue' | 'rival_clue'
+  enhanced: boolean
   clueOrder: number
   clueRowPosition: number
 }
@@ -139,6 +140,7 @@ export function generateClueFromBag(
       const clueResult: ClueResult = {
         id: clueId,
         cardType: params.cardType,
+        enhanced: params.enhanced,
         strengthForThisTile: pipCount,
         allAffectedTiles: [...affectedPositions],
         clueOrder: params.clueOrder,
@@ -161,7 +163,8 @@ export function generateClueFromBag(
 export function generatePlayerSolidClue(
   state: GameState,
   clueOrder: number,
-  clueRowPosition: number
+  clueRowPosition: number,
+  enhanced: boolean = false
 ): ClueGenerationResult {
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
@@ -200,17 +203,19 @@ export function generatePlayerSolidClue(
   
   const params: ClueParams = {
     cardType: 'solid_clue',
+    enhanced,
     clueOrder,
     clueRowPosition
   }
-  
+
   return generateClueFromBag([...chosenPlayerTiles, ...chosenRandomTiles], guaranteedTiles, bag, 10, params)
 }
 
 export function generatePlayerStretchClue(
   state: GameState,
   clueOrder: number,
-  clueRowPosition: number
+  clueRowPosition: number,
+  enhanced: boolean = false
 ): ClueGenerationResult {
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
@@ -249,10 +254,11 @@ export function generatePlayerStretchClue(
   
   const params: ClueParams = {
     cardType: 'stretch_clue',
+    enhanced,
     clueOrder,
     clueRowPosition
   }
-  
+
   return generateClueFromBag([...chosenPlayerTiles, ...chosenRandomTiles], guaranteedTiles, bag, 10, params)
 }
 
@@ -260,7 +266,8 @@ export function generateRivalClueWithSharedSetup(
   chosenRivalTiles: Tile[],
   chosenRandomTiles: Tile[],
   clueOrder: number,
-  clueRowPosition: number
+  clueRowPosition: number,
+  enhanced: boolean = false
 ): ClueGenerationResult {
   // Create bag: 12 copies of each rival tile + 4 copies of each random tile (with spoiler adjustments)
   const bag: Tile[] = [
@@ -284,10 +291,11 @@ export function generateRivalClueWithSharedSetup(
   
   const params: ClueParams = {
     cardType: 'rival_clue',
+    enhanced,
     clueOrder,
     clueRowPosition
   }
-  
+
   return generateClueFromBag([...chosenRivalTiles, ...chosenRandomTiles], guaranteedTiles, bag, 10, params)
 }
 

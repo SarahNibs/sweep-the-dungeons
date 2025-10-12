@@ -1,9 +1,10 @@
-import { GameState } from '../../types'
+import { GameState, Card } from '../../types'
 import { generatePlayerSolidClue } from '../clueSystem'
 import { addClueResult } from '../cardEffects'
 
-export function executeSolidClueEffect(state: GameState): GameState {
-  const result = generatePlayerSolidClue(state, state.clueCounter + 1, state.playerClueCounter + 1)
+export function executeSolidClueEffect(state: GameState, card?: Card): GameState {
+  const enhanced = card?.enhanced || false
+  const result = generatePlayerSolidClue(state, state.clueCounter + 1, state.playerClueCounter + 1, enhanced)
   
   let newState = { 
     ...state, 

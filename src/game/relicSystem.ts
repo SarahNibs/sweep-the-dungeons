@@ -164,13 +164,22 @@ export function applyProgesteroneEffect(state: GameState): GameState {
 
 export function closeRelicUpgradeDisplay(state: GameState): GameState {
   console.log('📋 CLOSING RELIC UPGRADE DISPLAY')
-  
+
   const updatedState = {
     ...state,
     gamePhase: 'playing' as const,
     relicUpgradeResults: undefined
   }
-  
+
+  // Check if we're returning to an existing shop session (has shopOptions already)
+  if (state.shopOptions) {
+    // Return to shop with existing options and purchased items preserved
+    return {
+      ...updatedState,
+      gamePhase: 'shop_selection'
+    }
+  }
+
   // Check if this level should show shop rewards after closing display
   if (shouldShowShopReward(state.currentLevelId)) {
     return startShopSelection(updatedState)

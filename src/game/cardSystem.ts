@@ -196,6 +196,7 @@ export function playCard(state: GameState, cardId: string): GameState {
     return {
       ...state,
       selectedCardName: card.name,
+      selectedCardId: card.id, // Store ID to find exact card later
       pendingCardEffect: { type: effectType as any }
     }
   }

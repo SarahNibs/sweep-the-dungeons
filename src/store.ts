@@ -78,7 +78,8 @@ function removeCardAndDeductEnergy(
     hand: state.hand.filter(c => c.id !== card.id),
     discard: [...state.discard, card],
     pendingCardEffect: null,
-    selectedCardName: null
+    selectedCardName: null,
+    selectedCardId: null
   }
   // Use status effects from before card was played
   return deductEnergy(stateBeforeEnergy, card, state.activeStatusEffects, 'removeCardAndDeductEnergy (animated card)')
@@ -264,7 +265,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   targetTileForCard: (position: Position) => {
     const currentState = get()
     if (!currentState.pendingCardEffect) return
-    if (!currentState.selectedCardName) return
+    if (!currentState.selectedCardId) return
     if (currentState.currentPlayer !== 'player') return
     
     const tile = currentState.board.tiles.get(positionToKey(position))
@@ -284,7 +285,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if ('targets' in effect) {
         // Add another target to existing targets
         const newTargets = [...effect.targets, position]
-        const card = currentState.hand.find(c => c.name === currentState.selectedCardName)
+        const card = currentState.hand.find(c => c.id === currentState.selectedCardId)
         const maxTargets = card?.enhanced ? 3 : 2
         
         if (newTargets.length >= maxTargets) {
@@ -324,14 +325,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (shouldExecute && newEffect) {
       // Check if this card needs animation handling
-      const cardName = currentState.selectedCardName
-      const card = currentState.hand.find(c => c.name === cardName)
+      const card = currentState.hand.find(c => c.id === currentState.selectedCardId)
 
       if (!card) {
         set({
           ...currentState,
           pendingCardEffect: null,
-          selectedCardName: null
+          selectedCardName: null,
+          selectedCardId: null
         })
         return
       }
@@ -361,6 +362,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         discard: newDiscard,
         exhaust: newExhaust,
         pendingCardEffect: null,
+        selectedCardId: null,
         shouldExhaustLastCard: false // Reset after use
       }
 
@@ -425,7 +427,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       ...currentState,
       pendingCardEffect: null,
-      selectedCardName: null
+      selectedCardName: null,
+      selectedCardId: null
     })
   },
 

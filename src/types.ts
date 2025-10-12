@@ -127,6 +127,7 @@ export interface GameState {
   discard: Card[]
   exhaust: Card[] // Cards removed from play this level (but still in persistent deck)
   selectedCardName: string | null
+  selectedCardId: string | null // ID of the card being played (for finding exact card, not just by name)
   energy: number
   maxEnergy: number
   board: Board

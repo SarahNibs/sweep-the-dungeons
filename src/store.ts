@@ -80,7 +80,8 @@ function removeCardAndDeductEnergy(
     pendingCardEffect: null,
     selectedCardName: null
   }
-  return deductEnergy(stateBeforeEnergy, card, 'removeCardAndDeductEnergy (animated card)')
+  // Use status effects from before card was played
+  return deductEnergy(stateBeforeEnergy, card, state.activeStatusEffects, 'removeCardAndDeductEnergy (animated card)')
 }
 
 /**
@@ -363,7 +364,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         shouldExhaustLastCard: false // Reset after use
       }
 
-      const finalState = deductEnergy(stateBeforeEnergy, card, 'targetTileForCard (general)')
+      // CRITICAL: Use status effects from BEFORE card executed to calculate cost
+      // This prevents cards like Horse from seeing their own discount status effect
+      const finalState = deductEnergy(stateBeforeEnergy, card, currentState.activeStatusEffects, 'targetTileForCard (general)')
       
       // Check if the effect revealed a tile that should end the turn (e.g., quantum)
       if (newEffect.type === 'quantum') {

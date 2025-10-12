@@ -26,9 +26,19 @@ export function getEffectiveCardCost(card: Card, activeStatusEffects: any[]): nu
 /**
  * Safely deduct energy from state with validation
  * Prevents negative energy and logs warnings if something goes wrong
+ *
+ * @param state - State to deduct energy from
+ * @param card - Card being played
+ * @param statusEffectsForCost - Status effects to use for cost calculation (usually from BEFORE card executed)
+ * @param context - Debug context string
  */
-export function deductEnergy(state: GameState, card: Card, context: string): GameState {
-  const cost = getEffectiveCardCost(card, state.activeStatusEffects)
+export function deductEnergy(
+  state: GameState,
+  card: Card,
+  statusEffectsForCost: any[],
+  context: string
+): GameState {
+  const cost = getEffectiveCardCost(card, statusEffectsForCost)
   const newEnergy = state.energy - cost
 
   if (newEnergy < 0) {
@@ -240,7 +250,8 @@ export function playCard(state: GameState, cardId: string): GameState {
     selectedCardName: card.name
   }
 
-  return deductEnergy(stateWithoutEnergy, card, 'playCard (immediate effect)')
+  // Use current status effects for cost (effects haven't changed yet for immediate cards)
+  return deductEnergy(stateWithoutEnergy, card, stateWithoutEnergy.activeStatusEffects, 'playCard (immediate effect)')
 }
 
 export function discardHand(state: GameState): GameState {

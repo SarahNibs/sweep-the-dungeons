@@ -60,8 +60,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'starter',
     description: {
-      base: 'Mark a random rival tile with an rival indicator',
-      enhanced: 'Mark 2 random rival tiles with rival indicators'
+      base: 'Mark a random rival tile with a rival indicator and show player-tile adjacency info',
+      enhanced: 'Mark 2 random rival tiles with rival indicators and show player-tile adjacency info on each'
     },
     icon: '📋'
   },

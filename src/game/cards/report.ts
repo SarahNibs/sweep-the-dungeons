@@ -1,5 +1,6 @@
 import { GameState, Position } from '../../types'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
+import { getTile, getNeighbors } from '../boardSystem'
 
 function getUnrevealedTilesByOwner(state: GameState, owner: 'player' | 'rival' | 'neutral' | 'mine'): import('../../types').Tile[] {
   const unrevealed: import('../../types').Tile[] = []
@@ -13,18 +14,66 @@ function getUnrevealedTilesByOwner(state: GameState, owner: 'player' | 'rival' |
 
 export function executeReportEffect(state: GameState): GameState {
   const rivalTiles = getUnrevealedTilesByOwner(state, 'rival')
-  
+
   if (rivalTiles.length === 0) return state
-  
+
   // Pick a random rival tile
   const randomIndex = Math.floor(Math.random() * rivalTiles.length)
   const targetTile = rivalTiles[randomIndex]
-  
+
   const ownerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['rival'])
   return addOwnerSubsetAnnotation(state, targetTile.position, ownerSubset)
 }
 
 export function executeTargetedReportEffect(state: GameState, targetPosition: Position): GameState {
+  // First, add the rival owner subset annotation
   const ownerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['rival'])
-  return addOwnerSubsetAnnotation(state, targetPosition, ownerSubset)
+  let stateWithRivalAnnotation = addOwnerSubsetAnnotation(state, targetPosition, ownerSubset)
+
+  // Then, add player adjacency information (like Eavesdropping)
+  const targetTile = getTile(stateWithRivalAnnotation.board, targetPosition)
+
+  if (!targetTile || targetTile.revealed) {
+    // Can't add adjacency info to revealed tiles or empty spaces
+    return stateWithRivalAnnotation
+  }
+
+  // Get all neighbor positions of the target tile
+  const neighborPositions = getNeighbors(stateWithRivalAnnotation.board, targetPosition)
+
+  // Count adjacent player tiles
+  let playerCount = 0
+  for (const neighborPos of neighborPositions) {
+    const neighborTile = getTile(stateWithRivalAnnotation.board, neighborPos)
+    if (neighborTile && neighborTile.owner === 'player') {
+      playerCount++
+    }
+  }
+
+  // Remove any existing adjacency info annotation
+  const existingAnnotations = targetTile.annotations.filter(a => a.type !== 'adjacency_info')
+
+  // Add the new adjacency info annotation
+  const newAnnotations = [
+    ...existingAnnotations,
+    {
+      type: 'adjacency_info' as const,
+      adjacencyInfo: { player: playerCount }
+    }
+  ]
+
+  // Update the tile with the new annotation
+  const newTiles = new Map(stateWithRivalAnnotation.board.tiles)
+  newTiles.set(`${targetPosition.x},${targetPosition.y}`, {
+    ...targetTile,
+    annotations: newAnnotations
+  })
+
+  return {
+    ...stateWithRivalAnnotation,
+    board: {
+      ...stateWithRivalAnnotation.board,
+      tiles: newTiles
+    }
+  }
 }

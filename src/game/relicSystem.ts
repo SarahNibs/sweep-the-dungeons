@@ -287,10 +287,10 @@ export function triggerDustBunnyEffect(state: GameState): GameState {
   }
   
   // Find all unrevealed player tiles that are not dirty
-  const unrevealedPlayerTiles = Array.from(state.board.tiles.values()).filter(tile => 
-    tile.owner === 'player' && 
-    !tile.revealed && 
-    tile.specialTile !== 'extraDirty'
+  const unrevealedPlayerTiles = Array.from(state.board.tiles.values()).filter(tile =>
+    tile.owner === 'player' &&
+    !tile.revealed &&
+    !tile.specialTiles.includes('extraDirty')
   )
   
   if (unrevealedPlayerTiles.length === 0) {
@@ -348,7 +348,7 @@ export function triggerTemporaryBunnyBuffs(state: GameState): GameState {
     const unrevealedPlayerTiles = Array.from(currentState.board.tiles.values()).filter(tile =>
       tile.owner === 'player' &&
       !tile.revealed &&
-      tile.specialTile !== 'extraDirty'
+      !tile.specialTiles.includes('extraDirty')
     )
 
     if (unrevealedPlayerTiles.length === 0) {

@@ -995,13 +995,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     // Clean dirty tiles before revealing if this is a player tile
     let currentStateForReveal = currentState
-    if (currentReveal.revealer === 'player' && currentReveal.tile.specialTile === 'extraDirty') {
+    if (currentReveal.revealer === 'player' && currentReveal.tile.specialTiles.includes('extraDirty')) {
       // Clean the dirty tile first
       const key = `${currentReveal.tile.position.x},${currentReveal.tile.position.y}`
       const newTiles = new Map(currentStateForReveal.board.tiles)
-      const cleanedTile = { 
-        ...currentReveal.tile, 
-        specialTile: undefined // Remove the extraDirty status
+      const cleanedTile = {
+        ...currentReveal.tile,
+        specialTiles: currentReveal.tile.specialTiles.filter(t => t !== 'extraDirty') // Remove extraDirty
       }
       newTiles.set(key, cleanedTile)
       currentStateForReveal = {

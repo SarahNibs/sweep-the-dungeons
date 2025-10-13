@@ -1,5 +1,5 @@
 import { GameState, Position } from '../../types'
-import { clearSpecialTileState, cleanGoblin } from '../boardSystem'
+import { removeSpecialTile, cleanGoblin, hasSpecialTile } from '../boardSystem'
 import { triggerMopEffect } from '../relicSystem'
 
 export function executeSweepEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
@@ -21,14 +21,17 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
       if (!tile) continue
 
       // Handle goblins - move them but don't count for Mop
-      if (tile.specialTile === 'goblin') {
+      if (hasSpecialTile(tile, 'goblin')) {
         const { board: boardAfterGoblinMove } = cleanGoblin(currentBoard, position)
         currentBoard = boardAfterGoblinMove
       }
+
       // Handle extraDirty tiles - clean them and count for Mop
-      else if (tile.specialTile === 'extraDirty') {
+      // Note: Check current tile state in case goblin was just cleaned above
+      const currentTile = currentBoard.tiles.get(key)
+      if (currentTile && hasSpecialTile(currentTile, 'extraDirty')) {
         const newTiles = new Map(currentBoard.tiles)
-        const updatedTile = clearSpecialTileState(tile)
+        const updatedTile = removeSpecialTile(currentTile, 'extraDirty')
         newTiles.set(key, updatedTile)
         currentBoard = {
           ...currentBoard,

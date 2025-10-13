@@ -303,7 +303,7 @@ export function checkGameStatus(state: GameState): GameStatusInfo {
 
   for (const tile of board.tiles.values()) {
     // Skip destroyed tiles
-    if (tile.specialTile === 'destroyed') continue
+    if (tile.specialTiles.includes('destroyed')) continue
 
     if (tile.owner === 'player') {
       totalPlayerTiles++

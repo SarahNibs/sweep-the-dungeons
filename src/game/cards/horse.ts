@@ -60,7 +60,7 @@ export function executeHorseEffect(state: GameState, target: Position, card?: im
     // Normal version: reveal all tiles with safest owner
     // Handle dirty tiles specially - annotate instead of reveal/clean
     tilesToProcess.forEach(({ pos, tile }) => {
-      if (tile?.specialTile === 'extraDirty') {
+      if (tile?.specialTiles.includes('extraDirty')) {
         // For dirty tiles, annotate with the exact owner instead of revealing/cleaning
         const ownerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>([tile.owner as any])
         newState = addOwnerSubsetAnnotation(newState, pos, ownerSubset)

@@ -228,7 +228,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
 
   const getTileColor = () => {
     // Destroyed tiles look like background
-    if (tile.specialTile === 'destroyed') {
+    if (tile.specialTiles.includes('destroyed')) {
       return 'transparent'
     }
 
@@ -622,9 +622,9 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           })
         }
       }
-      
+
       // Add dirty scribbles for extraDirty tiles (always, regardless of other annotations)
-      if (tile.specialTile === 'extraDirty') {
+      if (tile.specialTiles.includes('extraDirty')) {
         elements.push(
           <div
             key="dirty-scribbles"
@@ -660,7 +660,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       }
 
       // Add goblin icon for goblin tiles
-      if (tile.specialTile === 'goblin') {
+      if (tile.specialTiles.includes('goblin')) {
         elements.push(
           <div
             key="goblin-icon"
@@ -681,7 +681,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       } // End of non-adjacency annotations for unrevealed tiles
 
     // Render destroyed tile explosion (shown for both revealed and unrevealed)
-    if (tile.specialTile === 'destroyed') {
+    if (tile.specialTiles.includes('destroyed')) {
       elements.push(
         <div
           key="destroyed-explosion"
@@ -793,7 +793,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     }
 
     // Show dirty scribbles for extraDirty tiles even when no other annotations exist
-    if (!tile.revealed && tile.specialTile === 'extraDirty') {
+    if (!tile.revealed && tile.specialTiles.includes('extraDirty')) {
       return (
         <div
           style={{
@@ -861,7 +861,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         onContextMenu={handleRightClick}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
-        title={tile.specialTile === 'extraDirty' && !tile.revealed ? 'Cannot reveal tile without cleaning it!' : undefined}
+        title={tile.specialTiles.includes('extraDirty') && !tile.revealed ? 'Cannot reveal tile without cleaning it!' : undefined}
       style={{
         position: 'relative',
         width: '56px',

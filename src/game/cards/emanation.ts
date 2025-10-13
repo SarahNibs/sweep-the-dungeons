@@ -9,13 +9,11 @@ export function executeEmanationEffect(state: GameState, target: Position, card?
     return state
   }
 
-  // Mark tile as destroyed
+  // Mark tile as destroyed (replaces all other special tiles)
   const newTiles = new Map(state.board.tiles)
   newTiles.set(`${target.x},${target.y}`, {
     ...targetTile,
-    specialTile: 'destroyed',
-    // Remove goblin if present
-    ...(targetTile.specialTile === 'goblin' ? {} : {})
+    specialTiles: ['destroyed'] // Destroyed replaces everything
   })
 
   // Deduct copper unless enhanced

@@ -69,7 +69,7 @@ export interface Tile {
   revealedBy: 'player' | 'rival' | null
   adjacencyCount: number | null
   annotations: TileAnnotation[]
-  specialTile?: 'extraDirty' | 'goblin' | 'destroyed'
+  specialTiles: Array<'extraDirty' | 'goblin' | 'destroyed'> // Can have multiple special properties
   underwireProtected?: boolean // True if this mine was protected by Underwire
 }
 

@@ -13,7 +13,7 @@ export function keyToPosition(key: string): Position {
   return { x, y }
 }
 
-export function createTile(position: Position, owner: Tile['owner'], specialTile?: 'extraDirty'): Tile {
+export function createTile(position: Position, owner: Tile['owner'], specialTiles?: Array<'extraDirty' | 'goblin' | 'destroyed'>): Tile {
   return {
     position,
     owner,
@@ -21,7 +21,34 @@ export function createTile(position: Position, owner: Tile['owner'], specialTile
     revealedBy: null,
     adjacencyCount: null,
     annotations: [],
-    ...(specialTile && { specialTile })
+    specialTiles: specialTiles || []
+  }
+}
+
+// Helper functions for working with specialTiles array
+export function hasSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed'): boolean {
+  return tile.specialTiles.includes(type)
+}
+
+export function addSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed'): Tile {
+  if (hasSpecialTile(tile, type)) return tile
+  return {
+    ...tile,
+    specialTiles: [...tile.specialTiles, type]
+  }
+}
+
+export function removeSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed'): Tile {
+  return {
+    ...tile,
+    specialTiles: tile.specialTiles.filter(t => t !== type)
+  }
+}
+
+export function clearAllSpecialTiles(tile: Tile): Tile {
+  return {
+    ...tile,
+    specialTiles: []
   }
 }
 
@@ -126,11 +153,8 @@ function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig):
   for (let i = 0; i < count; i++) {
     const tile = eligibleTiles[i]
     const key = positionToKey(tile.position)
-    console.log(`    - Setting ${config.type} at position (${tile.position.x}, ${tile.position.y})`)
-    tiles.set(key, {
-      ...tile,
-      specialTile: config.type
-    })
+    console.log(`    - Adding ${config.type} at position (${tile.position.x}, ${tile.position.y}), existing: [${tile.specialTiles.join(', ')}]`)
+    tiles.set(key, addSpecialTile(tile, config.type))
   }
 
   console.log(`✅ APPLIED ${count} ${config.type} tiles`)
@@ -141,8 +165,8 @@ export function getTile(board: Board, position: Position): Tile | undefined {
 }
 
 export function clearSpecialTileState(tile: Tile): Tile {
-  const { specialTile, ...cleanTile } = tile
-  return cleanTile
+  // Legacy function - now clears ALL special tiles
+  return clearAllSpecialTiles(tile)
 }
 
 export function calculateAdjacency(board: Board, position: Position, revealedBy: 'player' | 'rival'): number {
@@ -176,7 +200,7 @@ export function revealTileWithResult(board: Board, position: Position, revealedB
   }
 
   // Handle goblin tiles - they move when attempted to be revealed
-  if (tile.specialTile === 'goblin') {
+  if (hasSpecialTile(tile, 'goblin')) {
     const { board: boardAfterGoblinMove } = cleanGoblin(board, position)
     return {
       board: boardAfterGoblinMove,
@@ -185,10 +209,10 @@ export function revealTileWithResult(board: Board, position: Position, revealedB
   }
 
   // Handle extraDirty tiles when revealed by player
-  if (tile.specialTile === 'extraDirty' && revealedBy === 'player') {
+  if (hasSpecialTile(tile, 'extraDirty') && revealedBy === 'player') {
     // Clear the dirty state but don't reveal the tile
     const newTiles = new Map(board.tiles)
-    const cleanedTile = clearSpecialTileState(tile)
+    const cleanedTile = removeSpecialTile(tile, 'extraDirty')
     newTiles.set(key, cleanedTile)
 
     return {
@@ -203,13 +227,13 @@ export function revealTileWithResult(board: Board, position: Position, revealedB
   const adjacencyCount = calculateAdjacency(board, position, revealedBy)
   
   const newTiles = new Map(board.tiles)
+  // Clear special tile state when revealing (enemies can reveal dirty tiles normally)
   const revealedTile: Tile = {
     ...tile,
     revealed: true,
     revealedBy,
     adjacencyCount,
-    // Clear special tile state when revealing (enemies can reveal dirty tiles normally)
-    ...(tile.specialTile && { specialTile: undefined })
+    specialTiles: [] // Clear all special tiles when revealing
   }
   
   newTiles.set(key, revealedTile)
@@ -346,10 +370,7 @@ export function moveGoblin(board: Board, fromPosition: Position): Board {
 
   // Move goblin to target tile
   const newTiles = new Map(board.tiles)
-  newTiles.set(positionToKey(targetPos), {
-    ...targetTile,
-    specialTile: 'goblin'
-  })
+  newTiles.set(positionToKey(targetPos), addSpecialTile(targetTile, 'goblin'))
 
   return {
     ...board,
@@ -364,13 +385,13 @@ export function moveGoblin(board: Board, fromPosition: Position): Board {
 export function cleanGoblin(board: Board, position: Position): { board: Board; goblinCleaned: boolean } {
   const tile = getTile(board, position)
 
-  if (!tile || tile.specialTile !== 'goblin') {
+  if (!tile || !hasSpecialTile(tile, 'goblin')) {
     return { board, goblinCleaned: false }
   }
 
-  // Remove goblin from this tile
+  // Remove goblin from this tile (keep other special tiles like extraDirty)
   const newTiles = new Map(board.tiles)
-  const cleanedTile = clearSpecialTileState(tile)
+  const cleanedTile = removeSpecialTile(tile, 'goblin')
   newTiles.set(positionToKey(position), cleanedTile)
 
   const boardWithCleanedTile = {

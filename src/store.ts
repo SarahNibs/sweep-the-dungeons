@@ -201,23 +201,28 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   revealTile: (tile: Tile) => {
     const currentState = get()
-    
+
     // Don't allow tile reveals if game is over
     if (currentState.gameStatus.status !== 'playing') {
       return
     }
-    
+
     // Handle card targeting
     if (currentState.pendingCardEffect) {
       get().targetTileForCard(tile.position)
       return
     }
-    
+
     // Only allow tile revealing during player turn
     if (currentState.currentPlayer !== 'player') {
       return
     }
-    
+
+    // Ignore clicks on empty tiles (holes in the grid)
+    if (tile.owner === 'empty') {
+      return
+    }
+
     const revealResult = revealTileWithResult(currentState.board, tile.position, 'player')
     
     // For extraDirty tiles that were cleaned but not revealed, always end turn

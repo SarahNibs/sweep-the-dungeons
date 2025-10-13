@@ -13,7 +13,7 @@ export function keyToPosition(key: string): Position {
   return { x, y }
 }
 
-export function createTile(position: Position, owner: Tile['owner'], specialTiles?: Array<'extraDirty' | 'goblin' | 'destroyed'>): Tile {
+export function createTile(position: Position, owner: Tile['owner'], specialTiles?: Array<'extraDirty' | 'goblin' | 'destroyed' | 'lair'>): Tile {
   return {
     position,
     owner,
@@ -26,11 +26,11 @@ export function createTile(position: Position, owner: Tile['owner'], specialTile
 }
 
 // Helper functions for working with specialTiles array
-export function hasSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed'): boolean {
+export function hasSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed' | 'lair'): boolean {
   return tile.specialTiles.includes(type)
 }
 
-export function addSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed'): Tile {
+export function addSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed' | 'lair'): Tile {
   if (hasSpecialTile(tile, type)) return tile
   return {
     ...tile,
@@ -38,7 +38,7 @@ export function addSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'dest
   }
 }
 
-export function removeSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed'): Tile {
+export function removeSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed' | 'lair'): Tile {
   return {
     ...tile,
     specialTiles: tile.specialTiles.filter(t => t !== type)
@@ -53,9 +53,9 @@ export function clearAllSpecialTiles(tile: Tile): Tile {
 }
 
 export interface SpecialTileConfig {
-  type: 'extraDirty' | 'goblin'
+  type: 'extraDirty' | 'goblin' | 'lair'
   count: number
-  placement: 'random' | 'nonmine' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> }
+  placement: 'random' | 'nonmine' | 'empty' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> }
 }
 
 export function createBoard(
@@ -125,7 +125,12 @@ function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig):
   console.log(`🎯 APPLYING SPECIAL TILES: type=${config.type}, count=${config.count}, placement=${JSON.stringify(config.placement)}`)
 
   const eligibleTiles = Array.from(tiles.values()).filter(tile => {
-    // Skip empty tiles and already revealed tiles
+    // Special case for lairs: only on empty tiles
+    if (config.placement === 'empty') {
+      return tile.owner === 'empty' && !tile.revealed
+    }
+
+    // Skip empty tiles and already revealed tiles for normal placements
     if (tile.owner === 'empty' || tile.revealed) return false
 
     // Filter by placement rules
@@ -403,4 +408,63 @@ export function cleanGoblin(board: Board, position: Position): { board: Board; g
   const finalBoard = moveGoblin(boardWithCleanedTile, position)
 
   return { board: finalBoard, goblinCleaned: true }
+}
+
+/**
+ * Spawn goblins from all lairs on the board (called after rival turn)
+ * Each lair spawns a goblin in a random unrevealed non-mine non-goblin adjacent tile
+ * Returns updated board with goblins spawned
+ */
+export function spawnGoblinsFromLairs(board: Board): Board {
+  // Find all tiles with lairs
+  const lairTiles = Array.from(board.tiles.values()).filter(tile =>
+    hasSpecialTile(tile, 'lair')
+  )
+
+  if (lairTiles.length === 0) {
+    return board
+  }
+
+  console.log(`🏠 SPAWNING GOBLINS FROM ${lairTiles.length} LAIRS`)
+
+  let currentBoard = board
+
+  for (const lairTile of lairTiles) {
+    const neighbors = getNeighbors(currentBoard, lairTile.position)
+
+    // Find all unrevealed adjacent tiles that are not mines and don't already have goblins
+    const validSpawnTargets = neighbors
+      .map(pos => ({ pos, tile: getTile(currentBoard, pos) }))
+      .filter(({ tile }) =>
+        tile &&
+        !tile.revealed &&
+        tile.owner !== 'empty' &&
+        tile.owner !== 'mine' &&
+        !hasSpecialTile(tile, 'goblin')
+      )
+
+    if (validSpawnTargets.length === 0) {
+      console.log(`  - Lair at (${lairTile.position.x}, ${lairTile.position.y}) has no valid spawn targets`)
+      continue
+    }
+
+    // Pick random target
+    const randomIndex = Math.floor(Math.random() * validSpawnTargets.length)
+    const targetPos = validSpawnTargets[randomIndex].pos
+    const targetTile = getTile(currentBoard, targetPos)!
+
+    console.log(`  - Lair at (${lairTile.position.x}, ${lairTile.position.y}) spawning goblin at (${targetPos.x}, ${targetPos.y})`)
+
+    // Spawn goblin on target tile
+    const newTiles = new Map(currentBoard.tiles)
+    newTiles.set(positionToKey(targetPos), addSpecialTile(targetTile, 'goblin'))
+
+    currentBoard = {
+      ...currentBoard,
+      tiles: newTiles
+    }
+  }
+
+  console.log(`✅ SPAWNED GOBLINS FROM LAIRS`)
+  return currentBoard
 }

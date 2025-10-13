@@ -833,8 +833,12 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
 
   // Handle empty tiles (holes in the grid) after all hooks have been called
   if (tile.owner === 'empty') {
+    // Check if this empty tile has a lair
+    const hasLair = tile.specialTiles.includes('lair')
+    const hasDestroyed = tile.specialTiles.includes('destroyed')
+
     return (
-      <div 
+      <div
         onClick={handleClick}
         onMouseEnter={() => {
           setIsHovered(true)
@@ -844,13 +848,61 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           setIsHovered(false)
           onMouseLeave?.()
         }}
+        title={hasLair && !hasDestroyed ? 'Goblin Lair: Spawns a goblin after each rival turn' : undefined}
         style={{
+          position: 'relative',
           width: '56px',
           height: '56px',
           backgroundColor: 'transparent',
+          border: hasLair && !hasDestroyed && isTargeting ? '2px solid #007bff' : 'none',
+          borderRadius: '4px',
           cursor: isTargeting ? 'pointer' : 'default'
-        }} 
-      />
+        }}
+      >
+        {/* Render lair house icon */}
+        {hasLair && !hasDestroyed && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              fontSize: '36px',
+              pointerEvents: 'none',
+              zIndex: 999
+            }}
+          >
+            🏠
+          </div>
+        )}
+
+        {/* Render destroyed explosion if lair was destroyed */}
+        {hasDestroyed && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              zIndex: 1000
+            }}
+          >
+            {/* Jagged red explosion shape */}
+            <svg width="100%" height="100%" viewBox="0 0 56 56" style={{ position: 'absolute' }}>
+              <polygon
+                points="28,8 32,20 44,16 36,28 48,32 36,36 44,48 32,40 28,52 24,40 12,48 20,36 8,32 20,28 12,16 24,20"
+                fill="#dc3545"
+                stroke="#8b0000"
+                strokeWidth="2"
+                opacity="0.8"
+              />
+            </svg>
+          </div>
+        )}
+      </div>
     )
   }
 

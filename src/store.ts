@@ -3,7 +3,7 @@ import { GameState, Tile, Position, CardEffect, Board, Card as CardType, PileTyp
 import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel, queueCardDrawsFromDirtCleaning, getEffectiveCardCost, deductEnergy } from './game/cardSystem'
 import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
 import { startRelicSelection, selectRelic, closeRelicUpgradeDisplay } from './game/relicSystem'
-import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey } from './game/boardSystem'
+import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey, spawnGoblinsFromLairs, hasSpecialTile } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, checkGameStatus, getUnrevealedTilesByOwner, revealTileWithRelicEffects } from './game/cardEffects'
 import { executeTargetedReportEffect } from './game/cards/report'
 import { AIController } from './game/ai/AIController'
@@ -272,10 +272,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!currentState.pendingCardEffect) return
     if (!currentState.selectedCardId) return
     if (currentState.currentPlayer !== 'player') return
-    
+
     const tile = currentState.board.tiles.get(positionToKey(position))
     if (!tile) return
-    
+
+    // For Emanation, allow targeting empty tiles with lairs
+    if (tile.owner === 'empty' && currentState.selectedCardName === 'Emanation') {
+      // Check if this empty tile has a lair
+      if (!hasSpecialTile(tile, 'lair')) {
+        return // Empty tile without lair, can't target
+      }
+      // Allow targeting this lair tile
+    } else if (tile.owner === 'empty') {
+      // Empty tiles without lairs can't be targeted by other cards
+      return
+    }
+
     // For Brush and Sweep cards, allow targeting revealed tiles (they're selecting center of areas)
     if (tile.revealed && currentState.selectedCardName !== 'Brush' && currentState.selectedCardName !== 'Sweep') return
     
@@ -491,8 +503,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const tilesToReveal = rivalTurnResult.tilesToReveal
     
     if (tilesToReveal.length === 0) {
-      // No tiles to reveal, end rival turn immediately
-      const newTurnState = startNewTurn(stateWithRivalClue)
+      // No tiles to reveal, spawn goblins from lairs and end rival turn immediately
+      const boardWithGoblins = spawnGoblinsFromLairs(stateWithRivalClue.board)
+      const newTurnState = startNewTurn({
+        ...stateWithRivalClue,
+        board: boardWithGoblins
+      })
       set({
         ...newTurnState,
         currentPlayer: 'player'
@@ -510,7 +526,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
         boardState = revealTile(boardState, tile.position, 'rival')
         if (tile.owner !== 'rival') break // Stop if non-rival tile revealed
       }
-      
+
+      // Spawn goblins from lairs before starting new turn
+      boardState = spawnGoblinsFromLairs(boardState)
+
       const newTurnState = startNewTurn({
         ...stateWithRivalClue,
         board: boardState
@@ -549,8 +568,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { revealsRemaining, currentRevealIndex } = animation
     
     if (currentRevealIndex >= revealsRemaining.length) {
-      // Animation complete, end rival turn
-      const newTurnState = startNewTurn(currentState)
+      // Animation complete, spawn goblins from lairs and end rival turn
+      const boardWithGoblins = spawnGoblinsFromLairs(currentState.board)
+      const newTurnState = startNewTurn({
+        ...currentState,
+        board: boardWithGoblins
+      })
       set({
         ...newTurnState,
         currentPlayer: 'player',
@@ -607,9 +630,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
           get().performNextRivalReveal()
         }, 800)
       } else {
-        // End rival turn
+        // End rival turn, spawn goblins from lairs before starting new turn
         const finalState = get()
-        const newTurnState = startNewTurn(finalState)
+        const boardWithGoblins = spawnGoblinsFromLairs(finalState.board)
+        const newTurnState = startNewTurn({
+          ...finalState,
+          board: boardWithGoblins
+        })
         set({
           ...newTurnState,
           currentPlayer: 'player',

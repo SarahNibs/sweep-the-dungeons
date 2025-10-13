@@ -514,7 +514,7 @@
         "relicReward": false,
         "upgradeReward": false,
         "shopReward": false,
-        "winTheGame": true,
+        "winTheGame": false,
         "nextLevel": ["L13"]
       },
       "description": "Introducing: goblins",
@@ -546,7 +546,46 @@
         "initialRivalReveal": 3,
         "rivalAI": "conservative"
       }
+    },
+    {
+      "levelNumber": 13,
+      "levelId": "L13",
+      "uponFinish": {
+        "cardReward": true,
+        "relicReward": false,
+        "upgradeReward": true,
+        "shopReward": false,
+        "winTheGame": true,
+        "nextLevel": ["L14"]
+      },
+      "description": "Introducing: goblin lair",
+      "dimensions": {
+        "columns": 8,
+        "rows": 8
+      },
+      "tileCounts": {
+        "player": 22,
+        "rival": 17,
+        "neutral": 15,
+        "mine": 6
+      },
+      "unusedLocations": [
+        [3,3],[4,3],
+        [3,4],[4,4]
+      ],
+      "specialTiles": [
+        {
+          "type": "lair",
+          "count": 4,
+          "placement": "empty"
+        }
+      ],
+      "specialBehaviors": {
+        "initialRivalReveal": 3,
+        "rivalAI": "conservative"
+      }
     }
+
   ],
   "coordinateSystem": {
     "description": "Grid uses (column, row) coordinates with (0,0) at top-left",

@@ -69,7 +69,7 @@ export interface Tile {
   revealedBy: 'player' | 'rival' | null
   adjacencyCount: number | null
   annotations: TileAnnotation[]
-  specialTiles: Array<'extraDirty' | 'goblin' | 'destroyed'> // Can have multiple special properties
+  specialTiles: Array<'extraDirty' | 'goblin' | 'destroyed' | 'lair'> // Can have multiple special properties
   underwireProtected?: boolean // True if this mine was protected by Underwire
 }
 
@@ -104,9 +104,9 @@ export interface LevelConfig {
   }
   unusedLocations: number[][]
   specialTiles: Array<{
-    type: 'extraDirty' | 'goblin'
+    type: 'extraDirty' | 'goblin' | 'lair'
     count: number
-    placement: 'random' | 'nonmine' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> }
+    placement: 'random' | 'nonmine' | 'empty' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> }
   }>
   specialBehaviors: {
     rivalNeverMines?: boolean

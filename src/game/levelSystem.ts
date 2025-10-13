@@ -10,7 +10,7 @@ const config = levelsConfig as LevelsConfig
 
 // Validate all level configurations on load
 function validateLevelConfig(level: LevelConfig): void {
-  const { dimensions, tileCounts, unusedLocations } = level
+  const { dimensions, tileCounts, unusedLocations, specialTiles } = level
   const totalSpaces = dimensions.columns * dimensions.rows
   const unusedSpaces = unusedLocations.length
   const availableSpaces = totalSpaces - unusedSpaces
@@ -35,6 +35,28 @@ ERROR: Available spaces (${availableSpaces}) ≠ Required tiles (${requiredSpace
 Difference: ${availableSpaces - requiredSpaces} ${availableSpaces > requiredSpaces ? 'extra spaces' : 'missing spaces'}
 
 This will cause tiles with "undefined" owner!
+Fix the level configuration in levels-config.json
+    `.trim()
+
+    throw new Error(error)
+  }
+
+  // Validate lair placement
+  const lairConfigs = specialTiles.filter(st => st.type === 'lair' && st.placement === 'empty')
+  const totalLairsRequested = lairConfigs.reduce((sum, config) => sum + config.count, 0)
+
+  if (totalLairsRequested > unusedSpaces) {
+    const error = `
+❌ LEVEL CONFIGURATION ERROR: Level ${level.levelNumber} (${level.levelId})
+
+Lair placement error:
+  - Unused locations (empty tiles): ${unusedSpaces}
+  - Lairs requested: ${totalLairsRequested}
+
+ERROR: Not enough empty tiles for lairs!
+Lairs can only be placed on unused locations (empty tiles).
+You need at least ${totalLairsRequested} unused locations, but only have ${unusedSpaces}.
+
 Fix the level configuration in levels-config.json
     `.trim()
 

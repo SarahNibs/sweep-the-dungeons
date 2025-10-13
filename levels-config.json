@@ -23,10 +23,6 @@
         "mine": 0
       },
       "unusedLocations": [
-        "// Coordinate system: (column, row) where (0,0) is top-left",
-        "// For a 7x7 grid with center removed: (3, 3)",
-        "// Example: Remove corners from this level",
-        "// [0, 0], [5, 0], [0, 4], [5, 4]"
       ],
       "specialTiles": [
       ],
@@ -481,7 +477,7 @@
       },
       "tileCounts": {
         "player": 14,
-        "rival": 12,
+        "rival": 11,
         "neutral": 7,
         "mine": 8
       },

@@ -227,15 +227,20 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
   }
 
   const getTileColor = () => {
-    // If clue highlighted and unrevealed, use darker background 
+    // Destroyed tiles look like background
+    if (tile.specialTile === 'destroyed') {
+      return 'transparent'
+    }
+
+    // If clue highlighted and unrevealed, use darker background
     if (!tile.revealed && isClueHighlighted()) {
       return '#6c757d' // Darker gray when highlighted (original unrevealed color)
     }
-    
+
     if (!tile.revealed) {
       return '#9ca3af' // Lighter gray for unrevealed
     }
-    
+
     switch (tile.owner) {
       case 'player':
         return '#81b366' // Muted green for player
@@ -653,7 +658,57 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           </div>
         )
       }
+
+      // Add goblin icon for goblin tiles
+      if (tile.specialTile === 'goblin') {
+        elements.push(
+          <div
+            key="goblin-icon"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              fontSize: '28px',
+              pointerEvents: 'none',
+              zIndex: 999
+            }}
+          >
+            👺
+          </div>
+        )
+      }
       } // End of non-adjacency annotations for unrevealed tiles
+
+    // Render destroyed tile explosion (shown for both revealed and unrevealed)
+    if (tile.specialTile === 'destroyed') {
+      elements.push(
+        <div
+          key="destroyed-explosion"
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+            zIndex: 1000
+          }}
+        >
+          {/* Jagged red explosion shape */}
+          <svg width="100%" height="100%" viewBox="0 0 56 56" style={{ position: 'absolute' }}>
+            <polygon
+              points="28,8 32,20 44,16 36,28 48,32 36,36 44,48 32,40 28,52 24,40 12,48 20,36 8,32 20,28 12,16 24,20"
+              fill="#dc3545"
+              stroke="#8b0000"
+              strokeWidth="2"
+              opacity="0.8"
+            />
+          </svg>
+        </div>
+      )
+    }
       
       // Render adjacency info from Eavesdropping card (center of tile)
       // This is shown for both revealed and unrevealed tiles

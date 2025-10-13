@@ -1,21 +1,29 @@
 import { GameState, Position } from '../../types'
-import { getTile, positionToKey, clearSpecialTileState } from '../boardSystem'
+import { getTile, positionToKey, clearSpecialTileState, cleanGoblin } from '../boardSystem'
 import { triggerMopEffect } from '../relicSystem'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
 
 export function executeScoutEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
   const tile = getTile(state.board, target)
   if (!tile || tile.revealed) return state
-  
+
   let newState = state
-  
+
+  // If this is a goblin tile, move it (but don't trigger Mop)
+  if (tile.specialTile === 'goblin') {
+    const { board: boardAfterGoblinMove } = cleanGoblin(state.board, target)
+    newState = {
+      ...state,
+      board: boardAfterGoblinMove
+    }
+  }
   // If this is an extraDirty tile, clear the dirty state first
-  if (tile.specialTile === 'extraDirty') {
+  else if (tile.specialTile === 'extraDirty') {
     const key = positionToKey(target)
     const newTiles = new Map(state.board.tiles)
     const cleanedTile = clearSpecialTileState(tile)
     newTiles.set(key, cleanedTile)
-    
+
     newState = {
       ...state,
       board: {
@@ -23,7 +31,7 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
         tiles: newTiles
       }
     }
-    
+
     // Draw card immediately for cleaning dirt (Mop relic effect)
     newState = triggerMopEffect(newState, 1)
   }

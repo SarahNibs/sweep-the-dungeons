@@ -1,41 +1,51 @@
 import { GameState, Position } from '../../types'
-import { clearSpecialTileState } from '../boardSystem'
+import { clearSpecialTileState, cleanGoblin } from '../boardSystem'
 import { triggerMopEffect } from '../relicSystem'
 
 export function executeSweepEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
-  const newTiles = new Map(state.board.tiles)
-  let tilesCleanedCount = 0
-  
+  let currentBoard = state.board
+  let tilesCleanedCount = 0  // Only count dirt, not goblins
+
   // Enhanced: 7x7 area (-3 to +3), Normal: 5x5 area (-2 to +2)
   const range = card?.enhanced ? 3 : 2
-  
-  // Clear dirt in the specified area around the target position
+
+  // Clear dirt and move goblins in the specified area around the target position
   for (let dx = -range; dx <= range; dx++) {
     for (let dy = -range; dy <= range; dy++) {
       const x = target.x + dx
       const y = target.y + dy
+      const position = { x, y }
       const key = `${x},${y}`
-      const tile = newTiles.get(key)
-      
-      // Only process tiles that exist and have extraDirty special tile
-      if (tile && tile.specialTile === 'extraDirty') {
+      const tile = currentBoard.tiles.get(key)
+
+      if (!tile) continue
+
+      // Handle goblins - move them but don't count for Mop
+      if (tile.specialTile === 'goblin') {
+        const { board: boardAfterGoblinMove } = cleanGoblin(currentBoard, position)
+        currentBoard = boardAfterGoblinMove
+      }
+      // Handle extraDirty tiles - clean them and count for Mop
+      else if (tile.specialTile === 'extraDirty') {
+        const newTiles = new Map(currentBoard.tiles)
         const updatedTile = clearSpecialTileState(tile)
         newTiles.set(key, updatedTile)
+        currentBoard = {
+          ...currentBoard,
+          tiles: newTiles
+        }
         tilesCleanedCount++
       }
     }
   }
-  
+
   let finalState = {
     ...state,
-    board: {
-      ...state.board,
-      tiles: newTiles
-    }
+    board: currentBoard
   }
-  
-  // Trigger Mop effect for all cleaned tiles
+
+  // Trigger Mop effect only for cleaned dirt tiles (not goblins)
   finalState = triggerMopEffect(finalState, tilesCleanedCount)
-  
+
   return finalState
 }

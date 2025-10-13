@@ -437,12 +437,12 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
 }
 
 export function addStatusEffect(state: GameState, effectType: StatusEffect['type'], enhanced?: boolean): GameState {
-  // Check if effect already exists (don't duplicate)
+  // Check if effect already exists (don't duplicate, except for underwire_protection which stacks)
   const existingEffect = state.activeStatusEffects.find(effect => effect.type === effectType)
-  if (existingEffect) {
+  if (existingEffect && effectType !== 'underwire_protection') {
     return state
   }
-  
+
   const newEffect = createStatusEffect(effectType, enhanced)
   return {
     ...state,
@@ -454,18 +454,34 @@ export function removeStatusEffect(state: GameState, effectType: StatusEffect['t
   console.log('🗑️ REMOVE STATUS EFFECT DEBUG')
   console.log('  - Removing effect type:', effectType)
   console.log('  - Before removal:', state.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
-  
-  const filteredEffects = state.activeStatusEffects.filter(effect => effect.type !== effectType)
-  
+
+  let filteredEffects: StatusEffect[]
+
+  // For underwire_protection (which can stack), only remove the first instance
+  if (effectType === 'underwire_protection') {
+    const indexToRemove = state.activeStatusEffects.findIndex(effect => effect.type === effectType)
+    if (indexToRemove !== -1) {
+      filteredEffects = [
+        ...state.activeStatusEffects.slice(0, indexToRemove),
+        ...state.activeStatusEffects.slice(indexToRemove + 1)
+      ]
+    } else {
+      filteredEffects = state.activeStatusEffects
+    }
+  } else {
+    // For all other effects, remove all instances (original behavior)
+    filteredEffects = state.activeStatusEffects.filter(effect => effect.type !== effectType)
+  }
+
   console.log('  - After filtering:', filteredEffects.map(e => ({ type: e.type, id: e.id })))
-  
+
   const result = {
     ...state,
     activeStatusEffects: filteredEffects
   }
-  
+
   console.log('  - Final result activeStatusEffects:', result.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
-  
+
   return result
 }
 

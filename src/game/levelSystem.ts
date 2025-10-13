@@ -8,6 +8,43 @@ interface LevelsConfig {
 
 const config = levelsConfig as LevelsConfig
 
+// Validate all level configurations on load
+function validateLevelConfig(level: LevelConfig): void {
+  const { dimensions, tileCounts, unusedLocations } = level
+  const totalSpaces = dimensions.columns * dimensions.rows
+  const unusedSpaces = unusedLocations.length
+  const availableSpaces = totalSpaces - unusedSpaces
+  const requiredSpaces = tileCounts.player + tileCounts.rival + tileCounts.neutral + tileCounts.mine
+
+  if (availableSpaces !== requiredSpaces) {
+    const error = `
+❌ LEVEL CONFIGURATION ERROR: Level ${level.levelNumber} (${level.levelId})
+
+Board dimensions: ${dimensions.columns} × ${dimensions.rows} = ${totalSpaces} total spaces
+Unused locations: ${unusedSpaces} spaces
+Available spaces: ${availableSpaces} spaces (${totalSpaces} - ${unusedSpaces})
+
+Tile counts:
+  - Player: ${tileCounts.player}
+  - Rival: ${tileCounts.rival}
+  - Neutral: ${tileCounts.neutral}
+  - Mine: ${tileCounts.mine}
+  - Total: ${requiredSpaces}
+
+ERROR: Available spaces (${availableSpaces}) ≠ Required tiles (${requiredSpaces})
+Difference: ${availableSpaces - requiredSpaces} ${availableSpaces > requiredSpaces ? 'extra spaces' : 'missing spaces'}
+
+This will cause tiles with "undefined" owner!
+Fix the level configuration in levels-config.json
+    `.trim()
+
+    throw new Error(error)
+  }
+}
+
+// Validate all levels on module load
+config.levels.forEach(validateLevelConfig)
+
 export function getLevelConfig(levelId: string): LevelConfig | null {
   return config.levels.find(level => level.levelId === levelId) || null
 }

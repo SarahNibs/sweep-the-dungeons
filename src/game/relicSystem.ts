@@ -549,9 +549,9 @@ export function triggerInterceptedNoteEffect(state: GameState): GameState {
   const position = tileToReveal.position
   
   console.log(`  - Revealing rival tile at (${position.x}, ${position.y})`)
-  
-  // Reveal the tile using the imported function
-  const newState = revealTileWithRelicEffects(state, position, 'rival')
+
+  // Reveal the tile using the imported function (use 'player' to show player adjacency info)
+  const newState = revealTileWithRelicEffects(state, position, 'player')
   
   console.log('  - Intercepted Communications effect completed')
   return newState

@@ -95,6 +95,8 @@ export function createBoard(
 }
 
 function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig): void {
+  console.log(`🎯 APPLYING SPECIAL TILES: type=${config.type}, count=${config.count}, placement=${JSON.stringify(config.placement)}`)
+
   const eligibleTiles = Array.from(tiles.values()).filter(tile => {
     // Skip empty tiles and already revealed tiles
     if (tile.owner === 'empty' || tile.revealed) return false
@@ -108,23 +110,30 @@ function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig):
       return config.placement.owner.includes(tile.owner as any)
     }
   })
-  
+
+  console.log(`  - Found ${eligibleTiles.length} eligible tiles`)
+
   // Shuffle eligible tiles
   for (let i = eligibleTiles.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [eligibleTiles[i], eligibleTiles[j]] = [eligibleTiles[j], eligibleTiles[i]]
   }
-  
+
   // Apply special tile type to the requested count
   const count = Math.min(config.count, eligibleTiles.length)
+  console.log(`  - Applying to ${count} tiles`)
+
   for (let i = 0; i < count; i++) {
     const tile = eligibleTiles[i]
     const key = positionToKey(tile.position)
+    console.log(`    - Setting ${config.type} at position (${tile.position.x}, ${tile.position.y})`)
     tiles.set(key, {
       ...tile,
       specialTile: config.type
     })
   }
+
+  console.log(`✅ APPLIED ${count} ${config.type} tiles`)
 }
 
 export function getTile(board: Board, position: Position): Tile | undefined {

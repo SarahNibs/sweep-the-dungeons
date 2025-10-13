@@ -47,6 +47,7 @@ interface GameStore extends GameState {
   debugGiveRelic: (relicName: string) => void
   debugGiveCard: (cardName: string, upgrades?: { costReduced?: boolean; enhanced?: boolean }) => void
   debugSetAIType: (aiType: string) => void
+  debugSkipToLevel: (levelId: string) => void
   startRelicSelection: () => void
   selectRelic: (relic: Relic) => void
   closeRelicUpgradeDisplay: () => void
@@ -1231,6 +1232,37 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set(newState)
     }).catch(err => {
       console.error('Failed to change AI type:', err)
+    })
+  },
+
+  debugSkipToLevel: (levelId: string) => {
+    console.log(`🎯 DEBUG: debugSkipToLevel called with "${levelId}"`)
+
+    // Import dynamically
+    import('./game/levelSystem').then(({ getLevelConfig }) => {
+      const levelConfig = getLevelConfig(levelId)
+
+      if (!levelConfig) {
+        console.error(`❌ Level "${levelId}" not found`)
+        return
+      }
+
+      console.log(`✅ Skipping to level: ${levelId}`)
+      const currentState = get()
+
+      // Create a new initial state for this level, preserving deck/relics/copper
+      const newState = createInitialState(levelId)
+
+      set({
+        ...newState,
+        persistentDeck: currentState.persistentDeck,
+        relics: currentState.relics,
+        copper: currentState.copper
+      })
+
+      console.log(`✅ Now on level: ${levelId}`)
+    }).catch(err => {
+      console.error('Failed to skip to level:', err)
     })
   },
 

@@ -268,12 +268,12 @@ export function discardHand(state: GameState): GameState {
 export function startNewTurn(state: GameState): GameState {
   console.log('🔄 START NEW TURN DEBUG')
   console.log('  - Current queued card draws:', state.queuedCardDraws)
-  console.log('  - Has Monster relic:', hasRelic(state, 'Monster'))
-  
+  console.log('  - Has Caffeinated relic:', hasRelic(state, 'Caffeinated'))
+
   const discardedState = discardHand(state)
-  
-  // Draw regular 5 cards (or 4 with Monster relic) plus any queued card draws
-  const baseCardDraw = hasRelic(state, 'Monster') ? 4 : 5
+
+  // Draw regular 5 cards (or 4 with Caffeinated relic) plus any queued card draws
+  const baseCardDraw = hasRelic(state, 'Caffeinated') ? 4 : 5
   const totalCardsToDraw = baseCardDraw + state.queuedCardDraws
   
   console.log('  - Base card draw:', baseCardDraw)
@@ -351,7 +351,7 @@ export function createInitialState(
   }
   
   // Determine max energy based on relics
-  const maxEnergy = startingRelics.some(relic => relic.name === 'Monster') ? 4 : 3
+  const maxEnergy = startingRelics.some(relic => relic.name === 'Caffeinated') ? 4 : 3
   
   const initialState: GameState = {
     persistentDeck: startingPersistentDeck,
@@ -405,8 +405,8 @@ export function createInitialState(
     queuedCardDraws: 0
   }
   
-  // Draw initial cards (4 with Monster relic, 5 without)
-  const initialCardDraw = startingRelics.some(relic => relic.name === 'Monster') ? 4 : 5
+  // Draw initial cards (4 with Caffeinated relic, 5 without)
+  const initialCardDraw = startingRelics.some(relic => relic.name === 'Caffeinated') ? 4 : 5
   let finalState = drawCards(initialState, initialCardDraw)
   
   // Trigger Dust Bunny effect if present

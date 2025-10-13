@@ -1,4 +1,4 @@
-import { Tile as TileType } from '../types'
+import { Tile as TileType, ClueResult } from '../types'
 import { useGameStore } from '../store'
 import { useState, useEffect } from 'react'
 
@@ -12,6 +12,16 @@ interface TileProps {
   isBrushHighlighted?: boolean
   onMouseEnter?: () => void
   onMouseLeave?: () => void
+}
+
+// Helper function to get hover text for clue pips
+const getClueHoverText = (clueResult: ClueResult): string => {
+  if (clueResult.cardType === 'solid_clue') {
+    return clueResult.enhanced ? 'Imperious+' : 'Imperious'
+  } else if (clueResult.cardType === 'stretch_clue') {
+    return clueResult.enhanced ? 'Vague+' : 'Vague'
+  }
+  return 'Rival Clue'
 }
 
 export function Tile({ tile, onClick, isTargeting = false, isSelected = false, isEnemyHighlighted = false, isTrystHighlighted = false, isBrushHighlighted = false, onMouseEnter, onMouseLeave }: TileProps) {
@@ -314,6 +324,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
               elements.push(
                 <div
                   key={`pip-${clueResult.id}-${clueIndex}-${i}`}
+                  title={getClueHoverText(clueResult)}
                   style={{
                     position: 'absolute',
                     bottom: `${2 + rowPosition * 6}px`,
@@ -340,6 +351,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
               elements.push(
                 <div
                   key={`pip-${clueResult.id}-${clueIndex}-${i}`}
+                  title={getClueHoverText(clueResult)}
                   style={{
                     position: 'absolute',
                     top: `${2 + rowPosition * 6}px`,

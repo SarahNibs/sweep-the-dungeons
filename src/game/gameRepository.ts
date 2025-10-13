@@ -239,10 +239,10 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     category: 'common',
     icon: '🪣'
   },
-  'Monster': {
-    name: 'Monster',
+  'Caffeinated': {
+    name: 'Caffeinated',
     description: 'caffeine grants unimaginable energy with no downsides!',
-    hoverText: 'Monster: get 4 energy per turn instead of 3 but draw 1 fewer card at the start of your turns',
+    hoverText: 'Caffeinated: get 4 energy per turn instead of 3 but draw 1 fewer card at the start of your turns',
     category: 'common',
     icon: '🥤'
   },

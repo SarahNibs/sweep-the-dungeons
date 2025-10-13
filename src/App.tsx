@@ -25,7 +25,7 @@ function getRelicIcon(relicName: string): string {
       return '🐦'
     case 'Mop':
       return '🧽'
-    case 'Monster':
+    case 'Caffeinated':
       return '🥤'
     case 'Estrogen':
       return '💉'
@@ -534,7 +534,7 @@ function App() {
               gap: '10px',
               marginBottom: '15px'
             }}>
-              {['Double Broom', 'Dust Bunny', 'Frilly Dress', 'Busy Canary', 'Mop', 'Monster', 'Estrogen', 'Progesterone', 'Tiara', 'Intercepted Communications'].map(relicName => (
+              {['Double Broom', 'Dust Bunny', 'Frilly Dress', 'Busy Canary', 'Mop', 'Caffeinated', 'Estrogen', 'Progesterone', 'Tiara', 'Intercepted Communications'].map(relicName => (
                 <button
                   key={relicName}
                   onClick={() => {

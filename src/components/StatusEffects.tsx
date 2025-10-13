@@ -5,7 +5,12 @@ interface StatusEffectsProps {
 }
 
 export function StatusEffects({ statusEffects }: StatusEffectsProps) {
-  if (statusEffects.length === 0) {
+  // Filter out default NoGuess AI status effect - only show non-default AI types
+  const visibleEffects = statusEffects.filter(effect =>
+    !(effect.type === 'rival_ai_type' && effect.name === 'NoGuess Rival')
+  )
+
+  if (visibleEffects.length === 0) {
     return null
   }
 
@@ -16,7 +21,7 @@ export function StatusEffects({ statusEffects }: StatusEffectsProps) {
       gap: '6px',
       alignItems: 'center'
     }}>
-      {statusEffects.map((effect) => (
+      {visibleEffects.map((effect) => (
         <div
           key={effect.id}
           style={{

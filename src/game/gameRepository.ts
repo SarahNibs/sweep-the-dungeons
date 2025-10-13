@@ -200,6 +200,16 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     },
     icon: '👂'
   },
+  'Emanation': {
+    name: 'Emanation',
+    cost: 1,
+    category: 'reward',
+    description: {
+      base: 'Target a tile to destroy it. Lose 1 copper. Destroyed tiles don\'t count towards any owner totals and can end the level',
+      enhanced: 'Target a tile to destroy it. Destroyed tiles don\'t count towards any owner totals and can end the level'
+    },
+    icon: '☢️'
+  },
 }
 
 // Centralized relic definitions

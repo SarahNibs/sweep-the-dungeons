@@ -18,6 +18,7 @@ import { executeMonsterEffect } from './cards/monster'
 import { executeArgumentEffect } from './cards/argument'
 import { executeHorseEffect } from './cards/horse'
 import { executeEavesdroppingEffect } from './cards/eavesdropping'
+import { executeEmanationEffect } from './cards/emanation'
 
 // Shared reveal function that includes relic effects
 export function revealTileWithRelicEffects(state: GameState, position: Position, revealer: 'player' | 'rival'): GameState {
@@ -292,14 +293,18 @@ export function addClueResult(state: GameState, position: Position, clueResult: 
 
 export function checkGameStatus(state: GameState): GameStatusInfo {
   const board = state.board
-  
+
   // Count tiles first for potential rival tiles left calculation
+  // Exclude destroyed tiles from all counts
   let playerTilesRevealed = 0
   let totalPlayerTiles = 0
   let rivalTilesRevealed = 0
   let totalRivalTiles = 0
-  
+
   for (const tile of board.tiles.values()) {
+    // Skip destroyed tiles
+    if (tile.specialTile === 'destroyed') continue
+
     if (tile.owner === 'player') {
       totalPlayerTiles++
       if (tile.revealed) playerTilesRevealed++
@@ -389,6 +394,8 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
       return executeHorseEffect(state, effect.target, card)
     case 'eavesdropping':
       return executeEavesdroppingEffect(state, effect.target, card)
+    case 'emanation':
+      return executeEmanationEffect(state, effect.target, card)
     default:
       return state
   }
@@ -398,7 +405,7 @@ export function requiresTargeting(cardName: string, enhanced?: boolean): boolean
   if (cardName === 'Tryst') {
     return enhanced || false // Only enhanced Tryst requires targeting
   }
-  return cardName === 'Spritz' || cardName === 'Easiest' || cardName === 'Brush' || cardName === 'Sweep' || cardName === 'Canary' || cardName === 'Argument' || cardName === 'Horse' || cardName === 'Eavesdropping'
+  return cardName === 'Spritz' || cardName === 'Easiest' || cardName === 'Brush' || cardName === 'Sweep' || cardName === 'Canary' || cardName === 'Argument' || cardName === 'Horse' || cardName === 'Eavesdropping' || cardName === 'Emanation'
 }
 
 export function getTargetingInfo(cardName: string, enhanced?: boolean): { count: number; description: string } | null {
@@ -421,6 +428,8 @@ export function getTargetingInfo(cardName: string, enhanced?: boolean): { count:
       return { count: 1, description: enhanced ? 'Click center of small area - reveal/annotate all tiles of safest owner in area, Horse cards cost 0' : 'Click center of small area - reveal all tiles of safest owner in area, Horse cards cost 0 (ends turn if not player!)' }
     case 'Eavesdropping':
       return { count: 1, description: enhanced ? 'Click an unrevealed tile to get ALL adjacency info (player, neutral, rival, mines)' : 'Click an unrevealed tile to get player adjacency info' }
+    case 'Emanation':
+      return { count: 1, description: enhanced ? 'Click a tile to destroy it (no copper loss)' : 'Click a tile to destroy it (lose 1 copper)' }
     default:
       return null
   }

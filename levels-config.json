@@ -467,8 +467,8 @@
         "relicReward": true,
         "upgradeReward": false,
         "shopReward": false,
-        "winTheGame": true,
-        "nextLevel": ["L11"]
+        "winTheGame": false,
+        "nextLevel": ["L12"]
       },
       "description": "Boss level #2!",
       "dimensions": {
@@ -503,6 +503,47 @@
         "adjacencyRule": "manhattan-2",
         "initialRivalReveal": 2,
         "rivalNeverMines": true,
+        "rivalAI": "conservative"
+      }
+    },
+    {
+      "levelNumber": 12,
+      "levelId": "L12",
+      "uponFinish": {
+        "cardReward": true,
+        "relicReward": false,
+        "upgradeReward": false,
+        "shopReward": false,
+        "winTheGame": true,
+        "nextLevel": ["L13"]
+      },
+      "description": "Introducing: goblins",
+      "dimensions": {
+        "columns": 8,
+        "rows": 8
+      },
+      "tileCounts": {
+        "player": 23,
+        "rival": 18,
+        "neutral": 17,
+        "mine": 6
+      },
+      "unusedLocations": [
+      ],
+      "specialTiles": [
+        {
+          "type": "extraDirty",
+          "count": 10,
+          "placement": "random"
+        },
+        {
+          "type": "goblin",
+          "count": 2,
+          "placement": "nonmine"
+        }
+      ],
+      "specialBehaviors": {
+        "initialRivalReveal": 3,
         "rivalAI": "conservative"
       }
     }

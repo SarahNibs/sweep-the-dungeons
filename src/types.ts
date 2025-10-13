@@ -9,7 +9,7 @@ export interface Card {
   enhanced?: boolean // If true, card has received enhanced effect upgrade
 }
 
-export type CardEffect = 
+export type CardEffect =
   | { type: 'scout'; target: Position }
   | { type: 'quantum'; targets: Position[] }
   | { type: 'report' }
@@ -27,6 +27,7 @@ export type CardEffect =
   | { type: 'argument'; target: Position }
   | { type: 'horse'; target: Position }
   | { type: 'eavesdropping'; target: Position }
+  | { type: 'emanation'; target: Position }
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
@@ -68,7 +69,7 @@ export interface Tile {
   revealedBy: 'player' | 'rival' | null
   adjacencyCount: number | null
   annotations: TileAnnotation[]
-  specialTile?: 'extraDirty'
+  specialTile?: 'extraDirty' | 'goblin' | 'destroyed'
   underwireProtected?: boolean // True if this mine was protected by Underwire
 }
 
@@ -103,9 +104,9 @@ export interface LevelConfig {
   }
   unusedLocations: number[][]
   specialTiles: Array<{
-    type: 'extraDirty'
+    type: 'extraDirty' | 'goblin'
     count: number
-    placement: 'random' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> }
+    placement: 'random' | 'nonmine' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> }
   }>
   specialBehaviors: {
     rivalNeverMines?: boolean

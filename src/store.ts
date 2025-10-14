@@ -3,12 +3,13 @@ import { GameState, Tile, Position, CardEffect, Board, Card as CardType, PileTyp
 import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel, queueCardDrawsFromDirtCleaning, getEffectiveCardCost, deductEnergy } from './game/cardSystem'
 import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
 import { startRelicSelection, selectRelic, closeRelicUpgradeDisplay } from './game/relicSystem'
-import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey, spawnGoblinsFromLairs, hasSpecialTile } from './game/boardSystem'
+import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey, spawnGoblinsFromLairs, hasSpecialTile, getTile } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, checkGameStatus, getUnrevealedTilesByOwner, revealTileWithRelicEffects } from './game/cardEffects'
 import { executeTargetedReportEffect } from './game/cards/report'
 import { AIController } from './game/ai/AIController'
 import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowRelicReward, shouldShowShopReward, calculateCopperReward } from './game/levelSystem'
 import { startShopSelection, purchaseShopItem, removeSelectedCard, exitShop } from './game/shopSystem'
+import { canDirectRevealTile, canTargetTile } from './game/targetingSystem'
 
 interface GameStore extends GameState {
   playCard: (cardId: string) => void
@@ -219,8 +220,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return
     }
 
-    // Ignore clicks on empty tiles (holes in the grid)
-    if (tile.owner === 'empty') {
+    // Validate direct reveal (no card effect)
+    const validation = canDirectRevealTile(tile)
+    if (!validation.isValid) {
       return
     }
 
@@ -274,23 +276,33 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!currentState.selectedCardId) return
     if (currentState.currentPlayer !== 'player') return
 
-    const tile = currentState.board.tiles.get(positionToKey(position))
-    if (!tile) return
+    const tile = getTile(currentState.board, position)
 
-    // For Emanation, allow targeting empty tiles with lairs
-    if (tile.owner === 'empty' && currentState.selectedCardName === 'Emanation') {
-      // Check if this empty tile has a lair
-      if (!hasSpecialTile(tile, 'lair')) {
-        return // Empty tile without lair, can't target
-      }
-      // Allow targeting this lair tile
-    } else if (tile.owner === 'empty') {
-      // Empty tiles without lairs can't be targeted by other cards
+    // Get card to check if it's enhanced
+    const card = currentState.hand.find(c => c.id === currentState.selectedCardId)
+    if (!card) {
+      set({
+        ...currentState,
+        pendingCardEffect: null,
+        selectedCardName: null,
+        selectedCardId: null
+      })
       return
     }
 
-    // For Brush and Sweep cards, allow targeting revealed tiles (they're selecting center of areas)
-    if (tile.revealed && currentState.selectedCardName !== 'Brush' && currentState.selectedCardName !== 'Sweep') return
+    // Validate targeting using the targeting system
+    const validation = canTargetTile(
+      tile,
+      currentState.selectedCardName,
+      currentState.board,
+      position,
+      card.enhanced || false
+    )
+
+    if (!validation.isValid) {
+      // Invalid target, do nothing
+      return
+    }
     
     const effect = currentState.pendingCardEffect
     let newEffect: CardEffect | null = null
@@ -303,8 +315,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if ('targets' in effect) {
         // Add another target to existing targets
         const newTargets = [...effect.targets, position]
-        const card = currentState.hand.find(c => c.id === currentState.selectedCardId)
-        const maxTargets = card?.enhanced ? 3 : 2
+        const maxTargets = card.enhanced ? 3 : 2
         
         if (newTargets.length >= maxTargets) {
           // Have enough targets, execute the effect
@@ -346,18 +357,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (shouldExecute && newEffect) {
       // Check if this card needs animation handling
-      const card = currentState.hand.find(c => c.id === currentState.selectedCardId)
-
-      if (!card) {
-        set({
-          ...currentState,
-          pendingCardEffect: null,
-          selectedCardName: null,
-          selectedCardId: null
-        })
-        return
-      }
-
       if (needsAnimationOnTarget(card.name)) {
         // Handle animated targeting cards (currently just Tryst)
         const stateAfterCardRemoval = removeCardAndDeductEnergy(currentState, card)

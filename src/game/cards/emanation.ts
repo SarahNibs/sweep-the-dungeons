@@ -1,5 +1,6 @@
 import { GameState, Position } from '../../types'
 import { getTile } from '../boardSystem'
+import { destroyTile } from '../destroyTileSystem'
 
 export function executeEmanationEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
   const targetTile = getTile(state.board, target)
@@ -9,12 +10,8 @@ export function executeEmanationEffect(state: GameState, target: Position, card?
     return state
   }
 
-  // Mark tile as destroyed (replaces all other special tiles)
-  const newTiles = new Map(state.board.tiles)
-  newTiles.set(`${target.x},${target.y}`, {
-    ...targetTile,
-    specialTiles: ['destroyed'] // Destroyed replaces everything
-  })
+  // Destroy the tile (converts to empty, recalculates adjacencies, removes from clues)
+  const boardWithDestroyedTile = destroyTile(state.board, target)
 
   // Deduct copper unless enhanced
   const copperLoss = card?.enhanced ? 0 : 1
@@ -22,10 +19,7 @@ export function executeEmanationEffect(state: GameState, target: Position, card?
 
   return {
     ...state,
-    board: {
-      ...state.board,
-      tiles: newTiles
-    },
+    board: boardWithDestroyedTile,
     copper: newCopper
   }
 }

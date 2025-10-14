@@ -126,7 +126,8 @@ export function revealTileWithRelicEffects(state: GameState, position: Position,
 export function getUnrevealedTiles(state: GameState): Tile[] {
   const unrevealed: Tile[] = []
   for (const tile of state.board.tiles.values()) {
-    if (!tile.revealed) {
+    // Filter out empty tiles (including destroyed tiles which have owner='empty')
+    if (!tile.revealed && tile.owner !== 'empty') {
       unrevealed.push(tile)
     }
   }

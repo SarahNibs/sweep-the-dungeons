@@ -294,7 +294,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     }
 
     // Show all annotations for unrevealed tiles, or just adjacency info for revealed tiles
-    const shouldShowAnnotations = !tile.revealed && tile.annotations.length > 0
+    // Also show if there are special tiles that need rendering (goblins, dirty scribbles, etc.)
+    const shouldShowAnnotations = !tile.revealed && (tile.annotations.length > 0 || tile.specialTiles.length > 0)
     const shouldShowAdjacencyOnRevealed = tile.revealed && tile.annotations.some(a => a.type === 'adjacency_info')
     
     if (shouldShowAnnotations || shouldShowAdjacencyOnRevealed) {

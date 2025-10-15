@@ -214,6 +214,9 @@ export function playCard(state: GameState, cardId: string): GameState {
     case 'Vague Orders':
       newState = executeCardEffect(state, { type: 'stretch_clue' }, card)
       break
+    case 'Sarcastic Orders':
+      newState = executeCardEffect(state, { type: 'sarcastic_orders' }, card)
+      break
     case 'Energized':
       newState = executeCardEffect(state, { type: 'energized' }, card)
       break

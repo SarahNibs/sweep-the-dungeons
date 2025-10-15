@@ -20,6 +20,9 @@ const getClueHoverText = (clueResult: ClueResult): string => {
     return clueResult.enhanced ? 'Imperious+' : 'Imperious'
   } else if (clueResult.cardType === 'stretch_clue') {
     return clueResult.enhanced ? 'Vague+' : 'Vague'
+  } else if (clueResult.cardType === 'sarcastic_orders') {
+    const antiClueText = clueResult.isAntiClue ? " (DON'T REVEAL)" : ''
+    return (clueResult.enhanced ? 'Sarcastic+' : 'Sarcastic') + antiClueText
   }
   return 'Rival Clue'
 }
@@ -319,11 +322,12 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           const strength = clueResult.strengthForThisTile
           const isThisClueHovered = hoveredClueId === clueResult.id
           const isEnemyClue = clueResult.cardType === 'rival_clue'
-          
+          const isAntiClue = clueResult.isAntiClue || false
+
           // Position based on clue row position (already separated by player/rival)
           // Fallback to clueOrder if clueRowPosition is not available (backward compatibility)
           const rowPosition = (clueResult.clueRowPosition || clueResult.clueOrder || 1) - 1
-          
+
           for (let i = 0; i < Math.min(strength, 6); i++) {
             if (isEnemyClue) {
               // Enemy Xs: bottom-left, going up and right
@@ -352,8 +356,36 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                   ×
                 </div>
               )
+            } else if (isAntiClue) {
+              // Anti-clue (red) pips: top-left, going down and right, RED color
+              elements.push(
+                <div
+                  key={`pip-${clueResult.id}-${clueIndex}-${i}`}
+                  title={getClueHoverText(clueResult)}
+                  style={{
+                    position: 'absolute',
+                    top: `${2 + rowPosition * 6}px`,
+                    left: `${2 + i * 6}px`,
+                    width: '4px',
+                    height: '4px',
+                    borderRadius: '50%',
+                    backgroundColor: isThisClueHovered ? '#ef4444' : '#dc2626',
+                    border: '0.5px solid black',
+                    cursor: 'pointer',
+                    transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
+                    transition: 'all 0.15s ease',
+                    boxShadow: isThisClueHovered ? '0 1px 3px rgba(239, 68, 68, 0.5)' : 'none'
+                  }}
+                  onMouseEnter={() => {
+                    setHoveredClueId(clueResult.id)
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredClueId(null)
+                  }}
+                />
+              )
             } else {
-              // Player pips: top-left, going down and right
+              // Player pips (green): top-left, going down and right
               elements.push(
                 <div
                   key={`pip-${clueResult.id}-${clueIndex}-${i}`}

@@ -36,7 +36,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     icon: '🔍'
   },
   'Vague Orders': {
-    name: 'Vague Orders', 
+    name: 'Vague Orders',
     cost: 2,
     category: 'starter',
     description: {
@@ -44,6 +44,16 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       enhanced: 'Evidence of five of your tiles (5 guaranteed bag pulls)'
     },
     icon: '🔎'
+  },
+  'Sarcastic Orders': {
+    name: 'Sarcastic Orders',
+    cost: 2,
+    category: 'reward',
+    description: {
+      base: 'Complex clue with red anti-clue dots (DON\'T reveal these!) and/or green clue dots. Simulates two methods and uses the best',
+      enhanced: 'Complex clue with red anti-clue dots (DON\'T reveal these!) and/or green clue dots. Simulates two methods and uses the best. Gain 2 copper'
+    },
+    icon: '😏'
   },
   'Spritz': {
     name: 'Spritz',

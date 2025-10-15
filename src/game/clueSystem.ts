@@ -1,10 +1,11 @@
 import { GameState, Position, Tile, ClueResult } from '../types'
 
 export interface ClueParams {
-  cardType: 'solid_clue' | 'stretch_clue' | 'rival_clue'
+  cardType: 'solid_clue' | 'stretch_clue' | 'rival_clue' | 'sarcastic_orders'
   enhanced: boolean
   clueOrder: number
   clueRowPosition: number
+  isAntiClue?: boolean // For sarcastic orders red dots
 }
 
 
@@ -144,7 +145,8 @@ export function generateClueFromBag(
         strengthForThisTile: pipCount,
         allAffectedTiles: [...affectedPositions],
         clueOrder: params.clueOrder,
-        clueRowPosition: params.clueRowPosition
+        clueRowPosition: params.clueRowPosition,
+        isAntiClue: params.isAntiClue
       }
       
       clueResults.push(clueResult)

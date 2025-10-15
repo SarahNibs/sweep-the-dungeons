@@ -15,6 +15,7 @@ export type CardEffect =
   | { type: 'report' }
   | { type: 'solid_clue' }
   | { type: 'stretch_clue' }
+  | { type: 'sarcastic_orders' }
   | { type: 'energized' }
   | { type: 'options' }
   | { type: 'brush'; target: Position }
@@ -31,12 +32,13 @@ export type CardEffect =
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
-  cardType: 'solid_clue' | 'stretch_clue' | 'rival_clue'
+  cardType: 'solid_clue' | 'stretch_clue' | 'rival_clue' | 'sarcastic_orders'
   enhanced: boolean // Whether this clue came from an enhanced card
   strengthForThisTile: number // How many pips this clue contributed to this specific tile
   allAffectedTiles: Position[] // All tiles that got pips from this clue
   clueOrder: number // Order in which this clue was played (1st, 2nd, 3rd...)
   clueRowPosition: number // Row position for this clue type (player/rival separate)
+  isAntiClue?: boolean // If true, render as red dots (don't reveal these tiles)
 }
 
 export interface TileAnnotation {

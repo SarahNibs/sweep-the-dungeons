@@ -7,6 +7,7 @@ import { executeQuantumEffect } from './cards/quantumChoice'
 import { executeReportEffect } from './cards/report'
 import { executeSolidClueEffect } from './cards/solidClue'
 import { executeStretchClueEffect } from './cards/stretchClue'
+import { executeSarcasticOrdersEffect } from './cards/sarcasticOrders'
 import { executeEnergizedEffect } from './cards/energized'
 import { executeOptionsEffect } from './cards/options'
 import { executeBrushEffect } from './cards/brush'
@@ -363,6 +364,8 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
       return executeSolidClueEffect(state, card)
     case 'stretch_clue':
       return executeStretchClueEffect(state, card)
+    case 'sarcastic_orders':
+      return executeSarcasticOrdersEffect(state, card)
     case 'energized':
       return executeEnergizedEffect(state, card)
     case 'options':

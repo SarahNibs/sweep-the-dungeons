@@ -315,7 +315,7 @@ function generateMethod1(state: GameState): Method1Result {
  * Method 2: "Green clues and red anti-clues"
  * Uses bag-based generation for both red (anti) and green (positive) clues
  */
-function generateMethod2(state: GameState, enhanced: boolean): Method2Result {
+function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
   console.log('\n=== SARCASTIC ORDERS METHOD 2 ===')
 
   const unrevealedTiles = Array.from(state.board.tiles.values())
@@ -577,7 +577,6 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
     console.log(`Enhanced: Awarded 2 copper (new total: ${newState.copper})`)
   }
 
-  const clueId = crypto.randomUUID()
   const clueOrder = newState.clueCounter
   const clueRowPosition = newState.playerClueCounter
 

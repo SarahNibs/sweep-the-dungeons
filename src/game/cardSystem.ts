@@ -363,6 +363,7 @@ export function createInitialState(
     discard: [],
     exhaust: [],
     selectedCardName: null,
+    selectedCardId: null,
     energy: maxEnergy,
     maxEnergy,
     board,

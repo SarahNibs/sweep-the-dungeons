@@ -116,7 +116,8 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
             revealed: false,
             revealedBy: null,
             adjacencyCount: null,
-            annotations: []
+            annotations: [],
+            specialTiles: []
           }
           
           const isTargeting = targetingInfo !== null

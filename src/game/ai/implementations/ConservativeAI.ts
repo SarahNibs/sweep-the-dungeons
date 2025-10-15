@@ -179,7 +179,7 @@ export class ConservativeAI implements RivalAI {
   private propagateConstraintsUntilConvergence(
     state: GameState,
     flaggedState: FlaggedBoardState,
-    context: AIContext
+    _context: AIContext
   ): FlaggedBoardState {
     let iteration = 0
     const maxIterations = 100 // Safety limit

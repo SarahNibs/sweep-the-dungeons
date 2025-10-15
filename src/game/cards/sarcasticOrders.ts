@@ -5,7 +5,10 @@ import { selectTilesForClue } from '../clueSystem'
 
 interface Method1Result {
   exists: boolean
-  redClueTargets: Tile[] // Tiles that get red dots (don't reveal these)
+  candidateTiles: Tile[] // The candidate tiles selected
+  redClueTargets: Tile[] // Tiles that get red dots (from bag draws)
+  redClueCounts: Map<string, number> // Red pip counts per tile position key
+  greenClueTargets: Map<Position, number> // Tiles that get green dots, with strength
   score: number // Number of player-owned adjacent tiles
 }
 
@@ -94,7 +97,14 @@ function generateMethod1(state: GameState): Method1Result {
 
   if (candidates.length === 0) {
     console.log('Method 1: No candidates found')
-    return { exists: false, redClueTargets: [], score: 0 }
+    return {
+      exists: false,
+      candidateTiles: [],
+      redClueTargets: [],
+      redClueCounts: new Map(),
+      greenClueTargets: new Map(),
+      score: 0
+    }
   }
 
   // Sort candidates: most player adjacents, least rival, least neutral, random
@@ -151,12 +161,147 @@ function generateMethod1(state: GameState): Method1Result {
     }
   }
 
-  console.log(`Method 1 complete: ${selectedTiles.length} tiles selected, score=${score}`)
-  console.log(`Selected tiles:`, selectedTiles.map(t => `(${t.position.x},${t.position.y})`))
+  console.log(`Method 1: ${selectedTiles.length} candidate tiles selected, score=${score}`)
+  console.log(`Candidate tiles:`, selectedTiles.map(t => `(${t.position.x},${t.position.y})`))
+
+  // === GENERATE RED PIPS USING BAG SYSTEM ===
+
+  // Create RedClues bag: 10x instances distributed evenly among candidate tiles
+  const redCluesBag: Tile[] = []
+  const instancesPerCandidate = Math.floor(10 / selectedTiles.length)
+  const extraInstances = 10 % selectedTiles.length
+
+  console.log(`Distributing 10 instances: ${instancesPerCandidate} per tile, ${extraInstances} extra`)
+
+  for (let i = 0; i < selectedTiles.length; i++) {
+    const tile = selectedTiles[i]
+    const copies = instancesPerCandidate + (i < extraInstances ? 1 : 0)
+    console.log(`  Candidate tile (${tile.position.x},${tile.position.y}): ${copies} instances`)
+    for (let j = 0; j < copies; j++) {
+      redCluesBag.push(tile)
+    }
+  }
+
+  // Add 10 spoiler tiles from rest of board
+  const candidatePositions = new Set(selectedTiles.map(t => `${t.position.x},${t.position.y}`))
+  const spoilerTiles = unrevealedTiles.filter(tile => {
+    const posKey = `${tile.position.x},${tile.position.y}`
+    return !candidatePositions.has(posKey)
+  })
+
+  console.log(`Spoiler tiles available: ${spoilerTiles.length}`)
+
+  const spoilersBag: Tile[] = []
+  for (const tile of spoilerTiles) {
+    const copies = tile.owner === 'player' ? 2 : 3
+    for (let i = 0; i < copies; i++) {
+      spoilersBag.push(tile)
+    }
+  }
+
+  const spoilersBagCopy = [...spoilersBag]
+  for (let i = 0; i < Math.min(10, spoilersBagCopy.length); i++) {
+    const randomIndex = Math.floor(Math.random() * spoilersBagCopy.length)
+    redCluesBag.push(spoilersBagCopy[randomIndex])
+    spoilersBagCopy.splice(randomIndex, 1)
+  }
+
+  console.log(`RedClues bag size: ${redCluesBag.length}`)
+  console.log(`RedClues bag contents:`, redCluesBag.reduce((acc, t) => {
+    const key = `${t.position.x},${t.position.y}(${t.owner})`
+    acc[key] = (acc[key] || 0) + 1
+    return acc
+  }, {} as Record<string, number>))
+
+  // Draw 4 from RedClues bag → red pips
+  const redPipTargets: Tile[] = []
+  const redCluesBagCopy = [...redCluesBag]
+  for (let i = 0; i < Math.min(4, redCluesBagCopy.length); i++) {
+    const randomIndex = Math.floor(Math.random() * redCluesBagCopy.length)
+    redPipTargets.push(redCluesBagCopy[randomIndex])
+    redCluesBagCopy.splice(randomIndex, 1)
+  }
+
+  console.log(`Red pip targets (4 draws):`, redPipTargets.map(t => `(${t.position.x},${t.position.y},${t.owner})`))
+
+  // Count red pips per tile
+  const redPipCounts = new Map<string, number>()
+  for (const tile of redPipTargets) {
+    const key = `${tile.position.x},${tile.position.y}`
+    redPipCounts.set(key, (redPipCounts.get(key) || 0) + 1)
+  }
+
+  console.log(`Red pip counts:`, Object.fromEntries(redPipCounts))
+
+  // Deduplicate red targets
+  const redTargetPositions = new Set<string>()
+  const redTargets: Tile[] = []
+  for (const tile of redPipTargets) {
+    const key = `${tile.position.x},${tile.position.y}`
+    if (!redTargetPositions.has(key)) {
+      redTargetPositions.add(key)
+      redTargets.push(tile)
+    }
+  }
+
+  // === GENERATE GREEN PIPS USING BAG SYSTEM ===
+
+  // Exclude: candidate tiles and tiles getting red pips
+  const excludedPositions = new Set([
+    ...candidatePositions,
+    ...redTargetPositions
+  ])
+
+  const greenBag: Tile[] = []
+  for (const tile of unrevealedTiles) {
+    const posKey = `${tile.position.x},${tile.position.y}`
+    if (!excludedPositions.has(posKey)) {
+      const copies = tile.owner === 'player' ? 3
+                   : (tile.owner === 'rival' || tile.owner === 'neutral') ? 2
+                   : 1 // mine
+      for (let i = 0; i < copies; i++) {
+        greenBag.push(tile)
+      }
+    }
+  }
+
+  console.log(`Green bag size: ${greenBag.length}`)
+
+  // Draw 6 from green bag
+  const greenDraws: Tile[] = []
+  const greenBagCopy = [...greenBag]
+  for (let i = 0; i < Math.min(6, greenBagCopy.length); i++) {
+    const randomIndex = Math.floor(Math.random() * greenBagCopy.length)
+    greenDraws.push(greenBagCopy[randomIndex])
+    greenBagCopy.splice(randomIndex, 1)
+  }
+
+  console.log(`Green draws (6 total):`, greenDraws.map(t => `(${t.position.x},${t.position.y},${t.owner})`))
+
+  // Count green pips per tile
+  const greenPipCounts = new Map<string, number>()
+  for (const tile of greenDraws) {
+    const key = `${tile.position.x},${tile.position.y}`
+    greenPipCounts.set(key, (greenPipCounts.get(key) || 0) + 1)
+  }
+
+  console.log(`Green pip counts:`, Object.fromEntries(greenPipCounts))
+
+  // Convert to Position map
+  const greenClueTargets = new Map<Position, number>()
+  for (const [posKey, count] of greenPipCounts) {
+    const [x, y] = posKey.split(',').map(Number)
+    greenClueTargets.set({ x, y }, count)
+  }
+
+  console.log(`Method 1 complete: ${redTargets.length} red targets, ${greenClueTargets.size} green targets, score=${score}`)
 
   return {
     exists: true,
-    redClueTargets: selectedTiles,
+    candidateTiles: selectedTiles,
+    redClueTargets: redTargets,
+    redClueCounts: redPipCounts,
+    greenClueTargets,
     score
   }
 }
@@ -432,15 +577,20 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
   const clueRowPosition = newState.playerClueCounter
 
   if (useMethod1) {
-    // Method 1: Only red dots on selected tiles
+    // Method 1: Both red and green dots from bag system
     console.log('\n=== APPLYING METHOD 1 ===')
 
+    // Add red dots (anti-clues)
+    const redClueId = crypto.randomUUID()
     for (const tile of method1.redClueTargets) {
+      const posKey = `${tile.position.x},${tile.position.y}`
+      const strength = method1.redClueCounts.get(posKey) || 1
+
       const clueResult: ClueResult = {
-        id: clueId,
+        id: redClueId,
         cardType: 'sarcastic_orders',
         enhanced,
-        strengthForThisTile: 1, // Each tile gets 1 red dot
+        strengthForThisTile: strength, // Use actual pip count
         allAffectedTiles: method1.redClueTargets.map(t => t.position),
         clueOrder,
         clueRowPosition,
@@ -448,7 +598,26 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
       }
 
       newState = addClueResult(newState, tile.position, clueResult)
-      console.log(`Added red clue to (${tile.position.x},${tile.position.y})`)
+      console.log(`Added red clue (${strength} pips) to (${tile.position.x},${tile.position.y})`)
+    }
+
+    // Add green dots (positive clues)
+    const greenClueId = crypto.randomUUID()
+    const allGreenPositions = Array.from(method1.greenClueTargets.keys())
+    for (const [position, strength] of method1.greenClueTargets) {
+      const clueResult: ClueResult = {
+        id: greenClueId,
+        cardType: 'sarcastic_orders',
+        enhanced,
+        strengthForThisTile: strength,
+        allAffectedTiles: allGreenPositions,
+        clueOrder,
+        clueRowPosition,
+        isAntiClue: false
+      }
+
+      newState = addClueResult(newState, position, clueResult)
+      console.log(`Added green clue (${strength} pips) to (${position.x},${position.y})`)
     }
   } else {
     // Method 2: Both red and green dots

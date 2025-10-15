@@ -11,6 +11,7 @@ interface Method1Result {
 
 interface Method2Result {
   redClueTargets: Tile[] // Tiles that get red dots
+  redClueCounts: Map<string, number> // Red pip counts per tile position key
   greenClueTargets: Map<Position, number> // Tiles that get green dots, with strength
   score: number // Number of player tiles with at least one green dot + 1
 }
@@ -59,13 +60,13 @@ function generateMethod1(state: GameState): Method1Result {
     const adjacentPlayer = adjacentUnrevealed.filter(t => t.owner === 'player').length
     const P = adjacentPlayer
 
-    // Check eligibility: P > 0.8 * (N-1) AND (P >= 6 OR P is all/all-but-one remaining)
+    // Check eligibility: P > 0.8 * (N-1) OR (P >= 6 OR P is all/all-but-one remaining)
     const threshold = 0.8 * (N - 1)
     const isHighPercentage = P > threshold
     const isHighCount = P >= 6
     const isAllOrAlmostAll = P >= totalPlayerTilesRemaining - 1
 
-    if (isHighPercentage && (isHighCount || isAllOrAlmostAll)) {
+    if (isHighPercentage || isHighCount || isAllOrAlmostAll) {
       const adjacentRival = adjacentUnrevealed.filter(t => t.owner === 'rival').length
       const adjacentNeutral = adjacentUnrevealed.filter(t => t.owner === 'neutral').length
 
@@ -387,6 +388,7 @@ function generateMethod2(state: GameState, enhanced: boolean): Method2Result {
 
   return {
     redClueTargets: redTargets,
+    redClueCounts: redPipCounts,
     greenClueTargets,
     score
   }
@@ -455,11 +457,14 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
     // Add red dots (anti-clues)
     const redClueId = crypto.randomUUID()
     for (const tile of method2.redClueTargets) {
+      const posKey = `${tile.position.x},${tile.position.y}`
+      const strength = method2.redClueCounts.get(posKey) || 1
+
       const clueResult: ClueResult = {
         id: redClueId,
         cardType: 'sarcastic_orders',
         enhanced,
-        strengthForThisTile: 1, // Simplified: each tile gets 1 red dot
+        strengthForThisTile: strength, // Use actual pip count
         allAffectedTiles: method2.redClueTargets.map(t => t.position),
         clueOrder,
         clueRowPosition,
@@ -467,7 +472,7 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
       }
 
       newState = addClueResult(newState, tile.position, clueResult)
-      console.log(`Added red clue to (${tile.position.x},${tile.position.y})`)
+      console.log(`Added red clue (${strength} pips) to (${tile.position.x},${tile.position.y})`)
     }
 
     // Add green dots (positive clues)

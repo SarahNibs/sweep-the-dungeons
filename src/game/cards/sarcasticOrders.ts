@@ -68,13 +68,17 @@ function generateMethod1(state: GameState): Method1Result {
     const adjacentPlayer = adjacentUnrevealed.filter(t => t.owner === 'player').length
     const P = adjacentPlayer
 
+    // MANDATORY: Must have more than 50% player tiles
+    const isMoreThanHalfPlayer = P > N / 2
+
     // Check eligibility: P > 0.8 * (N-1) OR (P >= 6 OR P is all/all-but-one remaining)
+    // PLUS the mandatory >50% player tiles requirement
     const threshold = 0.8 * (N - 1)
     const isHighPercentage = P > threshold
     const isHighCount = P >= 6
     const isAllOrAlmostAll = P >= totalPlayerTilesRemaining - 1
 
-    if (isHighPercentage || isHighCount || isAllOrAlmostAll) {
+    if (isMoreThanHalfPlayer && (isHighPercentage || isHighCount || isAllOrAlmostAll)) {
       const adjacentRival = adjacentUnrevealed.filter(t => t.owner === 'rival').length
       const adjacentNeutral = adjacentUnrevealed.filter(t => t.owner === 'neutral').length
 
@@ -90,6 +94,7 @@ function generateMethod1(state: GameState): Method1Result {
         owner: tile.owner,
         adjacentPlayer: P,
         adjacentUnrevealed: N,
+        isMoreThanHalfPlayer,
         threshold,
         isHighPercentage,
         isHighCount,

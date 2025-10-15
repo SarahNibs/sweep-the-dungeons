@@ -323,7 +323,12 @@ export function checkGameStatus(state: GameState): GameStatusInfo {
       if (tile.underwireProtected) {
         continue
       }
-      
+
+      // Skip mines revealed by rival if protection is still active
+      if (tile.revealedBy === 'rival' && state.rivalMineProtectionCount > 0) {
+        continue
+      }
+
       return {
         status: tile.revealedBy === 'player' ? 'player_lost' : 'player_won',
         reason: tile.revealedBy === 'player' ? 'player_revealed_mine' : 'rival_revealed_mine',

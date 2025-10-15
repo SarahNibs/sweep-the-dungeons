@@ -115,6 +115,7 @@ export interface LevelConfig {
     adjacencyRule?: 'standard' | 'manhattan-2'
     initialRivalReveal?: number
     rivalAI?: string  // AI type to use for this level (e.g., 'conservative', 'random', 'noguess')
+    rivalMineProtection?: number // Number of mines the rival can reveal without ending the game (awards 5 copper each)
   }
   aiConfig?: {
     aiType: string           // e.g., "noguess", "conservative", "reasoning"
@@ -211,6 +212,9 @@ export interface GameState {
   
   // Queued card draws (for Mop effect when cleaning by revealing dirty tiles)
   queuedCardDraws: number // Number of cards to draw at start of next turn
+
+  // Rival mine protection (special behavior)
+  rivalMineProtectionCount: number // Number of remaining protected mine reveals
 }
 
 export interface UpgradeOption {
@@ -241,11 +245,12 @@ export interface ShopOption {
 
 export interface StatusEffect {
   id: string
-  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines' | 'rival_ai_type'
+  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines' | 'rival_ai_type' | 'rival_mine_protection'
   icon: string
   name: string
   description: string
   enhanced?: boolean // For enhanced effects
+  count?: number // For effects with counts (e.g., rival mine protection remaining)
 }
 
 export type CardZone = 'deck' | 'hand' | 'discard'

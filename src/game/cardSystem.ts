@@ -403,10 +403,11 @@ export function createInitialState(
     annotationButtons: {
       player: false, // Start undepressed (no black slash)
       rival: true,   // Start depressed
-      neutral: true, // Start depressed  
+      neutral: true, // Start depressed
       mine: true     // Start depressed
     },
-    queuedCardDraws: 0
+    queuedCardDraws: 0,
+    rivalMineProtectionCount: levelConfig?.specialBehaviors.rivalMineProtection || 0
   }
   
   // Draw initial cards (4 with Caffeinated relic, 5 without)
@@ -433,6 +434,23 @@ export function createInitialState(
   // Add rival never mines status effect if special behavior is active
   if (levelConfig?.specialBehaviors.rivalNeverMines) {
     finalState = addStatusEffect(finalState, 'rival_never_mines')
+  }
+
+  // Add rival mine protection status effect if special behavior is active
+  if (levelConfig?.specialBehaviors.rivalMineProtection && levelConfig.specialBehaviors.rivalMineProtection > 0) {
+    const protectionStatusEffect = {
+      id: crypto.randomUUID(),
+      type: 'rival_mine_protection' as const,
+      icon: '🛡️',
+      name: 'Rival Mine Protection',
+      description: `The rival can safely reveal ${levelConfig.specialBehaviors.rivalMineProtection} mine${levelConfig.specialBehaviors.rivalMineProtection > 1 ? 's' : ''} (awards 5 copper each)`,
+      count: levelConfig.specialBehaviors.rivalMineProtection
+    }
+
+    finalState = {
+      ...finalState,
+      activeStatusEffects: [...finalState.activeStatusEffects, protectionStatusEffect]
+    }
   }
 
   // Add AI type status effect by getting AI info from controller

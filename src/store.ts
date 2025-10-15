@@ -597,22 +597,62 @@ export const useGameStore = create<GameStore>((set, get) => ({
     setTimeout(() => {
       const state = get()
       const newBoard = revealTile(state.board, tileToReveal.position, 'rival')
-      const shouldContinue = tileToReveal.owner === 'rival' // Continue if rival tile
-      
+      let shouldContinue = tileToReveal.owner === 'rival' // Continue if rival tile
+
+      // Check if rival revealed a mine with protection active
+      let stateAfterReveal = { ...state, board: newBoard }
+      if (tileToReveal.owner === 'mine' && state.rivalMineProtectionCount > 0) {
+        console.log(`🛡️ Rival revealed protected mine! Awarding 5 copper and decrementing protection count`)
+
+        // Award 5 copper
+        stateAfterReveal = {
+          ...stateAfterReveal,
+          copper: stateAfterReveal.copper + 5,
+          rivalMineProtectionCount: stateAfterReveal.rivalMineProtectionCount - 1
+        }
+
+        // Update status effect with new count
+        const protectionEffect = stateAfterReveal.activeStatusEffects.find(e => e.type === 'rival_mine_protection')
+        if (protectionEffect) {
+          const newCount = stateAfterReveal.rivalMineProtectionCount
+
+          if (newCount > 0) {
+            // Update the status effect with new count
+            const updatedEffect = {
+              ...protectionEffect,
+              description: `The rival can safely reveal ${newCount} mine${newCount > 1 ? 's' : ''} (awards 5 copper each)`,
+              count: newCount
+            }
+
+            stateAfterReveal = {
+              ...stateAfterReveal,
+              activeStatusEffects: stateAfterReveal.activeStatusEffects.map(e =>
+                e.type === 'rival_mine_protection' ? updatedEffect : e
+              )
+            }
+          } else {
+            // Remove the status effect when count reaches 0
+            stateAfterReveal = {
+              ...stateAfterReveal,
+              activeStatusEffects: stateAfterReveal.activeStatusEffects.filter(e => e.type !== 'rival_mine_protection')
+            }
+          }
+        }
+
+        // End rival's turn (don't continue)
+        shouldContinue = false
+      }
+
       // Check game status after rival reveal
-      const gameStatus = checkGameStatus({
-        ...state,
-        board: newBoard
-      })
-      
+      const gameStatus = checkGameStatus(stateAfterReveal)
+
       const stateWithGameStatus = {
-        ...state,
-        board: newBoard,
+        ...stateAfterReveal,
         gameStatus,
         rivalAnimation: {
-          ...state.rivalAnimation!,
+          ...stateAfterReveal.rivalAnimation!,
           highlightedTile: null,
-          currentRevealIndex: state.rivalAnimation!.currentRevealIndex + 1
+          currentRevealIndex: stateAfterReveal.rivalAnimation!.currentRevealIndex + 1
         }
       }
       updateStateWithCopperReward(set, get, stateWithGameStatus)

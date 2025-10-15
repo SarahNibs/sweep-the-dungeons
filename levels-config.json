@@ -544,7 +544,8 @@
       ],
       "specialBehaviors": {
         "initialRivalReveal": 3,
-        "rivalAI": "conservative"
+        "rivalAI": "conservative",
+        "rivalMineProtection": 1
       }
     },
     {
@@ -582,7 +583,8 @@
       ],
       "specialBehaviors": {
         "initialRivalReveal": 3,
-        "rivalAI": "conservative"
+        "rivalAI": "conservative",
+        "rivalMineProtection": 1
       }
     }
 

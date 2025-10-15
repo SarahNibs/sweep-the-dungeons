@@ -218,16 +218,16 @@ function generateMethod1(state: GameState): Method1Result {
     return acc
   }, {} as Record<string, number>))
 
-  // Draw 4 from RedClues bag → red pips
+  // Draw 5 from RedClues bag → red pips
   const redPipTargets: Tile[] = []
   const redCluesBagCopy = [...redCluesBag]
-  for (let i = 0; i < Math.min(4, redCluesBagCopy.length); i++) {
+  for (let i = 0; i < Math.min(5, redCluesBagCopy.length); i++) {
     const randomIndex = Math.floor(Math.random() * redCluesBagCopy.length)
     redPipTargets.push(redCluesBagCopy[randomIndex])
     redCluesBagCopy.splice(randomIndex, 1)
   }
 
-  console.log(`Red pip targets (4 draws):`, redPipTargets.map(t => `(${t.position.x},${t.position.y},${t.owner})`))
+  console.log(`Red pip targets (5 draws):`, redPipTargets.map(t => `(${t.position.x},${t.position.y},${t.owner})`))
 
   // Count red pips per tile
   const redPipCounts = new Map<string, number>()
@@ -272,16 +272,16 @@ function generateMethod1(state: GameState): Method1Result {
 
   console.log(`Green bag size: ${greenBag.length}`)
 
-  // Draw 6 from green bag
+  // Draw 5 from green bag
   const greenDraws: Tile[] = []
   const greenBagCopy = [...greenBag]
-  for (let i = 0; i < Math.min(6, greenBagCopy.length); i++) {
+  for (let i = 0; i < Math.min(5, greenBagCopy.length); i++) {
     const randomIndex = Math.floor(Math.random() * greenBagCopy.length)
     greenDraws.push(greenBagCopy[randomIndex])
     greenBagCopy.splice(randomIndex, 1)
   }
 
-  console.log(`Green draws (6 total):`, greenDraws.map(t => `(${t.position.x},${t.position.y},${t.owner})`))
+  console.log(`Green draws (5 total):`, greenDraws.map(t => `(${t.position.x},${t.position.y},${t.owner})`))
 
   // Count green pips per tile
   const greenPipCounts = new Map<string, number>()
@@ -406,16 +406,16 @@ function generateMethod2(state: GameState, enhanced: boolean): Method2Result {
     return acc
   }, {} as Record<string, number>))
 
-  // Draw 4 from RedClues bag → these get red pips
+  // Draw 5 from RedClues bag → these get red pips
   const redPipTargets: Tile[] = []
   const redCluesBagCopy = [...redCluesBag]
-  for (let i = 0; i < Math.min(4, redCluesBagCopy.length); i++) {
+  for (let i = 0; i < Math.min(5, redCluesBagCopy.length); i++) {
     const randomIndex = Math.floor(Math.random() * redCluesBagCopy.length)
     redPipTargets.push(redCluesBagCopy[randomIndex])
     redCluesBagCopy.splice(randomIndex, 1)
   }
 
-  console.log(`Red pip targets (4 draws):`, redPipTargets.map(t => `(${t.position.x},${t.position.y},${t.owner})`))
+  console.log(`Red pip targets (5 draws):`, redPipTargets.map(t => `(${t.position.x},${t.position.y},${t.owner})`))
 
   // Count red pips per tile
   const redPipCounts = new Map<string, number>()
@@ -438,7 +438,7 @@ function generateMethod2(state: GameState, enhanced: boolean): Method2Result {
   }
 
   // === GREEN CLUES GENERATION ===
-  // Same as enhanced Imperious Orders (solid clue) but only 6 draws instead of 10
+  // Same as enhanced Imperious Orders (solid clue) but only 5 draws instead of 10
 
   const playerTiles = unrevealedTiles.filter(t => t.owner === 'player')
   const chosenPlayerTiles = selectTilesForClue(playerTiles, 2)
@@ -447,7 +447,7 @@ function generateMethod2(state: GameState, enhanced: boolean): Method2Result {
       chosen.position.x === tile.position.x && chosen.position.y === tile.position.y
     )
   )
-  const chosenRandomTiles = selectTilesForClue(remainingTiles, 6)
+  const chosenRandomTiles = selectTilesForClue(remainingTiles, 5)
 
   console.log(`Green clue targets:`, chosenPlayerTiles.map(t => `(${t.position.x},${t.position.y})`))
   console.log(`Green clue spoilers:`, chosenRandomTiles.map(t => `(${t.position.x},${t.position.y})`))
@@ -494,16 +494,16 @@ function generateMethod2(state: GameState, enhanced: boolean): Method2Result {
 
   console.log(`Green bag size: ${greenBag.length}`)
 
-  // Guarantee first 2 draws are player tiles, then draw 4 more (total 6)
+  // Guarantee first 2 draws are player tiles, then draw 3 more (total 5)
   const greenDraws: Tile[] = [...chosenPlayerTiles]
   const greenBagCopy = [...greenBag]
-  for (let i = 0; i < Math.min(4, greenBagCopy.length); i++) {
+  for (let i = 0; i < Math.min(3, greenBagCopy.length); i++) {
     const randomIndex = Math.floor(Math.random() * greenBagCopy.length)
     greenDraws.push(greenBagCopy[randomIndex])
     greenBagCopy.splice(randomIndex, 1)
   }
 
-  console.log(`Green draws (6 total):`, greenDraws.map(t => `(${t.position.x},${t.position.y},${t.owner})`))
+  console.log(`Green draws (5 total):`, greenDraws.map(t => `(${t.position.x},${t.position.y},${t.owner})`))
 
   // Count green pips per tile
   const greenPipCounts = new Map<string, number>()

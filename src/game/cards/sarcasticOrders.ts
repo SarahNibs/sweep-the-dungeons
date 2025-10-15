@@ -45,6 +45,11 @@ function generateMethod1(state: GameState): Method1Result {
   }> = []
 
   for (const tile of unrevealedTiles) {
+    // Player-owned tiles can never be candidate tiles
+    if (tile.owner === 'player') {
+      continue
+    }
+
     const neighbors = getNeighbors(state.board, tile.position)
     const adjacentTiles = neighbors
       .map(pos => getTile(state.board, pos))
@@ -182,7 +187,7 @@ function generateMethod1(state: GameState): Method1Result {
     }
   }
 
-  // Add 10 spoiler tiles from rest of board
+  // Add 5 spoiler tiles from rest of board
   const candidatePositions = new Set(selectedTiles.map(t => `${t.position.x},${t.position.y}`))
   const spoilerTiles = unrevealedTiles.filter(tile => {
     const posKey = `${tile.position.x},${tile.position.y}`
@@ -200,7 +205,7 @@ function generateMethod1(state: GameState): Method1Result {
   }
 
   const spoilersBagCopy = [...spoilersBag]
-  for (let i = 0; i < Math.min(10, spoilersBagCopy.length); i++) {
+  for (let i = 0; i < Math.min(5, spoilersBagCopy.length); i++) {
     const randomIndex = Math.floor(Math.random() * spoilersBagCopy.length)
     redCluesBag.push(spoilersBagCopy[randomIndex])
     spoilersBagCopy.splice(randomIndex, 1)

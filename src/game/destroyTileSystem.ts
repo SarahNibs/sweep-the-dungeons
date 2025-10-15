@@ -11,8 +11,19 @@ import { getTile, positionToKey, getNeighbors, calculateAdjacency } from './boar
 export function destroyTile(board: Board, position: Position): Board {
   const tile = getTile(board, position)
 
-  if (!tile || tile.owner === 'empty') {
+  if (!tile) {
     return board
+  }
+
+  // Allow destroying empty tiles if they have special properties (like lairs)
+  // But skip if already destroyed or truly empty
+  if (tile.owner === 'empty') {
+    const hasDestroyableSpecialTile = tile.specialTiles.some(st =>
+      st === 'lair' || st === 'goblin' || st === 'extraDirty'
+    )
+    if (!hasDestroyableSpecialTile) {
+      return board
+    }
   }
 
   console.log(`💥 DESTROYING TILE at (${position.x}, ${position.y}), owner was: ${tile.owner}`)

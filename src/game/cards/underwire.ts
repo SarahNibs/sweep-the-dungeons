@@ -20,8 +20,8 @@ export function executeUnderwireEffect(state: GameState, card?: import('../../ty
   console.log('After setting protection:')
   console.log('  - underwireProtection:', stateWithProtection.underwireProtection)
   
-  // Add underwire status effect
-  const finalState = addStatusEffect(stateWithProtection, 'underwire_protection', card?.enhanced)
+  // Add underwire status effect (don't pass enhanced flag - effect is the same, only exhausting differs)
+  const finalState = addStatusEffect(stateWithProtection, 'underwire_protection', false)
   
   console.log('After adding status effect:')
   console.log('  - underwireProtection:', finalState.underwireProtection)

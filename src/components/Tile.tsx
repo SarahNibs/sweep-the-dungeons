@@ -220,11 +220,11 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
   
   // Check if this tile should be highlighted due to clue hover
   const isClueHighlighted = () => {
-    if (!hoveredClueId || tile.revealed) return false
-    
+    if (!hoveredClueId) return false
+
     const clueResultsAnnotation = tile.annotations.find(a => a.type === 'clue_results')
     if (!clueResultsAnnotation?.clueResults) return false
-    
+
     // Check if this tile has a clue result with the hovered clue ID
     return clueResultsAnnotation.clueResults.some(result => result.id === hoveredClueId)
   }
@@ -235,27 +235,23 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       return 'transparent'
     }
 
-    // If clue highlighted and unrevealed, use darker background
-    if (!tile.revealed && isClueHighlighted()) {
-      return '#6c757d' // Darker gray when highlighted (original unrevealed color)
-    }
+    // If clue highlighted, darken the color
+    const highlighted = isClueHighlighted()
 
     if (!tile.revealed) {
-      return '#9ca3af' // Lighter gray for unrevealed
+      // Unrevealed tiles: darker gray when highlighted
+      return highlighted ? '#6c757d' : '#9ca3af'
     }
 
-    switch (tile.owner) {
-      case 'player':
-        return '#81b366' // Muted green for player
-      case 'rival':
-        return '#c65757' // Muted red for rival
-      case 'neutral':
-        return '#d4aa5a' // Muted yellow for neutral
-      case 'mine':
-        return '#8b6ba8' // Muted purple for mine
-      default:
-        return '#6c757d'
+    // Revealed tiles: darken by ~20% when highlighted
+    const baseColors = {
+      player: highlighted ? '#6b9c54' : '#81b366',    // Darker green when highlighted
+      rival: highlighted ? '#a84545' : '#c65757',     // Darker red when highlighted
+      neutral: highlighted ? '#b88f48' : '#d4aa5a',   // Darker yellow when highlighted
+      mine: highlighted ? '#715596' : '#8b6ba8'       // Darker purple when highlighted
     }
+
+    return baseColors[tile.owner as keyof typeof baseColors] || '#6c757d'
   }
 
   const getOverlay = () => {
@@ -314,10 +310,9 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       const playerBigCheckmarkAnnotation = tile.annotations.find(a => a.type === 'player_big_checkmark')
       const playerSmallCheckmarkAnnotation = tile.annotations.find(a => a.type === 'player_small_checkmark')
       
-      // Render clue pips - player clues (top-left) and rival clues (bottom-left) 
+      // Render clue pips - player clues (top-left) and rival clues (bottom-left)
       // Only show these for unrevealed tiles
       if (!tile.revealed && clueResultsAnnotation?.clueResults) {
-        
         clueResultsAnnotation.clueResults.forEach((clueResult, clueIndex) => {
           const strength = clueResult.strengthForThisTile
           const isThisClueHovered = hoveredClueId === clueResult.id
@@ -357,7 +352,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                 </div>
               )
             } else if (isAntiClue) {
-              // Anti-clue (red) pips: top-left, going down and right, RED color
+              // Anti-clue (red) Xs: top-left, going down and right, RED color
               elements.push(
                 <div
                   key={`pip-${clueResult.id}-${clueIndex}-${i}`}
@@ -366,15 +361,18 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                     position: 'absolute',
                     top: `${2 + rowPosition * 6}px`,
                     left: `${2 + i * 6}px`,
-                    width: '4px',
-                    height: '4px',
-                    borderRadius: '50%',
-                    backgroundColor: isThisClueHovered ? '#ef4444' : '#dc2626',
-                    border: '0.5px solid black',
+                    width: '12px',
+                    height: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: isThisClueHovered ? '#dc2626' : '#991b1b',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
                     cursor: 'pointer',
                     transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
                     transition: 'all 0.15s ease',
-                    boxShadow: isThisClueHovered ? '0 1px 3px rgba(239, 68, 68, 0.5)' : 'none'
+                    textShadow: '0 0 2px rgba(0, 0, 0, 0.8)'
                   }}
                   onMouseEnter={() => {
                     setHoveredClueId(clueResult.id)
@@ -382,7 +380,9 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                   onMouseLeave={() => {
                     setHoveredClueId(null)
                   }}
-                />
+                >
+                  ×
+                </div>
               )
             } else {
               // Player pips (green): top-left, going down and right
@@ -754,7 +754,24 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         const values = [player, neutral, rival, mine].filter(v => v !== undefined)
         
         if (values.length === 1) {
-          // Basic version: single blue circle with player count
+          // Single value: show appropriate colored circle
+          // Determine which value and color to use
+          let value: number
+          let color: string
+          if (player !== undefined) {
+            value = player
+            color = '#22c55e' // Green for player
+          } else if (rival !== undefined) {
+            value = rival
+            color = '#ef4444' // Red for rival
+          } else if (neutral !== undefined) {
+            value = neutral
+            color = '#6b7280' // Gray for neutral
+          } else { // mine !== undefined
+            value = mine!
+            color = '#000000' // Black for mine
+          }
+
           // For revealed tiles, position it offset from center to avoid conflict with adjacency count
           const isRevealed = tile.revealed
           elements.push(
@@ -767,7 +784,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                 transform: 'translate(-50%, -50%)',
                 width: '16px',
                 height: '16px',
-                backgroundColor: '#3b82f6', // Blue
+                backgroundColor: color,
                 color: 'white',
                 borderRadius: '50%',
                 display: 'flex',
@@ -778,7 +795,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                 zIndex: 1010
               }}
             >
-              {player}
+              {value}
             </div>
           )
         } else if (values.length > 1) {

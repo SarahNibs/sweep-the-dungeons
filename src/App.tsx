@@ -1,5 +1,5 @@
 import { useGameStore } from './store'
-import { getCardIcon } from './game/gameRepository'
+import { getCardIcon, getAllRelics, getRelicIcon as getRelicIconFromRepo } from './game/gameRepository'
 import { GameStats } from './components/GameStats'
 import { Hand } from './components/Hand'
 import { Board } from './components/Board'
@@ -11,38 +11,19 @@ import { ShopSelectionScreen } from './components/ShopSelectionScreen'
 import { PileViewingScreen } from './components/PileViewingScreen'
 import { TileCountsVertical } from './components/TileCountsVertical'
 import { StatusEffects } from './components/StatusEffects'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 
-function getRelicIcon(relicName: string): string {
-  switch (relicName) {
-    case 'Double Broom':
-      return '🧹'
-    case 'Dust Bunny':
-      return '🐰'
-    case 'Frilly Dress':
-      return '👗'
-    case 'Busy Canary':
-      return '🐦'
-    case 'Mop':
-      return '🧽'
-    case 'Caffeinated':
-      return '🥤'
-    case 'Estrogen':
-      return '💉'
-    case 'Progesterone':
-      return '💊'
-    case 'Tiara':
-      return '👑'
-    default:
-      return '✨'
-  }
+// Helper to get all card names from the repository
+async function getAllCardNames(): Promise<string[]> {
+  const { CARD_DEFINITIONS } = await import('./game/gameRepository')
+  return Object.keys(CARD_DEFINITIONS)
 }
 
 function App() {
-  const { 
-    deck, 
-    hand, 
-    discard, 
+  const {
+    deck,
+    hand,
+    discard,
     exhaust,
     energy,
     maxEnergy,
@@ -61,8 +42,9 @@ function App() {
     pileViewingType,
     activeStatusEffects,
     annotationButtons,
-    playCard, 
-    endTurn, 
+    maskingState,
+    playCard,
+    endTurn,
     resetGame,
     canPlayCard,
     revealTile,
@@ -92,6 +74,14 @@ function App() {
   const [showRelicDebug, setShowRelicDebug] = useState(false)
   const [showCardDebug, setShowCardDebug] = useState(false)
   const [cardUpgradeType, setCardUpgradeType] = useState<'normal' | 'cost-reduced' | 'enhanced'>('normal')
+
+  // Load all relics and cards dynamically for debug tools
+  const allRelics = useMemo(() => getAllRelics(), [])
+  const [allCardNames, setAllCardNames] = useState<string[]>([])
+
+  useEffect(() => {
+    getAllCardNames().then(setAllCardNames)
+  }, [])
 
   // Expose store to window for debugging
   useEffect(() => {
@@ -211,7 +201,7 @@ function App() {
                 }}
                 title={relic.hoverText}
               >
-                {getRelicIcon(relic.name)}
+                {getRelicIconFromRepo(relic.name)}
               </div>
             ))}
           </div>
@@ -306,9 +296,9 @@ function App() {
           </div>
         </div>
 
-        <Hand 
-          cards={hand} 
-          onCardClick={playCard} 
+        <Hand
+          cards={hand}
+          onCardClick={playCard}
           canPlayCard={canPlayCard}
           deckCount={deck.length}
           discardCount={discard.length}
@@ -317,6 +307,7 @@ function App() {
           maxEnergy={maxEnergy}
           onEndTurn={endTurn}
           onPileClick={viewPile}
+          maskingState={maskingState}
         />
       </div>
 
@@ -534,12 +525,12 @@ function App() {
               gap: '10px',
               marginBottom: '15px'
             }}>
-              {['Double Broom', 'Dust Bunny', 'Frilly Dress', 'Busy Canary', 'Mop', 'Caffeinated', 'Estrogen', 'Progesterone', 'Tiara', 'Intercepted Communications'].map(relicName => (
+              {allRelics.map(relic => (
                 <button
-                  key={relicName}
+                  key={relic.name}
                   onClick={() => {
-                    console.log(`🖱️ UI: Clicking relic button for "${relicName}"`)
-                    debugGiveRelic(relicName)
+                    console.log(`🖱️ UI: Clicking relic button for "${relic.name}"`)
+                    debugGiveRelic(relic.name)
                     setShowRelicDebug(false)
                     console.log(`🖱️ UI: Relic button click completed`)
                   }}
@@ -552,7 +543,7 @@ function App() {
                     fontSize: '14px'
                   }}
                 >
-                  {getRelicIcon(relicName)} {relicName}
+                  {getRelicIconFromRepo(relic.name)} {relic.name}
                 </button>
               ))}
             </div>
@@ -635,16 +626,12 @@ function App() {
               gap: '8px',
               marginBottom: '15px'
             }}>
-              {[
-                'Imperious Orders', 'Vague Orders', 'Sarcastic Orders', 'Spritz', 'Brush', 'Sweep', 'Elimination',
-                'Quantum Choice', 'Energized', 'Options', 'Ramble', 'Report', 'Underwire',
-                'Tryst', 'Canary', 'Tingle', 'Monster', 'Argument', 'Horse', 'Eavesdropping', 'Emanation'
-              ].map(cardName => (
+              {allCardNames.map(cardName => (
                 <button
                   key={cardName}
                   onClick={() => {
                     console.log(`🖱️ UI: Clicking card button for "${cardName}" with upgrade "${cardUpgradeType}"`)
-                    const upgrades = cardUpgradeType === 'cost-reduced' 
+                    const upgrades = cardUpgradeType === 'cost-reduced'
                       ? { costReduced: true }
                       : cardUpgradeType === 'enhanced'
                       ? { enhanced: true }
@@ -663,7 +650,7 @@ function App() {
                     textAlign: 'center'
                   }}
                 >
-                  {cardName}
+                  {getCardIcon(cardName)} {cardName}
                 </button>
               ))}
             </div>

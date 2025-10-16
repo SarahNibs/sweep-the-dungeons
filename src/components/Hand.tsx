@@ -14,30 +14,53 @@ interface HandProps {
   maxEnergy: number
   onEndTurn: () => void
   onPileClick?: (pileType: 'deck' | 'discard' | 'exhaust') => void
+  maskingState: { maskingCardId: string; enhanced: boolean } | null
 }
 
-export function Hand({ cards, onCardClick, canPlayCard, deckCount, discardCount, exhaustCount, energy, maxEnergy, onEndTurn, onPileClick }: HandProps) {
+export function Hand({ cards, onCardClick, canPlayCard, deckCount, discardCount, exhaustCount, energy, maxEnergy, onEndTurn, onPileClick, maskingState }: HandProps) {
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null)
-  
+
   // Calculate dynamic overlap based on hand size
   const calculateOverlap = (totalCards: number): number => {
     if (totalCards <= 3) return 0 // No overlap for small hands
-    if (totalCards <= 5) return 10 // Small overlap for medium hands  
+    if (totalCards <= 5) return 10 // Small overlap for medium hands
     if (totalCards <= 7) return 20 // Medium overlap for larger hands
     return 30 // Large overlap for very large hands
   }
-  
+
   const cardOverlap = calculateOverlap(cards.length)
-  
+
   return (
     <div style={{
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      margin: '20px 0',
-      minHeight: '120px',
-      width: '100%' // Use full container width
+      flexDirection: 'column',
+      gap: '10px',
+      width: '100%'
     }}>
+      {/* Masking Mode Indicator */}
+      {maskingState && (
+        <div style={{
+          backgroundColor: '#3b82f6',
+          color: 'white',
+          padding: '10px 20px',
+          borderRadius: '8px',
+          textAlign: 'center',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+          animation: 'pulse 2s infinite'
+        }}>
+          🎭 Select a card from your hand to play for free! (Both cards will exhaust{maskingState.enhanced && ', except Masking'})
+        </div>
+      )}
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        minHeight: '120px',
+        width: '100%' // Use full container width
+      }}>
       {/* Left group: Energy and Deck with spacing */}
       <div style={{
         display: 'flex',
@@ -98,7 +121,7 @@ export function Hand({ cards, onCardClick, canPlayCard, deckCount, discardCount,
             key={card.id}
             card={card}
             onClick={onCardClick}
-            isPlayable={canPlayCard(card.id)}
+            isPlayable={maskingState ? card.name !== 'Masking' : canPlayCard(card.id)}
             index={index}
             totalCards={cards.length}
             isHovered={hoveredCardId === card.id}
@@ -189,6 +212,7 @@ export function Hand({ cards, onCardClick, canPlayCard, deckCount, discardCount,
             ▶
           </div>
         </Tooltip>
+      </div>
       </div>
     </div>
   )

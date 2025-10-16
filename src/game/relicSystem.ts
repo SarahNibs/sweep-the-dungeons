@@ -2,7 +2,7 @@ import { Relic, RelicOption, GameState } from '../types'
 import { advanceToNextLevel, drawCards } from './cardSystem'
 import { shouldShowShopReward } from './levelSystem'
 import { startShopSelection } from './shopSystem'
-import { calculateAdjacency, getNeighbors } from './boardSystem'
+import { calculateAdjacency, getNeighbors, positionToKey, removeSpecialTile } from './boardSystem'
 import { revealTileWithRelicEffects } from './cardEffects'
 
 import { getAllRelics, createCard } from './gameRepository'
@@ -550,9 +550,25 @@ export function triggerInterceptedNoteEffect(state: GameState): GameState {
   
   console.log(`  - Revealing rival tile at (${position.x}, ${position.y})`)
 
-  // Reveal the tile using the imported function (use 'player' to show player adjacency info)
-  const newState = revealTileWithRelicEffects(state, position, 'player')
-  
+  // Clean dirt first if present (like rivals do), then reveal with 'player' to get player adjacency info
+  let currentState = state
+  if (tileToReveal.specialTiles.includes('extraDirty')) {
+    const key = positionToKey(position)
+    const newTiles = new Map(currentState.board.tiles)
+    const cleanedTile = removeSpecialTile(tileToReveal, 'extraDirty')
+    newTiles.set(key, cleanedTile)
+    currentState = {
+      ...currentState,
+      board: {
+        ...currentState.board,
+        tiles: newTiles
+      }
+    }
+  }
+
+  // Reveal the tile with 'player' to show player adjacency info
+  const newState = revealTileWithRelicEffects(currentState, position, 'player')
+
   console.log('  - Intercepted Communications effect completed')
   return newState
 }

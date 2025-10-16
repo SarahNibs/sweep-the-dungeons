@@ -38,19 +38,28 @@ export function calculateTilePriority(
 }
 
 /**
- * Apply random boost to priority based on Ramble effects
+ * Apply random boost to priority based on Ramble effects and Eyeshadow relic
  */
 export function applyRandomBoost(
   basePriority: number,
-  ramblePriorityBoosts: number[]
+  ramblePriorityBoosts: number[],
+  hasEyeshadow: boolean
 ): number {
   let randomBoost = 0
+
+  // Apply Ramble boosts if active
   if (ramblePriorityBoosts.length > 0) {
     // For each Ramble boost, generate a separate random draw for this tile and sum them
     randomBoost = ramblePriorityBoosts.reduce((sum, maxBoost) => sum + Math.random() * maxBoost, 0)
   } else {
     randomBoost = Math.random() * 0.01 // Small random tiebreaker
   }
+
+  // Apply Eyeshadow boost if relic is present (permanent half-Ramble: random [0-1.2])
+  if (hasEyeshadow) {
+    randomBoost += Math.random() * 1.2
+  }
+
   return basePriority + randomBoost
 }
 
@@ -66,11 +75,15 @@ export function calculateTilePriorities(
 
   if (unrevealedTiles.length === 0) return []
 
+  // Check if player has Eyeshadow relic
+  const hasEyeshadow = state.relics.some(relic => relic.name === 'Eyeshadow')
+
   // Calculate priorities using only player clues and hidden rival clues
   // Add ramble priority boost if active (each tile gets sum of separate random draws per boost), otherwise small random tiebreaker
+  // Add Eyeshadow boost if relic present (permanent half-Ramble effect)
   const tilesWithPriority = unrevealedTiles.map(tile => {
     const basePriority = calculateTilePriority(tile, hiddenRivalCluesPairs)
-    const finalPriority = applyRandomBoost(basePriority, state.ramblePriorityBoosts)
+    const finalPriority = applyRandomBoost(basePriority, state.ramblePriorityBoosts, hasEyeshadow)
     return {
       tile,
       priority: finalPriority

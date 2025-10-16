@@ -1,4 +1,5 @@
 import { Relic } from '../types'
+import { getRelicIcon } from '../game/gameRepository'
 
 interface RelicDisplayProps {
   relics: Relic[]
@@ -24,7 +25,7 @@ export function RelicDisplay({ relics }: RelicDisplayProps) {
       }}>
         Relics:
       </div>
-      
+
       {relics.map((relic, index) => (
         <div
           key={index}
@@ -47,17 +48,4 @@ export function RelicDisplay({ relics }: RelicDisplayProps) {
       ))}
     </div>
   )
-}
-
-function getRelicIcon(relicName: string): string {
-  switch (relicName) {
-    case 'Double Broom':
-      return '🧹'
-    case 'Dust Bunny':
-      return '🐰'
-    case 'Frilly Dress':
-      return '👗'
-    default:
-      return '✨'
-  }
 }

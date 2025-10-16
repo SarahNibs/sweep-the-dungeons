@@ -29,6 +29,8 @@ export type CardEffect =
   | { type: 'horse'; target: Position }
   | { type: 'eavesdropping'; target: Position }
   | { type: 'emanation'; target: Position }
+  | { type: 'masking'; targetCardId: string }
+  | { type: 'brat'; target: Position }
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
@@ -73,6 +75,7 @@ export interface Tile {
   annotations: TileAnnotation[]
   specialTiles: Array<'extraDirty' | 'goblin' | 'destroyed' | 'lair'> // Can have multiple special properties
   underwireProtected?: boolean // True if this mine was protected by Underwire
+  rivalMineProtected?: boolean // True if this mine was protected by rival mine protection
 }
 
 export interface Board {
@@ -108,7 +111,7 @@ export interface LevelConfig {
   specialTiles: Array<{
     type: 'extraDirty' | 'goblin' | 'lair'
     count: number
-    placement: 'random' | 'nonmine' | 'empty' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> }
+    placement: 'random' | 'nonmine' | 'empty' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> } | number[][]
   }>
   specialBehaviors: {
     rivalNeverMines?: boolean
@@ -215,6 +218,12 @@ export interface GameState {
 
   // Rival mine protection (special behavior)
   rivalMineProtectionCount: number // Number of remaining protected mine reveals
+
+  // Masking card state (for selecting which card to play with Masking)
+  maskingState: {
+    maskingCardId: string  // ID of the Masking card being played
+    enhanced: boolean      // Whether the Masking card is enhanced
+  } | null
 }
 
 export interface UpgradeOption {

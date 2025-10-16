@@ -556,7 +556,7 @@
         "relicReward": false,
         "upgradeReward": true,
         "shopReward": false,
-        "winTheGame": true,
+        "winTheGame": false,
         "nextLevel": ["L14"]
       },
       "description": "Introducing: goblin lair",
@@ -586,8 +586,170 @@
         "rivalAI": "conservative",
         "rivalMineProtection": 1
       }
+    },
+    {
+      "levelNumber": 14,
+      "levelId": "L14",
+      "uponFinish": {
+        "cardReward": true,
+        "relicReward": true,
+        "upgradeReward": false,
+        "shopReward": false,
+        "winTheGame": false,
+        "nextLevel": ["L15"]
+      },
+      "description": "Mix it up",
+      "dimensions": {
+        "columns": 9,
+        "rows": 9
+      },
+      "tileCounts": {
+        "player": 21,
+        "rival": 17,
+        "neutral": 15,
+        "mine": 8
+      },
+      "unusedLocations": [
+        [1,1],[3,1],[5,1],[7,1],
+           [2,2],      [6,2],
+        [1,3],[3,3],[5,3],[7,3],
+        [1,5],[3,5],[5,5],[7,5],
+           [2,6],      [6,6],
+        [1,7],[3,7],[5,7],[7,7]
+      ],
+      "specialTiles": [
+        {
+          "type": "extraDirty",
+          "count": 7,
+          "placement": "random"
+        },
+        {
+          "type": "goblin",
+          "count": 3,
+          "placement": "nonmine"
+        },
+        {
+          "type": "lair",
+          "count": 3,
+          "placement": "empty"
+        }
+      ],
+      "specialBehaviors": {
+        "initialRivalReveal": 3,
+        "rivalAI": "conservative",
+        "rivalMineProtection": 2
+      }
+    },
+    {
+      "levelNumber": 15,
+      "levelId": "L15",
+      "uponFinish": {
+        "cardReward": true,
+        "relicReward": false,
+        "upgradeReward": false,
+        "shopReward": true,
+        "winTheGame": false,
+        "nextLevel": ["L16"]
+      },
+      "description": "Strategic Lair Removal",
+      "dimensions": {
+        "columns": 10,
+        "rows": 10
+      },
+      "tileCounts": {
+        "player": 20,
+        "rival": 16,
+        "neutral": 14,
+        "mine": 10
+      },
+      "unusedLocations": [
+        [0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],[9,0],
+        [0,1],                                                [9,1],
+        [0,2],                                                [9,2],
+        [0,3],                                                [9,3],
+        [0,4],                  [4,4],[5,4],                  [9,4],
+        [0,5],                  [4,5],[5,5],                  [9,5],
+        [0,6],                                                [9,6],
+        [0,7],                                                [9,7],
+        [0,8],                                                [9,8],
+        [0,9],[1,9],[2,9],[3,9],[4,9],[5,9],[6,9],[7,9],[8,9],[9,9]
+      ],
+      "specialTiles": [
+        {
+          "type": "extraDirty",
+          "count": 6,
+          "placement": "random"
+        },
+        {
+          "type": "goblin",
+          "count": 2,
+          "placement": "nonmine"
+        },
+        {
+          "type": "lair",
+          "count": 4,
+          "placement": [[0,0],[9,0],[0,9],[9,9]]
+        }
+      ],
+      "specialBehaviors": {
+        "initialRivalReveal": 3,
+        "rivalAI": "conservative",
+        "rivalMineProtection": 2
+      }
+    },
+    {
+      "levelNumber": 16,
+      "levelId": "L16",
+      "uponFinish": {
+        "cardReward": true,
+        "relicReward": true,
+        "upgradeReward": false,
+        "shopReward": false,
+        "winTheGame": true,
+        "nextLevel": ["L17"]
+      },
+      "description": "Boss level #3!",
+      "dimensions": {
+        "columns": 10,
+        "rows": 10
+      },
+      "tileCounts": {
+        "player": 20,
+        "rival": 16,
+        "neutral": 14,
+        "mine": 10
+      },
+      "unusedLocations": [
+        [0,0],[1,0],                                    [8,0],[9,0],
+        [0,1],[1,1],[2,1],[3,1],[4,1],[5,1],[6,1],[7,1],[8,1],[9,1],
+              [1,2],                                    [8,2],      
+              [1,3],                                    [8,3],      
+              [1,4],                                    [8,4],      
+              [1,5],                                    [8,5],      
+              [1,6],                                    [8,6],      
+              [1,7],                                    [8,7],      
+        [0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,8],[7,8],[8,8],[9,8],
+        [0,9],[1,9],                                    [8,9],[9,9]
+      ],
+      "specialTiles": [
+        {
+          "type": "extraDirty",
+          "count": 5,
+          "placement": "random"
+        },
+        {
+          "type": "lair",
+          "count": 5,
+          "placement": [[2,1],[7,1],[1,2],[8,2],[1,7],[8,7],[2,8],[7,8]]
+        }
+      ],
+      "specialBehaviors": {
+        "adjacencyRule": "manhattan-2",
+        "initialRivalReveal": 4,
+        "rivalAI": "conservative",
+        "rivalNeverMines": true
+      }
     }
-
   ],
   "coordinateSystem": {
     "description": "Grid uses (column, row) coordinates with (0,0) at top-left",

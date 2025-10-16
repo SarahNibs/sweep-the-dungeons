@@ -220,6 +220,27 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     },
     icon: '☢️'
   },
+  'Masking': {
+    name: 'Masking',
+    cost: 0,
+    category: 'reward',
+    description: {
+      base: 'Choose another card in your hand (except another Masking), play it for free, and exhaust both that card and this Masking',
+      enhanced: 'Choose another card in your hand (except another Masking), play it for free, and exhaust that card (this Masking doesn\'t exhaust)'
+    },
+    icon: '🎭'
+  },
+  'Brat': {
+    name: 'Brat',
+    cost: 1,
+    exhaust: true,
+    category: 'reward',
+    description: {
+      base: 'Target a revealed tile to make it unrevealed (adjacency information remains). Exhaust (remove from deck after use)',
+      enhanced: 'Target a revealed tile to make it unrevealed (adjacency information remains). Gain 2 copper. Exhaust (remove from deck after use)'
+    },
+    icon: '😈'
+  },
 }
 
 // Centralized relic definitions
@@ -293,6 +314,20 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     hoverText: 'Intercepted Communications: at the beginning of each level, one of the rival\'s tiles is revealed at random, giving info about adjacent player tiles',
     category: 'common',
     icon: '📝'
+  },
+  'Handbag': {
+    name: 'Handbag',
+    description: 'carry extra supplies for the start of battle',
+    hoverText: 'Handbag: draw 2 additional cards at the start of your first turn each level',
+    category: 'common',
+    icon: '👜'
+  },
+  'Eyeshadow': {
+    name: 'Eyeshadow',
+    description: 'distract your rival with your beauty',
+    hoverText: 'Eyeshadow: your rival gets a random [0-1] added to each priority (permanent half-Ramble effect)',
+    category: 'common',
+    icon: '👁️'
   }
 }
 

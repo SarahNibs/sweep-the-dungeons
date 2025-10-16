@@ -204,6 +204,16 @@ export function canTargetTile(
     return { isValid: true }
   }
 
+  // Brat: can target any non-empty tile (revealed or unrevealed)
+  // Effect only happens on revealed tiles, but targeting unrevealed is allowed for exhaust/copper
+  if (cardName === 'Brat') {
+    if (tile.owner === 'empty') {
+      return { isValid: false, reason: 'Cannot target empty tiles' }
+    }
+    // Can target any non-empty tile
+    return { isValid: true }
+  }
+
   // All other single-target cards: Scout, Argument, Eavesdropping, Quantum, Tryst (basic)
   // These cards target one unrevealed, non-empty tile
   if (tile.owner === 'empty') {

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { GameState, Tile, Position, CardEffect, Board, Card as CardType, PileType, Relic } from './types'
-import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel, queueCardDrawsFromDirtCleaning, deductEnergy } from './game/cardSystem'
+import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel, queueCardDrawsFromDirtCleaning, deductEnergy, selectCardForMasking, cleanupMaskingAfterExecution } from './game/cardSystem'
 import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
 import { startRelicSelection, selectRelic, closeRelicUpgradeDisplay } from './game/relicSystem'
 import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey, spawnGoblinsFromLairs, getTile } from './game/boardSystem'
@@ -139,6 +139,51 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const card = currentState.hand.find(c => c.id === cardId)
     if (!card) return
+
+    // If in masking mode, call selectCardForMasking instead
+    if (currentState.maskingState) {
+      const newState = selectCardForMasking(currentState, cardId)
+
+      // Check if the selected card is Tingle (needs animation)
+      if (newState.selectedCardName === 'Tingle') {
+        // Remove Tingle from hand and exhaust the target card
+        const tingleCard = newState.hand.find(c => c.id === newState.selectedCardId)
+        if (tingleCard) {
+          const stateWithoutTingle = {
+            ...newState,
+            hand: newState.hand.filter(c => c.id !== newState.selectedCardId),
+            exhaust: [...newState.exhaust, tingleCard]
+          }
+
+          // Handle Masking card exhausting if not enhanced
+          let finalState = stateWithoutTingle
+          if (newState.maskingState && !newState.maskingState.enhanced) {
+            const maskingCard = finalState.discard.find(c => c.id === newState.maskingState!.maskingCardId)
+            if (maskingCard) {
+              finalState = {
+                ...finalState,
+                discard: finalState.discard.filter(c => c.id !== newState.maskingState!.maskingCardId),
+                exhaust: [...finalState.exhaust, maskingCard]
+              }
+            }
+          }
+
+          // Clear masking state and trigger animation
+          finalState = {
+            ...finalState,
+            maskingState: null,
+            selectedCardName: null,
+            selectedCardId: null
+          }
+
+          get().executeTingleWithAnimation(finalState, tingleCard.enhanced || false)
+        }
+        return
+      }
+
+      set(newState)
+      return
+    }
 
     const animationType = needsAnimationOnPlay(card)
 
@@ -353,6 +398,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } else if (effect.type === 'tryst') {
       newEffect = { type: 'tryst', target: position }
       shouldExecute = true
+    } else if (effect.type === 'brat') {
+      newEffect = { type: 'brat', target: position }
+      shouldExecute = true
     }
 
     if (shouldExecute && newEffect) {
@@ -388,8 +436,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       // CRITICAL: Use status effects from BEFORE card executed to calculate cost
       // This prevents cards like Horse from seeing their own discount status effect
-      const finalState = deductEnergy(stateBeforeEnergy, card, currentState.activeStatusEffects, 'targetTileForCard (general)')
-      
+      let finalState = deductEnergy(stateBeforeEnergy, card, currentState.activeStatusEffects, 'targetTileForCard (general)')
+
+      // Cleanup masking state if this was a masked targeting card
+      if (currentState.maskingState) {
+        finalState = cleanupMaskingAfterExecution(finalState)
+      }
+
       // Check if the effect revealed a tile that should end the turn (e.g., quantum)
       if (newEffect.type === 'quantum') {
         // Find the revealed tile and check if turn should end
@@ -596,13 +649,35 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // After highlighting delay, reveal the tile
     setTimeout(() => {
       const state = get()
-      const newBoard = revealTile(state.board, tileToReveal.position, 'rival')
-      let shouldContinue = tileToReveal.owner === 'rival' // Continue if rival tile
+      const revealResult = revealTileWithResult(state.board, tileToReveal.position, 'rival')
+      const newBoard = revealResult.board
+
+      // Continue if rival tile was revealed OR if tile wasn't revealed (goblin moved)
+      // This ensures goblins get moved, then we continue to reveal the tile
+      let shouldContinue = revealResult.revealed ? tileToReveal.owner === 'rival' : true
 
       // Check if rival revealed a mine with protection active
       let stateAfterReveal = { ...state, board: newBoard }
       if (tileToReveal.owner === 'mine' && state.rivalMineProtectionCount > 0) {
         console.log(`🛡️ Rival revealed protected mine! Awarding 5 copper and decrementing protection count`)
+
+        // Mark the mine tile as protected (similar to Underwire)
+        const protectedTileKey = positionToKey(tileToReveal.position)
+        const protectedTile = stateAfterReveal.board.tiles.get(protectedTileKey)
+        if (protectedTile) {
+          const newTiles = new Map(stateAfterReveal.board.tiles)
+          newTiles.set(protectedTileKey, {
+            ...protectedTile,
+            rivalMineProtected: true
+          })
+          stateAfterReveal = {
+            ...stateAfterReveal,
+            board: {
+              ...stateAfterReveal.board,
+              tiles: newTiles
+            }
+          }
+        }
 
         // Award 5 copper
         stateAfterReveal = {

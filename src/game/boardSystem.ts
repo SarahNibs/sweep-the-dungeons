@@ -55,7 +55,7 @@ export function clearAllSpecialTiles(tile: Tile): Tile {
 export interface SpecialTileConfig {
   type: 'extraDirty' | 'goblin' | 'lair'
   count: number
-  placement: 'random' | 'nonmine' | 'empty' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> }
+  placement: 'random' | 'nonmine' | 'empty' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> } | number[][]
 }
 
 export function createBoard(
@@ -124,6 +124,38 @@ export function createBoard(
 function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig): void {
   console.log(`🎯 APPLYING SPECIAL TILES: type=${config.type}, count=${config.count}, placement=${JSON.stringify(config.placement)}`)
 
+  // Handle coordinate array placement
+  if (Array.isArray(config.placement)) {
+    const positions = config.placement.map(([x, y]) => createPosition(x, y))
+    console.log(`  - Coordinate array placement: choosing ${config.count} from ${positions.length} positions`)
+
+    // Get tiles at the specified positions
+    const eligibleTiles = positions
+      .map(pos => getTile({ tiles, width: 0, height: 0 } as Board, pos))
+      .filter((tile): tile is Tile => tile !== undefined)
+
+    console.log(`  - Found ${eligibleTiles.length} eligible tiles at specified positions`)
+
+    // Shuffle eligible tiles
+    for (let i = eligibleTiles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [eligibleTiles[i], eligibleTiles[j]] = [eligibleTiles[j], eligibleTiles[i]]
+    }
+
+    // Apply to the first 'count' tiles after shuffling
+    const count = Math.min(config.count, eligibleTiles.length)
+    for (let i = 0; i < count; i++) {
+      const tile = eligibleTiles[i]
+      const key = positionToKey(tile.position)
+      console.log(`    - Adding ${config.type} at position (${tile.position.x}, ${tile.position.y}), existing: [${tile.specialTiles.join(', ')}]`)
+      tiles.set(key, addSpecialTile(tile, config.type))
+    }
+
+    console.log(`✅ APPLIED ${count} ${config.type} tiles`)
+    return
+  }
+
+  // Original logic for non-coordinate placements
   const eligibleTiles = Array.from(tiles.values()).filter(tile => {
     // Special case for lairs: only on empty tiles
     if (config.placement === 'empty') {
@@ -138,9 +170,11 @@ function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig):
       return true
     } else if (config.placement === 'nonmine') {
       return tile.owner !== 'mine'
-    } else {
+    } else if (typeof config.placement === 'object' && 'owner' in config.placement) {
       return config.placement.owner.includes(tile.owner as any)
     }
+
+    return false
   })
 
   console.log(`  - Found ${eligibleTiles.length} eligible tiles`)

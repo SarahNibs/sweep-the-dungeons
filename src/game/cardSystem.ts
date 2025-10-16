@@ -145,6 +145,160 @@ export function canPlayCard(state: GameState, cardId: string): boolean {
   return state.energy >= finalCost
 }
 
+export function selectCardForMasking(state: GameState, targetCardId: string): GameState {
+  if (!state.maskingState) {
+    // Not in masking mode
+    return state
+  }
+
+  // Find the target card in hand
+  const targetCard = state.hand.find(card => card.id === targetCardId)
+  if (!targetCard) {
+    // Target card not found
+    return state
+  }
+
+  if (targetCard.name === 'Masking') {
+    // Can't mask another Masking
+    return state
+  }
+
+  // Check if target card needs animation (Tingle)
+  // These cards need special handling - keep card in hand and let store handle animation
+  if (targetCard.name === 'Tingle') {
+    // Set up state for animation handling, similar to targeting cards
+    return {
+      ...state,
+      selectedCardName: targetCard.name,
+      selectedCardId: targetCard.id,
+      shouldExhaustLastCard: true // Force the masked card to exhaust
+      // maskingState stays active - we'll clear it after execution
+      // hand stays - animation flow needs the card
+    }
+  }
+
+  // Check if the target card requires targeting
+  if (requiresTargeting(targetCard.name, targetCard.enhanced)) {
+    // Set up pending effect for the masked card
+    let effectType: string
+    switch (targetCard.name) {
+      case 'Spritz':
+        effectType = 'scout'
+        break
+      case 'Easiest':
+        effectType = 'quantum'
+        break
+      case 'Brush':
+        effectType = 'brush'
+        break
+      case 'Sweep':
+        effectType = 'sweep'
+        break
+      case 'Tryst':
+        effectType = 'tryst'
+        break
+      case 'Canary':
+        effectType = 'canary'
+        break
+      case 'Argument':
+        effectType = 'argument'
+        break
+      case 'Horse':
+        effectType = 'horse'
+        break
+      case 'Eavesdropping':
+        effectType = 'eavesdropping'
+        break
+      case 'Emanation':
+        effectType = 'emanation'
+        break
+      case 'Brat':
+        effectType = 'brat'
+        break
+      default:
+        effectType = targetCard.name.toLowerCase().replace(' ', '_')
+    }
+
+    // Keep maskingState and DON'T remove card from hand yet
+    // The targeting flow will handle removing it after execution
+    // IMPORTANT: Set shouldExhaustLastCard to force exhaustion when played via Masking
+    return {
+      ...state,
+      selectedCardName: targetCard.name,
+      selectedCardId: targetCard.id,
+      pendingCardEffect: { type: effectType as any },
+      shouldExhaustLastCard: true // Force the masked card to exhaust
+      // maskingState stays - we'll clear it after execution
+      // hand stays - targeting flow needs the card
+    }
+  }
+
+  // Remove the target card from hand for immediate effect cards
+  const newHand = state.hand.filter(card => card.id !== targetCardId)
+
+  // Execute immediate effect
+  let newState = { ...state, hand: newHand }
+
+  switch (targetCard.name) {
+    case 'Tingle':
+      // Tingle needs animation - store will handle it
+      break
+    case 'Imperious Orders':
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'solid_clue' }, targetCard) }
+      break
+    case 'Vague Orders':
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'stretch_clue' }, targetCard) }
+      break
+    case 'Sarcastic Orders':
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'sarcastic_orders' }, targetCard) }
+      break
+    case 'Energized':
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'energized' }, targetCard) }
+      break
+    case 'Options':
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'options' }, targetCard) }
+      break
+    case 'Ramble':
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'ramble' }, targetCard) }
+      break
+    case 'Underwire':
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'underwire' }, targetCard) }
+      break
+    case 'Monster':
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'monster' }, targetCard) }
+      break
+    case 'Tryst':
+      // Basic Tryst (not enhanced) - no targeting needed
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'tryst', target: undefined }, targetCard) }
+      break
+  }
+
+  // Exhaust the target card (always exhausts when played via Masking)
+  newState = {
+    ...newState,
+    exhaust: [...newState.exhaust, targetCard]
+  }
+
+  // Handle Masking card exhausting
+  if (!state.maskingState.enhanced) {
+    // Move Masking from discard to exhaust
+    const maskingCard = newState.discard.find(card => card.id === state.maskingState!.maskingCardId)
+    if (maskingCard) {
+      newState = {
+        ...newState,
+        discard: newState.discard.filter(card => card.id !== state.maskingState!.maskingCardId),
+        exhaust: [...newState.exhaust, maskingCard]
+      }
+    }
+  }
+
+  // Clear masking state
+  return {
+    ...newState,
+    maskingState: null
+  }
+}
+
 export function playCard(state: GameState, cardId: string): GameState {
   const cardIndex = state.hand.findIndex(card => card.id === cardId)
   if (cardIndex === -1) return state
@@ -189,6 +343,15 @@ export function playCard(state: GameState, cardId: string): GameState {
       case 'Eavesdropping':
         effectType = 'eavesdropping'
         break
+      case 'Emanation':
+        effectType = 'emanation'
+        break
+      case 'Brat':
+        effectType = 'brat'
+        break
+      case 'Masking':
+        effectType = 'masking'
+        break
       default:
         effectType = card.name.toLowerCase().replace(' ', '_')
     }
@@ -204,6 +367,30 @@ export function playCard(state: GameState, cardId: string): GameState {
   // Execute immediate effect cards (except Tingle which needs animation)
   let newState = state
   switch (card.name) {
+    case 'Masking':
+      // Masking enters card selection mode - don't execute immediately
+      // Remove card from hand first
+      const handWithoutMasking = state.hand.filter((_, index) => index !== cardIndex)
+      // Deduct energy for Masking (cost 0 but follow normal flow)
+      const stateAfterMasking = deductEnergy(
+        {
+          ...state,
+          hand: handWithoutMasking,
+          maskingState: {
+            maskingCardId: card.id,
+            enhanced: card.enhanced || false
+          },
+          selectedCardName: card.name
+        },
+        card,
+        state.activeStatusEffects,
+        'playCard (Masking)'
+      )
+      // Put Masking in discard for now (will be moved to exhaust later if not enhanced)
+      return {
+        ...stateAfterMasking,
+        discard: [...stateAfterMasking.discard, card]
+      }
     case 'Tingle':
       // Don't execute immediately - let the store handle the animation
       newState = state
@@ -239,8 +426,8 @@ export function playCard(state: GameState, cardId: string): GameState {
   }
 
   const newHand = newState.hand.filter((_, index) => index !== cardIndex)
-  // Enhanced Energized cards no longer exhaust
-  const shouldExhaust = card.exhaust && !(card.name === 'Energized' && card.enhanced)
+  // Enhanced Energized and enhanced Underwire cards no longer exhaust
+  const shouldExhaust = card.exhaust && !(card.name === 'Energized' && card.enhanced) && !(card.name === 'Underwire' && card.enhanced)
   // If card has exhaust, put it in exhaust pile; otherwise put in discard
   const newDiscard = shouldExhaust ? newState.discard : [...newState.discard, card]
   const newExhaust = shouldExhaust ? [...newState.exhaust, card] : newState.exhaust
@@ -407,13 +594,19 @@ export function createInitialState(
       mine: true     // Start depressed
     },
     queuedCardDraws: 0,
-    rivalMineProtectionCount: levelConfig?.specialBehaviors.rivalMineProtection || 0
+    rivalMineProtectionCount: levelConfig?.specialBehaviors.rivalMineProtection || 0,
+    maskingState: null
   }
   
   // Draw initial cards (4 with Caffeinated relic, 5 without)
   const initialCardDraw = startingRelics.some(relic => relic.name === 'Caffeinated') ? 4 : 5
   let finalState = drawCards(initialState, initialCardDraw)
-  
+
+  // Trigger Handbag effect if present (draw 2 additional cards on first turn)
+  if (startingRelics.some(relic => relic.name === 'Handbag')) {
+    finalState = drawCards(finalState, 2)
+  }
+
   // Trigger Dust Bunny effect if present
   finalState = triggerDustBunnyEffect(finalState)
   
@@ -581,5 +774,54 @@ export function queueCardDrawsFromDirtCleaning(state: GameState, tilesCleanedCou
   return {
     ...state,
     queuedCardDraws: newQueuedDraws
+  }
+}
+
+// Cleanup masking state after a masked card's effect is executed
+export function cleanupMaskingAfterExecution(state: GameState): GameState {
+  if (!state.maskingState) {
+    // Not in masking mode
+    return state
+  }
+
+  // Find the masked card (should be in exhaust already from selectCardForMasking)
+  // But for targeting cards, we need to exhaust it now
+
+  // Find the card that was just executed
+  const executedCard = state.hand.find(card => card.id === state.selectedCardId) ||
+                       state.discard.find(card => card.id === state.selectedCardId) ||
+                       state.exhaust.find(card => card.id === state.selectedCardId)
+
+  let newState = state
+
+  // If the executed card is still in hand or discard, move it to exhaust
+  if (executedCard) {
+    newState = {
+      ...newState,
+      hand: newState.hand.filter(card => card.id !== state.selectedCardId),
+      discard: newState.discard.filter(card => card.id !== state.selectedCardId),
+      exhaust: newState.exhaust.some(card => card.id === state.selectedCardId)
+        ? newState.exhaust
+        : [...newState.exhaust, executedCard]
+    }
+  }
+
+  // Handle Masking card exhausting if not enhanced
+  if (!state.maskingState.enhanced) {
+    // Move Masking from discard to exhaust
+    const maskingCard = newState.discard.find(card => card.id === state.maskingState!.maskingCardId)
+    if (maskingCard) {
+      newState = {
+        ...newState,
+        discard: newState.discard.filter(card => card.id !== state.maskingState!.maskingCardId),
+        exhaust: [...newState.exhaust, maskingCard]
+      }
+    }
+  }
+
+  // Clear masking state
+  return {
+    ...newState,
+    maskingState: null
   }
 }

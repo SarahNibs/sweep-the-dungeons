@@ -48,7 +48,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   'Sarcastic Orders': {
     name: 'Sarcastic Orders',
     cost: 2,
-    category: 'reward',
+    category: 'starter',
     description: {
       base: 'Complex clue with red anti-clue dots (DON\'T reveal these!) and/or green clue dots. Simulates two methods and uses the best',
       enhanced: 'Complex clue with red anti-clue dots (DON\'T reveal these!) and/or green clue dots. Simulates two methods and uses the best. Gain 2 copper'
@@ -380,17 +380,18 @@ export function createRelic(name: string): Relic {
 
 export function getStarterCards(): Card[] {
   return [
-    // Two copies of Imperious Orders
+    // One copy of Imperious Orders
     createCard('Imperious Orders'),
-    createCard('Imperious Orders'),
+    // One copy of Sarcastic Orders
+    createCard('Sarcastic Orders'),
     // One copy of Vague Orders
     createCard('Vague Orders'),
-    // Four copies of Spritz
+    // Three copies of Spritz
     createCard('Spritz'),
     createCard('Spritz'),
     createCard('Spritz'),
-    createCard('Spritz'),
-    // Two copies of Tingle
+    // Three copies of Tingle
+    createCard('Tingle'),
     createCard('Tingle'),
     createCard('Tingle'),
     // One copy of Easiest

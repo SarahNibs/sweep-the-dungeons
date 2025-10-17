@@ -286,7 +286,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
     
     // Check for Frilly Dress effect to override turn ending
-    if (revealResult.revealed && stateWithBoard.hasRevealedNeutralThisTurn) {
+    // Only applies if the CURRENT tile being revealed is neutral (not just any tile after revealing a neutral)
+    const revealedTile = getTile(stateWithBoard.board, tile.position)
+    if (revealResult.revealed && stateWithBoard.hasRevealedNeutralThisTurn && revealedTile?.owner === 'neutral') {
       // Override the endTurn flag - don't end turn on first neutral reveal on first turn
       shouldEndTurn = false
     }

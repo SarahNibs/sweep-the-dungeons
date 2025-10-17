@@ -634,7 +634,7 @@ export function createInitialState(
     const protectionStatusEffect = {
       id: crypto.randomUUID(),
       type: 'rival_mine_protection' as const,
-      icon: '🛡️',
+      icon: '🪙',
       name: 'Rival Mine Protection',
       description: `The rival can safely reveal ${levelConfig.specialBehaviors.rivalMineProtection} mine${levelConfig.specialBehaviors.rivalMineProtection > 1 ? 's' : ''} (awards 5 copper each)`,
       count: levelConfig.specialBehaviors.rivalMineProtection

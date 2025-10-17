@@ -71,6 +71,15 @@ export function executeHorseEffect(state: GameState, target: Position, card?: im
       } else {
         // For non-dirty tiles, reveal normally
         newState = revealTileWithRelicEffects(newState, pos, 'player')
+
+        // Check if the tile was actually revealed (it might not be if there was a goblin)
+        const tileAfterReveal = getTile(newState.board, pos)
+        if (tileAfterReveal && !tileAfterReveal.revealed && tile) {
+          // Reveal failed (probably due to goblin) - add annotation with the owner info
+          const ownerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>([tile.owner as any])
+          newState = addOwnerSubsetAnnotation(newState, pos, ownerSubset)
+        }
+
         // Track that we processed a non-player tile (for turn ending logic)
         if (safestOwner !== 'player') {
           processedNonPlayerTiles = true

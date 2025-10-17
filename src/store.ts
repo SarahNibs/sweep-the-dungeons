@@ -436,11 +436,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       // CRITICAL: Use status effects from BEFORE card executed to calculate cost
       // This prevents cards like Horse from seeing their own discount status effect
-      let finalState = deductEnergy(stateBeforeEnergy, card, currentState.activeStatusEffects, 'targetTileForCard (general)')
-
-      // Cleanup masking state if this was a masked targeting card
+      // IMPORTANT: Cards played via Masking should be free (don't deduct energy)
+      let finalState: GameState
       if (currentState.maskingState) {
-        finalState = cleanupMaskingAfterExecution(finalState)
+        // Card played via Masking - don't deduct energy, just cleanup masking state
+        finalState = cleanupMaskingAfterExecution(stateBeforeEnergy as GameState)
+      } else {
+        // Normal card - deduct energy
+        finalState = deductEnergy(stateBeforeEnergy, card, currentState.activeStatusEffects, 'targetTileForCard (general)')
       }
 
       // Check if the effect revealed a tile that should end the turn (e.g., quantum)

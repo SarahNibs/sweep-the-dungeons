@@ -488,9 +488,24 @@ export function spawnGoblinsFromLairs(board: Board): Board {
 
     console.log(`  - Lair at (${lairTile.position.x}, ${lairTile.position.y}): ${validSpawnTargets.length} valid spawn targets (unrevealed, non-empty, non-mine, no existing goblin)`)
 
+    // If no valid non-mine targets, try spawning on mines as fallback
     if (validSpawnTargets.length === 0) {
-      console.log(`  - Lair at (${lairTile.position.x}, ${lairTile.position.y}) ❌ NO VALID SPAWN TARGETS`)
-      continue
+      const mineSpawnTargets = neighbors
+        .map(pos => ({ pos, tile: getTile(currentBoard, pos) }))
+        .filter(({ tile }) =>
+          tile &&
+          !tile.revealed &&
+          tile.owner === 'mine' &&
+          !hasSpecialTile(tile, 'goblin')
+        )
+
+      if (mineSpawnTargets.length === 0) {
+        console.log(`  - Lair at (${lairTile.position.x}, ${lairTile.position.y}) ❌ NO VALID SPAWN TARGETS (not even mines)`)
+        continue
+      }
+
+      console.log(`  - Lair at (${lairTile.position.x}, ${lairTile.position.y}): ${mineSpawnTargets.length} mine spawn targets (fallback)`)
+      validSpawnTargets.push(...mineSpawnTargets)
     }
 
     // Pick random target

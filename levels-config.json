@@ -714,10 +714,10 @@
         "rows": 10
       },
       "tileCounts": {
-        "player": 20,
-        "rival": 16,
+        "player": 19,
+        "rival": 18,
         "neutral": 14,
-        "mine": 10
+        "mine": 9
       },
       "unusedLocations": [
         [0,0],[1,0],                                    [8,0],[9,0],

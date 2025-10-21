@@ -687,6 +687,25 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // Check if tile has a goblin and move it first
       let currentBoard = state.board
       const currentTile = getTile(currentBoard, tileToReveal.position)
+
+      // BUGFIX: If tile is already revealed, skip it and continue to next tile
+      // This can happen when AI plans to reveal a tile multiple times (e.g., once to clean goblin, once to reveal)
+      if (currentTile && currentTile.revealed) {
+        console.log(`⚠️ Rival tried to reveal already-revealed tile at (${tileToReveal.position.x}, ${tileToReveal.position.y}), skipping to next`)
+        set({
+          ...state,
+          rivalAnimation: {
+            ...animation,
+            highlightedTile: null,
+            currentRevealIndex: currentRevealIndex + 1
+          }
+        })
+        setTimeout(() => {
+          get().performNextRivalReveal()
+        }, 100) // Short delay before next reveal
+        return
+      }
+
       if (currentTile && hasSpecialTile(currentTile, 'goblin')) {
         const { board: boardAfterGoblinMove } = cleanGoblin(currentBoard, tileToReveal.position)
         currentBoard = boardAfterGoblinMove

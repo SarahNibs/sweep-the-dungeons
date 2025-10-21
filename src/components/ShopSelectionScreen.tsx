@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ShopOption, Card } from '../types'
 import { PileViewingScreen } from './PileViewingScreen'
+import { getRelicIcon } from '../game/gameRepository'
 
 interface ShopSelectionScreenProps {
   shopOptions: ShopOption[]
@@ -332,7 +333,7 @@ export function ShopSelectionScreen({
                 backgroundColor: isPurchased ? 'rgba(40, 167, 69, 0.1)' : `rgba(116, 185, 255, ${isAvailable ? 0.1 : 0.05})`,
                 marginBottom: '8px'
               }}>
-                {isPurchased ? '✓' : getShopItemIcon(option.type)}
+                {isPurchased ? '✓' : getShopItemIcon(option)}
               </div>
               
               {/* Item Name */}
@@ -410,8 +411,8 @@ export function ShopSelectionScreen({
   )
 }
 
-function getShopItemIcon(itemType: string): string {
-  switch (itemType) {
+function getShopItemIcon(option: ShopOption): string {
+  switch (option.type) {
     case 'add_card':
       return '📜'
     case 'add_energy_card':
@@ -419,7 +420,7 @@ function getShopItemIcon(itemType: string): string {
     case 'add_enhanced_card':
       return '✨'
     case 'add_relic':
-      return '🏺'
+      return option.relic ? getRelicIcon(option.relic.name) : '🏺'
     case 'remove_card':
       return '🗑️'
     case 'temp_bunny':

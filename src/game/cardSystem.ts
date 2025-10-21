@@ -892,7 +892,7 @@ export function selectNewCard(state: GameState, selectedCard: Card): GameState {
 
 export function advanceToNextLevel(state: GameState): GameState {
   const nextLevelId = getNextLevelId(state.currentLevelId)
-  
+
   if (!nextLevelId) {
     // No next level - game won!
     return {
@@ -901,13 +901,22 @@ export function advanceToNextLevel(state: GameState): GameState {
       gameStatus: { status: 'player_won', reason: 'all_player_tiles_revealed' }
     }
   }
-  
+
+  // Check for Evidence cards in deck, hand, and discard (not exhaust) and deduct 2 copper each
+  const evidenceCards = [...state.deck, ...state.hand, ...state.discard].filter(card => card.name === 'Evidence')
+  const copperPenalty = evidenceCards.length * 2
+  const copperAfterPenalty = Math.max(0, state.copper - copperPenalty)
+
+  if (copperPenalty > 0) {
+    console.log(`🔍 EVIDENCE PENALTY: Found ${evidenceCards.length} Evidence cards, losing ${copperPenalty} copper (${state.copper} -> ${copperAfterPenalty})`)
+  }
+
   const newLevelState = createInitialState(
-    nextLevelId, 
-    state.persistentDeck, 
-    state.relics, 
-    state.copper, 
-    state.temporaryBunnyBuffs, 
+    nextLevelId,
+    state.persistentDeck,
+    state.relics,
+    copperAfterPenalty,
+    state.temporaryBunnyBuffs,
     state.playerAnnotationMode,
     state.useDefaultAnnotations,
     state.enabledOwnerPossibilities,

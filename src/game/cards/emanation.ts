@@ -2,6 +2,7 @@ import { GameState, Position } from '../../types'
 import { getTile, hasSpecialTile } from '../boardSystem'
 import { destroyTile } from '../destroyTileSystem'
 import { checkGameStatus, updateNeighborAdjacencyInfo } from '../cardEffects'
+import { createCard } from '../gameRepository'
 
 export function executeEmanationEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
   const targetTile = getTile(state.board, target)
@@ -61,13 +62,15 @@ export function executeEmanationEffect(state: GameState, target: Position, card?
     }
   }
 
-  // Deduct copper unless enhanced
-  const copperLoss = card?.enhanced ? 0 : 1
-  const newCopper = Math.max(0, currentState.copper - copperLoss)
-
-  const stateAfterDestroy = {
-    ...currentState,
-    copper: newCopper
+  // Add Evidence card to hand unless enhanced
+  let stateAfterDestroy = currentState
+  if (!card?.enhanced) {
+    const evidenceCard = createCard('Evidence')
+    stateAfterDestroy = {
+      ...currentState,
+      hand: [...currentState.hand, evidenceCard]
+    }
+    console.log('🔍 EMANATION: Added Evidence card to hand')
   }
 
   // Check game status after destruction (destroying last player tile should end the level)

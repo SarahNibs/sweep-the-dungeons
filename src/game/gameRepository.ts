@@ -51,7 +51,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     category: 'starter',
     description: {
       base: 'Evidence of ~two of your tiles vs ~one not yours, or of lots of your tiles AROUND 1-2 not yours',
-      enhanced: 'Evidence of ~two of your tiles vs ~one not yours, or of lots of your tiles AROUND 1-2 not yours. Gain 2 copper.'
+      enhanced: 'Evidence of ~two of your tiles vs ~one not yours, or of lots of your tiles AROUND 1-2 not yours. Gain 1 energy if any other Instructions card has been played this level.'
     },
     icon: '😏'
   },
@@ -215,7 +215,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Proclaim that nothing of value is on a tile and destroy it. Lose 2 copper.',
+      base: 'Proclaim that nothing of value is on a tile and destroy it. Add Evidence to hand.',
       enhanced: 'Proclaim that nothing of value is on a tile and destroy it'
     },
     icon: '☢️'
@@ -257,10 +257,21 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     exhaust: true,
     category: 'reward',
     description: {
-      base: 'Remember something important from your exhaust',
-      enhanced: 'Remember something important from your exhaust and gain the energy to do it'
+      base: 'Remember something important from your exhaust. Exhaust.',
+      enhanced: 'Remember something important from your exhaust and gain the energy to do it. Exhaust.'
     },
     icon: '💤'
+  },
+  'Evidence': {
+    name: 'Evidence',
+    cost: 1,
+    exhaust: true,
+    category: 'shop_only',  // Never appears in rewards or shops, only added by Emanation
+    description: {
+      base: 'If Evidence is not exhausted when you leave the floor, lose 2 copper. Exhaust.',
+      enhanced: 'If Evidence is not exhausted when you leave the floor, lose 2 copper. Exhaust.'
+    },
+    icon: '🔍'
   },
 }
 

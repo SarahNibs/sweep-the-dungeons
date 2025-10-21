@@ -83,17 +83,17 @@ export function createShopOptions(state: GameState): ShopOption[] {
   }
   
   // 2x temporary "a bunny will reveal one of your tiles at random at the beginning of the next level" benefits
-  // for 7 and 14 coppers respectively
+  // for 3 and 6 coppers respectively
   options.push({
     type: 'temp_bunny',
-    cost: 7,
+    cost: 3,
     displayName: 'Temporary Bunny Helper',
     description: 'A bunny will reveal one of your tiles at the start of the next level'
   })
-  
+
   options.push({
     type: 'temp_bunny',
-    cost: 14,
+    cost: 6,
     displayName: 'Temporary Bunny Helper',
     description: 'A bunny will reveal one of your tiles at the start of the next level'
   })

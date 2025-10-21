@@ -573,13 +573,22 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
     playerClueCounter: state.playerClueCounter + 1
   }
 
-  // Add copper if enhanced
+  // Gain energy if enhanced and any other Instructions card has been played
   if (enhanced) {
-    newState = {
-      ...newState,
-      copper: newState.copper + 2
+    const instructionsCards = ['Imperious Instructions', 'Vague Instructions']
+    const hasPlayedOtherInstructions = [...newState.discard, ...newState.exhaust].some(
+      card => instructionsCards.includes(card.name)
+    )
+
+    if (hasPlayedOtherInstructions) {
+      newState = {
+        ...newState,
+        energy: newState.energy + 1
+      }
+      console.log(`Enhanced: Gained 1 energy (new total: ${newState.energy})`)
+    } else {
+      console.log(`Enhanced: No other Instructions cards played this level, no energy gain`)
     }
-    console.log(`Enhanced: Awarded 2 copper (new total: ${newState.copper})`)
   }
 
   const clueOrder = newState.clueCounter

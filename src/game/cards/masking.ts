@@ -19,13 +19,13 @@ export function executeMaskingEffect(state: GameState, targetCardId: string, mas
   let effect: any = null
 
   switch (targetCard.name) {
-    case 'Imperious Orders':
+    case 'Imperious Instructions':
       effect = { type: 'solid_clue' }
       break
-    case 'Vague Orders':
+    case 'Vague Instructions':
       effect = { type: 'stretch_clue' }
       break
-    case 'Sarcastic Orders':
+    case 'Sarcastic Instructions':
       effect = { type: 'sarcastic_orders' }
       break
     case 'Energized':

@@ -1,6 +1,6 @@
 import { GameState, Position } from '../../types'
 import { getTile, positionToKey, removeSpecialTile, cleanGoblin, hasSpecialTile } from '../boardSystem'
-import { triggerMopEffect } from '../relicSystem'
+import { triggerMopEffect, hasRelic } from '../relicSystem'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
 
 export function executeScoutEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
@@ -38,7 +38,65 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
     // Draw card immediately for cleaning dirt (Mop relic effect)
     newState = triggerMopEffect(newState, 1)
   }
-  
+
+  // Handle surface mine defusing
+  const currentTile = getTile(newState.board, target)
+  if (currentTile && hasSpecialTile(currentTile, 'surfaceMine')) {
+    console.log('💣 SPRITZ HIT SURFACE MINE')
+    const key = positionToKey(target)
+    let shouldDefuse = false
+
+    // Enhanced Spritz always defuses
+    if (card?.enhanced) {
+      console.log('  - Enhanced Spritz: defusing surface mine')
+      shouldDefuse = true
+    }
+    // Regular Spritz/Sweep on 2nd cleaning defuses
+    else if (currentTile.cleanedOnce) {
+      console.log('  - 2nd cleaning (Spritz/Sweep): defusing surface mine')
+      shouldDefuse = true
+    }
+    // Any cleaning with Mop defuses (including 1st regular Spritz)
+    else if (hasRelic(newState, 'Mop')) {
+      console.log('  - 1st cleaning + Mop: defusing surface mine')
+      shouldDefuse = true
+    }
+    // First cleaning without Mop marks as cleanedOnce but doesn't defuse
+    else {
+      console.log('  - 1st cleaning (no Mop): marking as cleanedOnce (not defusing yet)')
+      const newTiles = new Map(newState.board.tiles)
+      newTiles.set(key, { ...currentTile, cleanedOnce: true })
+      newState = {
+        ...newState,
+        board: {
+          ...newState.board,
+          tiles: newTiles
+        }
+      }
+    }
+
+    // If defusing, remove surface mine and award copper
+    if (shouldDefuse) {
+      const newTiles = new Map(newState.board.tiles)
+      const defusedTile = removeSpecialTile(currentTile, 'surfaceMine')
+      newTiles.set(key, defusedTile)
+
+      newState = {
+        ...newState,
+        board: {
+          ...newState.board,
+          tiles: newTiles
+        },
+        copper: newState.copper + 3
+      }
+
+      console.log('  - Surface mine defused! +3 copper')
+
+      // Trigger Mop effect if player has Mop relic (defusing counts as cleaning)
+      newState = triggerMopEffect(newState, 1)
+    }
+  }
+
   const isSafe = tile.owner === 'player' || tile.owner === 'neutral'
   const ownerSubset = isSafe 
     ? new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player', 'neutral'])

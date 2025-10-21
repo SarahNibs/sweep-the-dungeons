@@ -5,15 +5,16 @@ import { getTile, hasSpecialTile } from './boardSystem'
  * Taxonomy of tile targeting:
  *
  * 1. DIRECT_REVEAL: Click without card effect - only unrevealed, non-empty tiles
- * 2. SINGLE_UNREVEALED: Cards that target one unrevealed tile (Scout, Argument, Eavesdropping)
- * 3. MULTI_UNREVEALED: Cards that target multiple unrevealed tiles sequentially (Quantum)
- * 4. SINGLE_FLEXIBLE: Cards that can target revealed tiles (Tryst enhanced)
+ * 2. SINGLE_UNREVEALED: Cards that target one unrevealed tile (Spritz)
+ * 3. MULTI_UNREVEALED: Cards that target multiple unrevealed tiles sequentially (Easiest)
+ * 4. SINGLE_FLEXIBLE: Cards that can target revealed tiles (Tryst enhanced, Brat, Eavesdropping - any tile including empty)
  * 5. SINGLE_SPECIAL: Cards with custom rules (Emanation - can target empty tiles with lairs)
  * 6. AREA_TARGET: Cards that target an area:
  *    - Brush (3x3): needs at least one unrevealed tile
  *    - Sweep (5x5/7x7): needs at least one tile
  *    - Horse (Manhattan-1, 5 tiles): needs at least one unrevealed non-empty tile
  *    - Canary (5 tiles basic, 3x3 enhanced): needs at least one unrevealed non-empty tile
+ *    - Argument (3x3): needs at least one unrevealed non-empty tile
  *    All area cards can target empty tiles as center if area contains valid tiles
  */
 
@@ -137,6 +138,22 @@ export function hasValidCanaryTargets(board: Board, center: Position, enhanced: 
 }
 
 /**
+ * Check if Argument's 3x3 area contains at least one unrevealed non-empty tile
+ */
+export function hasValidArgumentTargets(board: Board, center: Position): boolean {
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      const pos = { x: center.x + dx, y: center.y + dy }
+      const tile = getTile(board, pos)
+      if (tile && !tile.revealed && tile.owner !== 'empty') {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+/**
  * Validate if a tile can be targeted by a specific card
  */
 export function canTargetTile(
@@ -183,6 +200,14 @@ export function canTargetTile(
     return { isValid: true }
   }
 
+  if (cardName === 'Argument') {
+    // Argument can target any position (including empty) as long as 3x3 area has unrevealed non-empty tiles
+    if (!hasValidArgumentTargets(board, position)) {
+      return { isValid: false, reason: 'No unrevealed tiles in area' }
+    }
+    return { isValid: true }
+  }
+
   // Emanation: special case - can target empty tiles with lairs, or any non-empty tile
   if (cardName === 'Emanation') {
     if (tile.owner === 'empty') {
@@ -214,7 +239,12 @@ export function canTargetTile(
     return { isValid: true }
   }
 
-  // All other single-target cards: Scout, Argument, Eavesdropping, Quantum, Tryst (basic)
+  // Eavesdropping: can target any tile (revealed, unrevealed, empty, or otherwise)
+  if (cardName === 'Eavesdropping') {
+    return { isValid: true }
+  }
+
+  // All other single-target cards: Spritz, Quantum, Tryst (basic)
   // These cards target one unrevealed, non-empty tile
   if (tile.owner === 'empty') {
     return { isValid: false, reason: 'Cannot target empty tiles' }

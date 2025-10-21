@@ -705,7 +705,7 @@
         "relicReward": true,
         "upgradeReward": false,
         "shopReward": false,
-        "winTheGame": true,
+        "winTheGame": false,
         "nextLevel": ["L17"]
       },
       "description": "Boss level #3!",
@@ -747,6 +747,234 @@
         "adjacencyRule": "manhattan-2",
         "initialRivalReveal": 4,
         "rivalAI": "conservative",
+        "rivalNeverMines": true
+      }
+    },
+    {
+      "levelNumber": 17,
+      "levelId": "L17",
+      "uponFinish": {
+        "cardReward": true,
+        "relicReward": false,
+        "upgradeReward": false,
+        "shopReward": false,
+        "winTheGame": false,
+        "nextLevel": ["L18"]
+      },
+      "description": "Smartest AI we're gonna make",
+      "dimensions": {
+        "columns": 9,
+        "rows": 9
+      },
+      "tileCounts": {
+        "player": 20,
+        "rival": 18,
+        "neutral": 14,
+        "mine": 9
+      },
+      "unusedLocations": 20,
+      "specialTiles": [
+        {
+          "type": "extraDirty",
+          "count": 7,
+          "placement": "random"
+        },
+        {
+          "type": "lair",
+          "count": 2,
+          "placement": "empty"
+        }
+      ],
+      "specialBehaviors": {
+        "initialRivalReveal": 2,
+        "rivalAI": "reasoning",
+        "rivalMineProtection": 2
+      }
+    },
+    {
+      "levelNumber": 18,
+      "levelId": "L18",
+      "uponFinish": {
+        "cardReward": true,
+        "relicReward": false,
+        "upgradeReward": true,
+        "shopReward": false,
+        "winTheGame": true,
+        "nextLevel": ["L19"]
+      },
+      "description": "Mines? Just... on the surface?",
+      "dimensions": {
+        "columns": 8,
+        "rows": 8
+      },
+      "tileCounts": {
+        "player": 19,
+        "rival": 17,
+        "neutral": 13,
+        "mine": 7
+      },
+      "unusedLocations": 8,
+      "specialTiles": [
+        {
+          "type": "extraDirty",
+          "count": 8,
+          "placement": "random"
+        },
+        {
+          "type": "lair",
+          "count": 2,
+          "placement": "empty"
+        },
+        {
+          "type": "surfaceMine",
+          "count": 3,
+          "placement": {"owner": ["player", "neutral"]}
+        }
+      ],
+      "specialBehaviors": {
+        "initialRivalReveal": 3,
+        "rivalAI": "reasoning",
+        "rivalMineProtection": 2
+      }
+    },
+    {
+      "levelNumber": 19,
+      "levelId": "L19",
+      "uponFinish": {
+        "cardReward": true,
+        "relicReward": false,
+        "upgradeReward": true,
+        "shopReward": false,
+        "winTheGame": false,
+        "nextLevel": ["L19"]
+      },
+      "description": "Rival mines your tiles!",
+      "dimensions": {
+        "columns": 9,
+        "rows": 9
+      },
+      "tileCounts": {
+        "player": 20,
+        "rival": 18,
+        "neutral": 14,
+        "mine": 9
+      },
+      "unusedLocations": 20,
+      "specialTiles": [
+        {
+          "type": "extraDirty",
+          "count": 5,
+          "placement": "random"
+        },
+        {
+          "type": "lair",
+          "count": 2,
+          "placement": "empty"
+        },
+        {
+          "type": "surfaceMine",
+          "count": 3,
+          "placement": {"owner": ["player", "neutral"]}
+        }
+      ],
+      "specialBehaviors": {
+        "initialRivalReveal": 3,
+        "rivalPlacesMines": 2,
+        "rivalAI": "reasoning",
+        "rivalMineProtection": 2
+      }
+    },
+    {
+      "levelNumber": 20,
+      "levelId": "L20",
+      "uponFinish": {
+        "cardReward": false,
+        "relicReward": false,
+        "upgradeReward": false,
+        "shopReward": true,
+        "winTheGame": false,
+        "nextLevel": ["L21"]
+      },
+      "description": "Pls rival stahp",
+      "dimensions": {
+        "columns": 9,
+        "rows": 9
+      },
+      "tileCounts": {
+        "player": 20,
+        "rival": 18,
+        "neutral": 14,
+        "mine": 9
+      },
+      "unusedLocations": 20,
+      "specialTiles": [
+        {
+          "type": "extraDirty",
+          "count": 7,
+          "placement": "random"
+        },
+        {
+          "type": "lair",
+          "count": 3,
+          "placement": "empty"
+        },
+        {
+          "type": "surfaceMine",
+          "count": 4,
+          "placement": {"owner": ["player", "neutral"]}
+        }
+      ],
+      "specialBehaviors": {
+        "initialRivalReveal": 4,
+        "rivalPlacesMines": 3,
+        "rivalAI": "reasoning",
+        "rivalMineProtection": 2
+      }
+    },
+    {
+      "levelNumber": 21,
+      "levelId": "L21",
+      "uponFinish": {
+        "cardReward": false,
+        "relicReward": false,
+        "upgradeReward": false,
+        "shopReward": false,
+        "winTheGame": true,
+        "nextLevel": []
+      },
+      "description": "Stand-in final boss level",
+      "dimensions": {
+        "columns": 9,
+        "rows": 9
+      },
+      "tileCounts": {
+        "player": 20,
+        "rival": 18,
+        "neutral": 14,
+        "mine": 9
+      },
+      "unusedLocations": 20,
+      "specialTiles": [
+        {
+          "type": "extraDirty",
+          "count": 7,
+          "placement": "random"
+        },
+        {
+          "type": "lair",
+          "count": 5,
+          "placement": "empty"
+        },
+        {
+          "type": "surfaceMine",
+          "count": 6,
+          "placement": {"owner": ["player", "neutral"]}
+        }
+      ],
+      "specialBehaviors": {
+        "initialRivalReveal": 4,
+        "rivalPlacesMines": 4,
+        "rivalAI": "reasoning",
         "rivalNeverMines": true
       }
     }

@@ -41,8 +41,8 @@ export function executeTrystEffect(state: GameState, target?: Position, card?: i
       chosenRivalTile = rivalTiles[Math.floor(Math.random() * rivalTiles.length)]
     }
     
-    // Reveal the rival tile
-    currentState = revealTileWithRelicEffects(currentState, chosenRivalTile.position, 'rival')
+    // Reveal the rival tile with player adjacency info (cross-team info)
+    currentState = revealTileWithRelicEffects(currentState, chosenRivalTile.position, 'player', false)
   }
   
   // Then, player reveals one of their tiles at random  
@@ -68,8 +68,8 @@ export function executeTrystEffect(state: GameState, target?: Position, card?: i
       chosenPlayerTile = playerTiles[Math.floor(Math.random() * playerTiles.length)]
     }
     
-    // Reveal the player tile (triggering relic effects)
-    currentState = revealTileWithRelicEffects(currentState, chosenPlayerTile.position, 'player')
+    // Reveal the player tile with rival adjacency info (cross-team info)
+    currentState = revealTileWithRelicEffects(currentState, chosenPlayerTile.position, 'rival', false)
   }
   
   return currentState

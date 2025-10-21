@@ -1,13 +1,13 @@
 import { create } from 'zustand'
 import { GameState, Tile, Position, CardEffect, Board, Card as CardType, PileType, Relic } from './types'
-import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel, queueCardDrawsFromDirtCleaning, deductEnergy, selectCardForMasking, cleanupMaskingAfterExecution } from './game/cardSystem'
+import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel, queueCardDrawsFromDirtCleaning, deductEnergy, selectCardForMasking, selectCardForNap, cleanupMaskingAfterExecution } from './game/cardSystem'
 import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
 import { startRelicSelection, selectRelic, closeRelicUpgradeDisplay } from './game/relicSystem'
-import { revealTile, revealTileWithResult, shouldEndPlayerTurn, positionToKey, spawnGoblinsFromLairs, getTile } from './game/boardSystem'
+import { revealTile, revealTileWithResult, shouldRevealEndTurn, positionToKey, spawnGoblinsFromLairs, placeRivalSurfaceMines, getTile, hasSpecialTile, cleanGoblin } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, checkGameStatus, getUnrevealedTilesByOwner, revealTileWithRelicEffects } from './game/cardEffects'
 import { executeTargetedReportEffect } from './game/cards/report'
 import { AIController } from './game/ai/AIController'
-import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowRelicReward, shouldShowShopReward, calculateCopperReward } from './game/levelSystem'
+import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowRelicReward, shouldShowShopReward, calculateCopperReward, getLevelConfig } from './game/levelSystem'
 import { startShopSelection, purchaseShopItem, removeSelectedCard, exitShop } from './game/shopSystem'
 import { canDirectRevealTile, canTargetTile } from './game/targetingSystem'
 
@@ -40,10 +40,12 @@ interface GameStore extends GameState {
   selectCardForRemoval: (cardId: string) => void
   getAllCardsInCollection: () => CardType[]
   executeTingleWithAnimation: (state: GameState, isEnhanced: boolean) => void
+  performNextTingleMark: () => void
   executeTrystWithAnimation: (state: GameState, isEnhanced: boolean, target?: Position) => void
   performNextTrystReveal: () => void
   viewPile: (pileType: PileType) => void
   closePileView: () => void
+  selectCardForNap: (cardId: string) => void
   debugWinLevel: () => void
   debugGiveRelic: (relicName: string) => void
   debugGiveCard: (cardName: string, upgrades?: { costReduced?: boolean; enhanced?: boolean }) => void
@@ -56,6 +58,7 @@ interface GameStore extends GameState {
   purchaseShopItem: (optionIndex: number) => void
   removeSelectedCard: (cardId: string) => void
   exitShop: () => void
+  clearAdjacencyPatternAnimation: () => void
 }
 
 /**
@@ -137,6 +140,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const currentState = get()
     if (currentState.gameStatus.status !== 'playing') return
 
+    // RACE CONDITION GUARD: Prevent concurrent card plays
+    if (currentState.isProcessingCard) {
+      console.log('⏳ Card already processing, ignoring click')
+      return
+    }
+
     const card = currentState.hand.find(c => c.id === cardId)
     if (!card) return
 
@@ -168,12 +177,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
             }
           }
 
-          // Clear masking state and trigger animation
+          // Clear masking state and add processing flag before triggering animation
           finalState = {
             ...finalState,
             maskingState: null,
             selectedCardName: null,
-            selectedCardId: null
+            selectedCardId: null,
+            isProcessingCard: true
           }
 
           get().executeTingleWithAnimation(finalState, tingleCard.enhanced || false)
@@ -181,7 +191,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         return
       }
 
-      set(newState)
+      set({ ...newState, isProcessingCard: false })
       return
     }
 
@@ -189,14 +199,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (animationType === 'tingle') {
       const basicState = playCard(currentState, cardId)
-      get().executeTingleWithAnimation(basicState, card.enhanced || false)
+      const stateWithFlag = { ...basicState, isProcessingCard: true }
+      get().executeTingleWithAnimation(stateWithFlag, card.enhanced || false)
     } else if (animationType === 'tryst') {
       const basicState = playCard(currentState, cardId)
-      get().executeTrystWithAnimation(basicState, false, undefined)
+      const stateWithFlag = { ...basicState, isProcessingCard: true }
+      get().executeTrystWithAnimation(stateWithFlag, false, undefined)
     } else {
       // Normal card execution (includes enhanced Tryst which uses targeting)
       const newState = playCard(currentState, cardId)
-      set(newState)
+      set({ ...newState, isProcessingCard: false })
     }
   },
   
@@ -272,27 +284,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     const revealResult = revealTileWithResult(currentState.board, tile.position, 'player')
-    
-    // For extraDirty tiles that were cleaned but not revealed, always end turn
-    let shouldEndTurn = !revealResult.revealed || shouldEndPlayerTurn(tile)
-    
+
     // Use shared reveal function that includes relic effects
     let stateWithBoard = revealTileWithRelicEffects(currentState, tile.position, 'player')
-    
+
     // Add hover state clearing
     stateWithBoard = {
       ...stateWithBoard,
       hoveredClueId: null // Clear hover state when tile is revealed to fix pip hover bug
     }
-    
-    // Check for Frilly Dress effect to override turn ending
-    // Only applies if the CURRENT tile being revealed is neutral (not just any tile after revealing a neutral)
+
+    // Determine if turn should end using centralized function
+    // For extraDirty tiles that were cleaned but not revealed, always end turn
     const revealedTile = getTile(stateWithBoard.board, tile.position)
-    if (revealResult.revealed && stateWithBoard.hasRevealedNeutralThisTurn && revealedTile?.owner === 'neutral') {
-      // Override the endTurn flag - don't end turn on first neutral reveal on first turn
-      shouldEndTurn = false
-    }
-    
+    let shouldEndTurn = !revealResult.revealed || (revealedTile && shouldRevealEndTurn(stateWithBoard, revealedTile))
+
     // Check for Underwire effect - basic Underwire ends turn when protection is used
     if (stateWithBoard.underwireUsedThisTurn) {
       shouldEndTurn = true
@@ -403,6 +409,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } else if (effect.type === 'brat') {
       newEffect = { type: 'brat', target: position }
       shouldExecute = true
+    } else if (effect.type === 'snip_snip') {
+      newEffect = { type: 'snip_snip', target: position }
+      shouldExecute = true
     }
 
     if (shouldExecute && newEffect) {
@@ -410,7 +419,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (needsAnimationOnTarget(card.name)) {
         // Handle animated targeting cards (currently just Tryst)
         const stateAfterCardRemoval = removeCardAndDeductEnergy(currentState, card)
-        get().executeTrystWithAnimation(stateAfterCardRemoval, card.enhanced || false, position)
+        const stateWithFlag = { ...stateAfterCardRemoval, isProcessingCard: true }
+        get().executeTrystWithAnimation(stateWithFlag, card.enhanced || false, position)
         return
       }
 
@@ -466,7 +476,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           revealedTile = newTile2
         }
         
-        if (revealedTile && shouldEndPlayerTurn(revealedTile)) {
+        // Check if turn should end using centralized function
+        if (revealedTile && shouldRevealEndTurn(effectState, revealedTile)) {
           console.log('🔄 QUANTUM ENDING TURN - Using finalState instead of just board')
           const discardedState = discardHand(finalState)
           set(discardedState)
@@ -476,12 +487,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
       
       // Check if Horse card revealed non-player tiles and should end turn
+      // Horse sets horseRevealedNonPlayer flag when it reveals non-player tiles
+      // We still need to check Frilly Dress which is now handled in the centralized check
       if (newEffect.type === 'horse' && effectState.horseRevealedNonPlayer) {
-        console.log('🐴 HORSE ENDING TURN - Revealed non-player tiles')
-        const discardedState = discardHand(finalState)
-        set(discardedState)
-        get().startRivalTurn(discardedState.board)
-        return
+        // Check if Frilly Dress would prevent turn ending
+        // This happens when revealing neutral on first turn
+        const hasFrillyDress = effectState.relics.some(r => r.name === 'Frilly Dress')
+        const frillyDressPrevents = hasFrillyDress && effectState.isFirstTurn && effectState.hasRevealedNeutralThisTurn
+
+        if (!frillyDressPrevents) {
+          console.log('🐴 HORSE ENDING TURN - Revealed non-player tiles')
+          const discardedState = discardHand(finalState)
+          set(discardedState)
+          get().startRivalTurn(discardedState.board)
+          return
+        }
       }
       
       console.log('🎯 SETTING FINAL STATE FROM CARD EFFECT')
@@ -561,11 +581,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const tilesToReveal = rivalTurnResult.tilesToReveal
     
     if (tilesToReveal.length === 0) {
-      // No tiles to reveal, spawn goblins from lairs and end rival turn immediately
+      // No tiles to reveal, spawn goblins from lairs and place rival mines, then end rival turn immediately
       const boardWithGoblins = spawnGoblinsFromLairs(stateWithRivalClue.board)
+      const levelConfig = getLevelConfig(stateWithRivalClue.currentLevelId)
+      const mineCount = levelConfig?.specialBehaviors.rivalPlacesMines || 0
+      const boardWithMines = placeRivalSurfaceMines(boardWithGoblins, mineCount)
       const newTurnState = startNewTurn({
         ...stateWithRivalClue,
-        board: boardWithGoblins
+        board: boardWithMines
       })
       set({
         ...newTurnState,
@@ -585,8 +608,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         if (tile.owner !== 'rival') break // Stop if non-rival tile revealed
       }
 
-      // Spawn goblins from lairs before starting new turn
+      // Spawn goblins from lairs and place rival mines before starting new turn
       boardState = spawnGoblinsFromLairs(boardState)
+      const levelConfig = getLevelConfig(stateWithRivalClue.currentLevelId)
+      const mineCount = levelConfig?.specialBehaviors.rivalPlacesMines || 0
+      boardState = placeRivalSurfaceMines(boardState, mineCount)
 
       const newTurnState = startNewTurn({
         ...stateWithRivalClue,
@@ -626,11 +652,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { revealsRemaining, currentRevealIndex } = animation
     
     if (currentRevealIndex >= revealsRemaining.length) {
-      // Animation complete, spawn goblins from lairs and end rival turn
+      // Animation complete, spawn goblins from lairs, place rival mines, and end rival turn
       const boardWithGoblins = spawnGoblinsFromLairs(currentState.board)
+      const levelConfig = getLevelConfig(currentState.currentLevelId)
+      const mineCount = levelConfig?.specialBehaviors.rivalPlacesMines || 0
+      const boardWithMines = placeRivalSurfaceMines(boardWithGoblins, mineCount)
       const newTurnState = startNewTurn({
         ...currentState,
-        board: boardWithGoblins
+        board: boardWithMines
       })
       set({
         ...newTurnState,
@@ -651,19 +680,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
     })
     
-    // After highlighting delay, reveal the tile
+    // After highlighting delay, check for goblin first, then reveal the tile
     setTimeout(() => {
       const state = get()
-      const revealResult = revealTileWithResult(state.board, tileToReveal.position, 'rival')
+
+      // Check if tile has a goblin and move it first
+      let currentBoard = state.board
+      const currentTile = getTile(currentBoard, tileToReveal.position)
+      if (currentTile && hasSpecialTile(currentTile, 'goblin')) {
+        const { board: boardAfterGoblinMove } = cleanGoblin(currentBoard, tileToReveal.position)
+        currentBoard = boardAfterGoblinMove
+      }
+
+      // Get the tile AFTER goblin movement to check its current owner
+      const tileAfterGoblinMove = getTile(currentBoard, tileToReveal.position)
+
+      // Now reveal the tile (which no longer has a goblin)
+      const revealResult = revealTileWithResult(currentBoard, tileToReveal.position, 'rival')
       const newBoard = revealResult.board
 
-      // Continue if rival tile was revealed OR if tile wasn't revealed (goblin moved)
-      // This ensures goblins get moved, then we continue to reveal the tile
-      let shouldContinue = revealResult.revealed ? tileToReveal.owner === 'rival' : true
+      // BUGFIX: Check the owner AFTER goblin movement, not the original owner
+      // The goblin movement can change tile ownership, so we must use the updated owner
+      let shouldContinue = revealResult.revealed && tileAfterGoblinMove ? tileAfterGoblinMove.owner === 'rival' : false
 
       // Check if rival revealed a mine with protection active
       let stateAfterReveal = { ...state, board: newBoard }
-      if (tileToReveal.owner === 'mine' && state.rivalMineProtectionCount > 0) {
+      if (tileAfterGoblinMove && tileAfterGoblinMove.owner === 'mine' && state.rivalMineProtectionCount > 0) {
         console.log(`🛡️ Rival revealed protected mine! Awarding 5 copper and decrementing protection count`)
 
         // Mark the mine tile as protected (similar to Underwire)
@@ -750,12 +792,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
           get().performNextRivalReveal()
         }, 800)
       } else {
-        // End rival turn, spawn goblins from lairs before starting new turn
+        // End rival turn, spawn goblins from lairs, place rival mines, and start new turn
         const finalState = get()
         const boardWithGoblins = spawnGoblinsFromLairs(finalState.board)
+        const levelConfig = getLevelConfig(finalState.currentLevelId)
+        const mineCount = levelConfig?.specialBehaviors.rivalPlacesMines || 0
+        const boardWithMines = placeRivalSurfaceMines(boardWithGoblins, mineCount)
         const newTurnState = startNewTurn({
           ...finalState,
-          board: boardWithGoblins
+          board: boardWithMines
         })
         set({
           ...newTurnState,
@@ -958,10 +1003,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const isUnambiguouslyRival = (tile: Tile): boolean => {
       const subsetAnnotations = tile.annotations.filter(a => a.type === 'owner_subset')
       if (subsetAnnotations.length === 0) return false
-      
+
       const latestSubset = subsetAnnotations[subsetAnnotations.length - 1]
       const ownerSubset = latestSubset.ownerSubset || new Set()
-      
+
       // Tile is unambiguous if it can only be rival (size 1 and contains only 'rival')
       return ownerSubset.size === 1 && ownerSubset.has('rival')
     }
@@ -974,7 +1019,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const tilesToMark = isEnhanced ? Math.min(2, preferredTiles.length) : 1
     const randomTiles: typeof rivalTiles = []
-    
+
     // Select random tiles without replacement from preferred tiles
     const availableTiles = [...preferredTiles]
     for (let i = 0; i < tilesToMark; i++) {
@@ -985,7 +1030,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // Check if we're in a test environment
     const isTestEnvironment = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
-    
+
     if (isTestEnvironment) {
       // In tests, execute immediately without animation
       let effectState = state
@@ -996,37 +1041,93 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return
     }
 
-    // Start the rival-style emphasis animation (show first tile)
+    // Start the sequential animation with first tile
     set({
       ...state,
       tingleAnimation: {
+        isActive: true,
         targetTile: randomTiles[0].position,
-        isEmphasized: true
+        isEmphasized: true,
+        tilesRemaining: randomTiles,
+        currentTileIndex: 0
       }
     })
 
-    // After emphasis duration, fade back to normal
-    setTimeout(() => {
-      const currentState = get()
+    // Start the first tile's animation sequence
+    get().performNextTingleMark()
+  },
+
+  performNextTingleMark: () => {
+    const currentState = get()
+    if (!currentState.tingleAnimation || !currentState.tingleAnimation.isActive) return
+
+    const { tilesRemaining, currentTileIndex } = currentState.tingleAnimation
+
+    if (currentTileIndex >= tilesRemaining.length) {
+      // Animation complete - clear processing flag
       set({
         ...currentState,
+        tingleAnimation: null,
+        isProcessingCard: false
+      })
+      return
+    }
+
+    const currentTile = tilesRemaining[currentTileIndex]
+
+    // After emphasis duration, fade back to normal
+    setTimeout(() => {
+      const state = get()
+      // If animation was cleared, just return without doing anything
+      if (!state.tingleAnimation || !state.tingleAnimation.isActive) {
+        console.warn('⚠️ Tingle animation was cleared during emphasis phase')
+        return
+      }
+
+      set({
+        ...state,
         tingleAnimation: {
-          targetTile: randomTiles[0].position,
+          ...state.tingleAnimation,
           isEmphasized: false
         }
       })
-      
-      // After fade duration, apply the effect to all tiles and clear animation
+
+      // After fade duration, apply the effect and move to next tile
       setTimeout(() => {
         const finalState = get()
-        let effectState: GameState = finalState
-        for (const tile of randomTiles) {
-          effectState = executeTargetedReportEffect(effectState, tile.position)
+        // If animation was cleared, just return without doing anything
+        if (!finalState.tingleAnimation || !finalState.tingleAnimation.isActive) {
+          console.warn('⚠️ Tingle animation was cleared during fade phase')
+          return
         }
-        set({
-          ...effectState,
-          tingleAnimation: null
-        })
+
+        // Apply effect to current tile
+        let effectState = executeTargetedReportEffect(finalState, currentTile.position)
+
+        const nextIndex = currentTileIndex + 1
+        if (nextIndex < tilesRemaining.length) {
+          // More tiles to mark - set up next tile's animation
+          set({
+            ...effectState,
+            tingleAnimation: {
+              isActive: true,
+              targetTile: tilesRemaining[nextIndex].position,
+              isEmphasized: true,
+              tilesRemaining,
+              currentTileIndex: nextIndex
+            }
+          })
+
+          // Continue with next tile
+          get().performNextTingleMark()
+        } else {
+          // This was the last tile - clear processing flag
+          set({
+            ...effectState,
+            tingleAnimation: null,
+            isProcessingCard: false
+          })
+        }
       }, 300) // Fade back duration
     }, 800) // Emphasis duration
   },
@@ -1118,9 +1219,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         currentRevealIndex: 0
       }
     })
-    
-    // Start the reveal sequence
-    get().performNextTrystReveal()
+
+    // Start the reveal sequence after a short delay so the first pulse animation is visible
+    setTimeout(() => {
+      get().performNextTrystReveal()
+    }, 1000)
   },
 
   performNextTrystReveal: () => {
@@ -1130,10 +1233,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { revealsRemaining, currentRevealIndex } = currentState.trystAnimation
     
     if (currentRevealIndex >= revealsRemaining.length) {
-      // Animation complete
+      // Animation complete - clear processing flag
       set({
         ...currentState,
-        trystAnimation: null
+        trystAnimation: null,
+        isProcessingCard: false
       })
       return
     }
@@ -1191,10 +1295,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         get().performNextTrystReveal()
       }, 800)
     } else {
-      // This was the last reveal
+      // This was the last reveal - clear processing flag
       set({
         ...newState,
-        trystAnimation: null
+        trystAnimation: null,
+        isProcessingCard: false
       })
     }
   },
@@ -1212,8 +1317,52 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   closePileView: () => {
     const currentState = get()
+
+    // If closing during napState, exhaust the Nap card and clear napState
+    if (currentState.napState) {
+      const napCard = currentState.discard.find(card => card.id === currentState.napState!.napCardId)
+      let newDiscard = currentState.discard
+      let newExhaust = currentState.exhaust
+
+      if (napCard) {
+        newDiscard = currentState.discard.filter(card => card.id !== currentState.napState!.napCardId)
+        newExhaust = [...currentState.exhaust, napCard]
+      }
+
+      set({
+        ...currentState,
+        gamePhase: 'playing',
+        pileViewingType: undefined,
+        napState: null,
+        selectedCardName: null,
+        discard: newDiscard,
+        exhaust: newExhaust
+      })
+      return
+    }
+
+    // Only change gamePhase if we're in viewing_pile phase
+    // (Don't change it if called from CardSelectionScreen or other screens)
+    if (currentState.gamePhase === 'viewing_pile') {
+      set({
+        ...currentState,
+        gamePhase: 'playing',
+        pileViewingType: undefined
+      })
+    } else {
+      // Just clear the pile viewing type without changing game phase
+      set({
+        ...currentState,
+        pileViewingType: undefined
+      })
+    }
+  },
+
+  selectCardForNap: (cardId: string) => {
+    const currentState = get()
+    const newState = selectCardForNap(currentState, cardId)
     set({
-      ...currentState,
+      ...newState,
       gamePhase: 'playing',
       pileViewingType: undefined
     })
@@ -1559,9 +1708,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // If no existing annotation, add filtered annotation based on depressed buttons
     if (!existingAnnotation) {
       const depressedOwners: ('player' | 'rival' | 'neutral' | 'mine')[] = []
-      
+
       if (currentState.annotationButtons.player) depressedOwners.push('player')
-      if (currentState.annotationButtons.rival) depressedOwners.push('rival') 
+      if (currentState.annotationButtons.rival) depressedOwners.push('rival')
       if (currentState.annotationButtons.neutral) depressedOwners.push('neutral')
       if (currentState.annotationButtons.mine) depressedOwners.push('mine')
 
@@ -1583,6 +1732,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
         ...currentState.board,
         tiles: newTiles
       }
+    })
+  },
+
+  clearAdjacencyPatternAnimation: () => {
+    const currentState = get()
+    set({
+      ...currentState,
+      adjacencyPatternAnimation: null
     })
   }
 }))

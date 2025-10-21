@@ -1,4 +1,4 @@
-import { Board, Tile, Position } from '../types'
+import { Board, Tile, Position, GameState } from '../types'
 
 export function createPosition(x: number, y: number): Position {
   return { x, y }
@@ -13,7 +13,7 @@ export function keyToPosition(key: string): Position {
   return { x, y }
 }
 
-export function createTile(position: Position, owner: Tile['owner'], specialTiles?: Array<'extraDirty' | 'goblin' | 'destroyed' | 'lair'>): Tile {
+export function createTile(position: Position, owner: Tile['owner'], specialTiles?: Array<'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine'>): Tile {
   return {
     position,
     owner,
@@ -26,11 +26,11 @@ export function createTile(position: Position, owner: Tile['owner'], specialTile
 }
 
 // Helper functions for working with specialTiles array
-export function hasSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed' | 'lair'): boolean {
+export function hasSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine'): boolean {
   return tile.specialTiles.includes(type)
 }
 
-export function addSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed' | 'lair'): Tile {
+export function addSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine'): Tile {
   if (hasSpecialTile(tile, type)) return tile
   return {
     ...tile,
@@ -38,7 +38,7 @@ export function addSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'dest
   }
 }
 
-export function removeSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed' | 'lair'): Tile {
+export function removeSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine'): Tile {
   return {
     ...tile,
     specialTiles: tile.specialTiles.filter(t => t !== type)
@@ -53,23 +53,23 @@ export function clearAllSpecialTiles(tile: Tile): Tile {
 }
 
 export interface SpecialTileConfig {
-  type: 'extraDirty' | 'goblin' | 'lair'
+  type: 'extraDirty' | 'goblin' | 'lair' | 'surfaceMine'
   count: number
-  placement: 'random' | 'nonmine' | 'empty' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> } | number[][]
+  placement: 'random' | 'nonmine' | 'empty' | 'playerOrNeutral' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> } | number[][]
 }
 
 export function createBoard(
-  width: number = 6, 
+  width: number = 6,
   height: number = 5,
   tileCounts: { player: number; rival: number; neutral: number; mine: number } = {
     player: 12, rival: 10, neutral: 7, mine: 1
   },
-  unusedLocations: number[][] = [],
+  unusedLocations: number[][] | number = [],
   specialTiles: SpecialTileConfig[] = [],
   adjacencyRule: 'standard' | 'manhattan-2' = 'standard'
 ): Board {
   const tiles = new Map<string, Tile>()
-  
+
   // Create tile types array based on provided counts
   const tileTypes: Tile['owner'][] = [
     ...Array(tileCounts.player).fill('player'),
@@ -77,17 +77,39 @@ export function createBoard(
     ...Array(tileCounts.neutral).fill('neutral'),
     ...Array(tileCounts.mine).fill('mine')
   ]
-  
+
   // Shuffle the array for random distribution
   for (let i = tileTypes.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [tileTypes[i], tileTypes[j]] = [tileTypes[j], tileTypes[i]]
   }
-  
-  // Convert unusedLocations to Set of position keys for fast lookup
-  const unusedPositions = new Set(
-    unusedLocations.map(([x, y]) => positionToKey({ x, y }))
-  )
+
+  // Handle unusedLocations - can be array of coordinates or number for random selection
+  let unusedPositions: Set<string>
+  if (typeof unusedLocations === 'number') {
+    // Random selection: choose N random positions from all grid positions
+    const allPositions: Position[] = []
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        allPositions.push({ x, y })
+      }
+    }
+
+    // Shuffle all positions
+    for (let i = allPositions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allPositions[i], allPositions[j]] = [allPositions[j], allPositions[i]]
+    }
+
+    // Take first N positions
+    const selectedPositions = allPositions.slice(0, Math.min(unusedLocations, allPositions.length))
+    unusedPositions = new Set(selectedPositions.map(pos => positionToKey(pos)))
+  } else {
+    // Explicit coordinates
+    unusedPositions = new Set(
+      unusedLocations.map(([x, y]) => positionToKey({ x, y }))
+    )
+  }
   
   // Create tiles for the entire grid
   let tileIndex = 0
@@ -170,6 +192,8 @@ function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig):
       return true
     } else if (config.placement === 'nonmine') {
       return tile.owner !== 'mine'
+    } else if (config.placement === 'playerOrNeutral') {
+      return tile.owner === 'player' || tile.owner === 'neutral'
     } else if (typeof config.placement === 'object' && 'owner' in config.placement) {
       return config.placement.owner.includes(tile.owner as any)
     }
@@ -379,6 +403,26 @@ export function shouldEndPlayerTurn(tile: Tile): boolean {
 }
 
 /**
+ * Centralized function to determine if revealing a tile should end the player's turn
+ * Takes into account all game state including relics like Frilly Dress
+ */
+export function shouldRevealEndTurn(state: GameState, tile: Tile): boolean {
+  // Check if tile would normally end turn
+  if (!shouldEndPlayerTurn(tile)) {
+    return false // Player tile, never ends turn
+  }
+
+  // Check for Frilly Dress effect: any neutral reveal on first turn
+  const hasFrillyDress = state.relics.some(r => r.name === 'Frilly Dress')
+  if (hasFrillyDress && state.isFirstTurn && tile.owner === 'neutral') {
+    return false // Frilly Dress prevents turn ending on neutral reveals during first turn
+  }
+
+  // Otherwise, turn should end
+  return true
+}
+
+/**
  * Move goblin from one tile to an adjacent unrevealed tile, or remove it if no valid target
  * Returns updated board with goblin moved/removed
  */
@@ -415,7 +459,25 @@ export function moveGoblin(board: Board, fromPosition: Position): Board {
 
   console.log(`  👺 Goblin moving from (${fromPosition.x}, ${fromPosition.y}) to (${targetPos.x}, ${targetPos.y})`)
 
-  // Move goblin to target tile
+  // Check if target is a surface mine
+  if (hasSpecialTile(targetTile, 'surfaceMine')) {
+    console.log(`  💥 Goblin moved to surface mine - EXPLOSION!`)
+
+    // Explode the surface mine (mark as destroyed, goblin disappears)
+    const newTiles = new Map(board.tiles)
+    newTiles.set(positionToKey(targetPos), {
+      ...targetTile,
+      owner: 'empty',
+      specialTiles: ['destroyed']
+    })
+
+    return {
+      ...board,
+      tiles: newTiles
+    }
+  }
+
+  // Normal goblin movement (no surface mine)
   const newTiles = new Map(board.tiles)
   newTiles.set(positionToKey(targetPos), addSpecialTile(targetTile, 'goblin'))
 
@@ -529,4 +591,55 @@ export function spawnGoblinsFromLairs(board: Board): Board {
 
   console.log(`✅ SPAWNED GOBLINS FROM LAIRS - Final board state updated`)
   return currentBoard
+}
+
+/**
+ * Place surface mines on random unrevealed non-rival tiles (called after rival turn)
+ * Returns updated board with surface mines placed
+ */
+export function placeRivalSurfaceMines(board: Board, count: number): Board {
+  if (count <= 0) {
+    return board
+  }
+
+  console.log(`💣 PLACING ${count} RIVAL SURFACE MINES`)
+
+  // Find all unrevealed non-rival tiles without surface mines or goblins
+  const validTargets = Array.from(board.tiles.values()).filter(tile =>
+    !tile.revealed &&
+    tile.owner !== 'empty' &&
+    tile.owner !== 'rival' &&
+    !hasSpecialTile(tile, 'surfaceMine') &&
+    !hasSpecialTile(tile, 'goblin')
+  )
+
+  console.log(`  - Found ${validTargets.length} valid targets (unrevealed, non-rival, non-empty, no existing surface mine, no goblin)`)
+
+  if (validTargets.length === 0) {
+    console.log(`  - ❌ NO VALID TARGETS FOR SURFACE MINE PLACEMENT`)
+    return board
+  }
+
+  // Shuffle valid targets
+  for (let i = validTargets.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [validTargets[i], validTargets[j]] = [validTargets[j], validTargets[i]]
+  }
+
+  // Place surface mines on the first N tiles
+  const tilesToPlace = Math.min(count, validTargets.length)
+  const newTiles = new Map(board.tiles)
+
+  for (let i = 0; i < tilesToPlace; i++) {
+    const targetTile = validTargets[i]
+    const updatedTile = addSpecialTile(targetTile, 'surfaceMine')
+    console.log(`  - 💣 Placed surface mine at (${targetTile.position.x}, ${targetTile.position.y}) [owner: ${targetTile.owner}]`)
+    newTiles.set(positionToKey(targetTile.position), updatedTile)
+  }
+
+  console.log(`✅ PLACED ${tilesToPlace} SURFACE MINES`)
+  return {
+    ...board,
+    tiles: newTiles
+  }
 }

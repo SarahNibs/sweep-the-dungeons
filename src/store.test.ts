@@ -24,9 +24,9 @@ describe('Game Store', () => {
   it('plays a card correctly', () => {
     const { result } = renderHook(() => useGameStore())
     
-    // Find a non-targeting, non-special card (Tingle, Imperious Orders, or Vague Orders)
+    // Find a non-targeting, non-special card (Tingle, Imperious Instructions, or Vague Instructions)
     const cardToPlay = result.current.hand.find(card => 
-      ['Tingle', 'Imperious Orders', 'Vague Orders'].includes(card.name)
+      ['Tingle', 'Imperious Instructions', 'Vague Instructions'].includes(card.name)
     ) || result.current.hand[0] // Fallback to first card
     
     const originalEnergy = result.current.energy

@@ -12,7 +12,7 @@ const config = levelsConfig as LevelsConfig
 function validateLevelConfig(level: LevelConfig): void {
   const { dimensions, tileCounts, unusedLocations, specialTiles } = level
   const totalSpaces = dimensions.columns * dimensions.rows
-  const unusedSpaces = unusedLocations.length
+  const unusedSpaces = typeof unusedLocations === 'number' ? unusedLocations : unusedLocations.length
   const availableSpaces = totalSpaces - unusedSpaces
   const requiredSpaces = tileCounts.player + tileCounts.rival + tileCounts.neutral + tileCounts.mine
 

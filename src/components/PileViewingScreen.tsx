@@ -5,9 +5,11 @@ interface PileViewingScreenProps {
   pileType: PileType
   cards: CardType[]
   onClose: () => void
+  onCardClick?: (cardId: string) => void
+  isNapMode?: boolean
 }
 
-export function PileViewingScreen({ cards, onClose }: PileViewingScreenProps) {
+export function PileViewingScreen({ cards, onClose, onCardClick, isNapMode }: PileViewingScreenProps) {
 
   return (
     <div style={{
@@ -92,10 +94,14 @@ export function PileViewingScreen({ cards, onClose }: PileViewingScreenProps) {
                         transformOrigin: 'center center'
                       }}
                     >
-                      <Card 
+                      <Card
                         card={card}
-                        onClick={() => {}}
-                        isPlayable={true}
+                        onClick={(cardId) => {
+                          if (isNapMode && onCardClick) {
+                            onCardClick(cardId)
+                          }
+                        }}
+                        isPlayable={isNapMode || false}
                         applyStatusEffects={false}
                       />
                     </div>

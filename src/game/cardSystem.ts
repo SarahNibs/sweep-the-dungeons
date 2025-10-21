@@ -1,8 +1,8 @@
 import { Card, GameState } from '../types'
-import { createBoard, revealTileWithResult } from './boardSystem'
+import { createBoard, revealTileWithResult, getNeighbors, getTile } from './boardSystem'
 import { executeCardEffect, requiresTargeting } from './cardEffects'
 import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
-import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerBusyCanaryEffect, triggerInterceptedNoteEffect, hasRelic } from './relicSystem'
+import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerBusyCanaryEffect, triggerInterceptedNoteEffect, triggerHyperfocusEffect, hasRelic } from './relicSystem'
 import { AIController } from './ai/AIController'
 
 import { createCard as createCardFromRepository, getRewardCardPool, getStarterCards, removeStatusEffect, addStatusEffect } from './gameRepository'
@@ -215,6 +215,9 @@ export function selectCardForMasking(state: GameState, targetCardId: string): Ga
       case 'Brat':
         effectType = 'brat'
         break
+      case 'Snip, Snip':
+        effectType = 'snip_snip'
+        break
       default:
         effectType = targetCard.name.toLowerCase().replace(' ', '_')
     }
@@ -243,13 +246,13 @@ export function selectCardForMasking(state: GameState, targetCardId: string): Ga
     case 'Tingle':
       // Tingle needs animation - store will handle it
       break
-    case 'Imperious Orders':
+    case 'Imperious Instructions':
       newState = { ...newState, ...executeCardEffect(newState, { type: 'solid_clue' }, targetCard) }
       break
-    case 'Vague Orders':
+    case 'Vague Instructions':
       newState = { ...newState, ...executeCardEffect(newState, { type: 'stretch_clue' }, targetCard) }
       break
-    case 'Sarcastic Orders':
+    case 'Sarcastic Instructions':
       newState = { ...newState, ...executeCardEffect(newState, { type: 'sarcastic_orders' }, targetCard) }
       break
     case 'Energized':
@@ -296,6 +299,54 @@ export function selectCardForMasking(state: GameState, targetCardId: string): Ga
   return {
     ...newState,
     maskingState: null
+  }
+}
+
+export function selectCardForNap(state: GameState, targetCardId: string): GameState {
+  if (!state.napState) {
+    // Not in nap mode
+    return state
+  }
+
+  // Find the target card in exhaust pile
+  const targetCard = state.exhaust.find(card => card.id === targetCardId)
+  if (!targetCard) {
+    // Target card not found in exhaust
+    return state
+  }
+
+  if (targetCard.name === 'Nap') {
+    // Can't nap another Nap
+    return state
+  }
+
+  // Move target card from exhaust to hand
+  const newExhaust = state.exhaust.filter(card => card.id !== targetCardId)
+  const newHand = [...state.hand, targetCard]
+
+  // If enhanced, gain energy equal to the card's cost
+  const energyGain = state.napState.enhanced ? targetCard.cost : 0
+  const newEnergy = state.energy + energyGain
+
+  // Move Nap from discard to exhaust (always exhausts)
+  const napCard = state.discard.find(card => card.id === state.napState!.napCardId)
+  let newDiscard = state.discard
+  let finalExhaust = newExhaust
+
+  if (napCard) {
+    newDiscard = state.discard.filter(card => card.id !== state.napState!.napCardId)
+    finalExhaust = [...newExhaust, napCard]
+  }
+
+  // Clear nap state
+  return {
+    ...state,
+    hand: newHand,
+    exhaust: finalExhaust,
+    discard: newDiscard,
+    energy: newEnergy,
+    napState: null,
+    selectedCardName: null
   }
 }
 
@@ -349,6 +400,9 @@ export function playCard(state: GameState, cardId: string): GameState {
       case 'Brat':
         effectType = 'brat'
         break
+      case 'Snip, Snip':
+        effectType = 'snip_snip'
+        break
       case 'Masking':
         effectType = 'masking'
         break
@@ -391,17 +445,43 @@ export function playCard(state: GameState, cardId: string): GameState {
         ...stateAfterMasking,
         discard: [...stateAfterMasking.discard, card]
       }
+    case 'Nap':
+      // Nap enters exhaust pile selection mode - don't execute immediately
+      // Remove card from hand first
+      const handWithoutNap = state.hand.filter((_, index) => index !== cardIndex)
+      // Deduct energy for Nap
+      const stateAfterNap = deductEnergy(
+        {
+          ...state,
+          hand: handWithoutNap,
+          napState: {
+            napCardId: card.id,
+            enhanced: card.enhanced || false
+          },
+          selectedCardName: card.name,
+          gamePhase: 'viewing_pile',
+          pileViewingType: 'exhaust'
+        },
+        card,
+        state.activeStatusEffects,
+        'playCard (Nap)'
+      )
+      // Put Nap in discard for now (will be moved to exhaust later)
+      return {
+        ...stateAfterNap,
+        discard: [...stateAfterNap.discard, card]
+      }
     case 'Tingle':
       // Don't execute immediately - let the store handle the animation
       newState = state
       break
-    case 'Imperious Orders':
+    case 'Imperious Instructions':
       newState = executeCardEffect(state, { type: 'solid_clue' }, card)
       break
-    case 'Vague Orders':
+    case 'Vague Instructions':
       newState = executeCardEffect(state, { type: 'stretch_clue' }, card)
       break
-    case 'Sarcastic Orders':
+    case 'Sarcastic Instructions':
       newState = executeCardEffect(state, { type: 'sarcastic_orders' }, card)
       break
     case 'Energized':
@@ -572,6 +652,7 @@ export function createInitialState(
     tingleAnimation: null,
     rivalAnimation: null,
     trystAnimation: null,
+    adjacencyPatternAnimation: null,
     rambleActive: false,
     ramblePriorityBoosts: [],
     copper,
@@ -579,6 +660,7 @@ export function createInitialState(
     purchasedShopItems: undefined,
     temporaryBunnyBuffs,
     underwireProtection: null,
+    underwireProtectionCount: 0,
     underwireUsedThisTurn: false,
     horseRevealedNonPlayer: false,
     shouldExhaustLastCard: false,
@@ -593,9 +675,11 @@ export function createInitialState(
       neutral: true, // Start depressed
       mine: true     // Start depressed
     },
+    isProcessingCard: false,
     queuedCardDraws: 0,
     rivalMineProtectionCount: levelConfig?.specialBehaviors.rivalMineProtection || 0,
-    maskingState: null
+    maskingState: null,
+    napState: null
   }
   
   // Draw initial cards (4 with Caffeinated relic, 5 without)
@@ -606,6 +690,9 @@ export function createInitialState(
   if (startingRelics.some(relic => relic.name === 'Handbag')) {
     finalState = drawCards(finalState, 2)
   }
+
+  // Trigger Hyperfocus effect if present (add random cost-0 card to hand)
+  finalState = triggerHyperfocusEffect(finalState)
 
   // Trigger Dust Bunny effect if present
   finalState = triggerDustBunnyEffect(finalState)
@@ -663,6 +750,106 @@ export function createInitialState(
     finalState = {
       ...finalState,
       activeStatusEffects: [...finalState.activeStatusEffects, aiStatusEffect]
+    }
+  }
+
+  // Set up adjacency pattern animation
+  // Green for standard adjacency, red for non-standard
+  const adjacencyRule = finalState.board.adjacencyRule || 'standard'
+
+  // Find the best diagonal position for adjacency animation
+  // Check two diagonals:
+  // 1. Main diagonal: [0,0], [1,1], [2,2], etc.
+  // 2. Next diagonal: [1,0], [2,1], [3,2], etc.
+  // Count non-empty adjacent tiles and use the position with most adjacencies
+  let bestPosition: import('../types').Position = { x: 0, y: 0 }
+  let bestAdjacencyCount = -1
+
+  // Check main diagonal [0,0], [1,1], [2,2], etc.
+  const maxMainDiagonalIndex = Math.min(finalState.board.width, finalState.board.height)
+  for (let i = 0; i < maxMainDiagonalIndex; i++) {
+    const diagonalPos = { x: i, y: i }
+    const diagonalTile = getTile(finalState.board, diagonalPos)
+
+    // Only consider non-empty tiles
+    if (!diagonalTile || diagonalTile.owner === 'empty') {
+      continue
+    }
+
+    // Count non-empty adjacent tiles with weighting
+    // Tiles within standard 3x3 count as 1, non-standard adjacencies count as 2.5
+    const neighbors = getNeighbors(finalState.board, diagonalPos)
+    let nonEmptyAdjacentCount = 0
+    neighbors.forEach(neighborPos => {
+      const neighborTile = getTile(finalState.board, neighborPos)
+      if (neighborTile && neighborTile.owner !== 'empty') {
+        // Check if this neighbor is within standard 3x3 adjacency
+        const dx = Math.abs(neighborPos.x - diagonalPos.x)
+        const dy = Math.abs(neighborPos.y - diagonalPos.y)
+        const isStandard3x3 = dx <= 1 && dy <= 1
+        // Weight non-standard adjacencies as 2.5 to emphasize them
+        nonEmptyAdjacentCount += isStandard3x3 ? 1 : 2.5
+      }
+    })
+
+    // Update best position if this one has strictly more non-empty adjacencies (by weight)
+    if (nonEmptyAdjacentCount > bestAdjacencyCount) {
+      bestPosition = diagonalPos
+      bestAdjacencyCount = nonEmptyAdjacentCount
+    }
+  }
+
+  // Check next diagonal [1,0], [2,1], [3,2], etc.
+  const maxNextDiagonalIndex = Math.min(finalState.board.width - 1, finalState.board.height)
+  for (let i = 0; i < maxNextDiagonalIndex; i++) {
+    const diagonalPos = { x: i + 1, y: i }
+    const diagonalTile = getTile(finalState.board, diagonalPos)
+
+    // Only consider non-empty tiles
+    if (!diagonalTile || diagonalTile.owner === 'empty') {
+      continue
+    }
+
+    // Count non-empty adjacent tiles with weighting
+    // Tiles within standard 3x3 count as 1, non-standard adjacencies count as 2.5
+    const neighbors = getNeighbors(finalState.board, diagonalPos)
+    let nonEmptyAdjacentCount = 0
+    neighbors.forEach(neighborPos => {
+      const neighborTile = getTile(finalState.board, neighborPos)
+      if (neighborTile && neighborTile.owner !== 'empty') {
+        // Check if this neighbor is within standard 3x3 adjacency
+        const dx = Math.abs(neighborPos.x - diagonalPos.x)
+        const dy = Math.abs(neighborPos.y - diagonalPos.y)
+        const isStandard3x3 = dx <= 1 && dy <= 1
+        // Weight non-standard adjacencies as 2.5 to emphasize them
+        nonEmptyAdjacentCount += isStandard3x3 ? 1 : 2.5
+      }
+    })
+
+    // Update best position if this one has strictly more non-empty adjacencies (by weight)
+    if (nonEmptyAdjacentCount > bestAdjacencyCount) {
+      bestPosition = diagonalPos
+      bestAdjacencyCount = nonEmptyAdjacentCount
+    }
+  }
+
+  const centerPosition = bestPosition
+
+  // Get all tiles adjacent to the center using the board's adjacency rules
+  const neighbors = getNeighbors(finalState.board, centerPosition)
+
+  // Highlighted tiles = center tile + all neighbors
+  const highlightedTiles: import('../types').Position[] = [
+    centerPosition,
+    ...neighbors
+  ]
+
+  finalState = {
+    ...finalState,
+    adjacencyPatternAnimation: {
+      isActive: true,
+      highlightedTiles,
+      color: adjacencyRule === 'standard' ? 'green' : 'red'
     }
   }
 

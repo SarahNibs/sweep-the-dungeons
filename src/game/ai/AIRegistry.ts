@@ -2,6 +2,7 @@ import { RivalAI } from './AITypes'
 import { NoGuessAI } from './implementations/NoGuessAI'
 import { RandomAI } from './implementations/RandomAI'
 import { ConservativeAI } from './implementations/ConservativeAI'
+import { ReasoningAI } from './implementations/ReasoningAI'
 
 // Registry for all available AI implementations
 class AIRegistryClass {
@@ -35,6 +36,7 @@ export const AIRegistry = new AIRegistryClass()
 AIRegistry.register('noguess', () => new NoGuessAI())
 AIRegistry.register('random', () => new RandomAI())
 AIRegistry.register('conservative', () => new ConservativeAI())
+AIRegistry.register('reasoning', () => new ReasoningAI())
 
 // Default AI selection logic
 export function getDefaultAIType(): string {

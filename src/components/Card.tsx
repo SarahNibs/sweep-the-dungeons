@@ -108,18 +108,21 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
       }}
     >
       {/* Energy cost pips - positioned in top-left corner */}
-      <div style={{
-        position: 'absolute',
-        top: '4px',
-        left: '4px',
-        zIndex: 1,
-        ...(showUpgradeIndicator === 'cost_reduction' && {
-          backgroundColor: '#00b894',
-          borderRadius: '50%',
-          padding: '3px',
-          border: '2px solid #00b894'
-        })
-      }}>
+      <div
+        title={`Cost ${effectiveCost}`}
+        style={{
+          position: 'absolute',
+          top: '4px',
+          left: '4px',
+          zIndex: 1,
+          ...(showUpgradeIndicator === 'cost_reduction' && {
+            backgroundColor: '#00b894',
+            borderRadius: '50%',
+            padding: '3px',
+            border: '2px solid #00b894'
+          })
+        }}
+      >
         {renderEnergyPips(effectiveCost, isPlayable)}
       </div>
       

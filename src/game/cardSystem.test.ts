@@ -45,8 +45,8 @@ describe('Card System', () => {
       const cardNames = deck.map(card => card.name)
       
       expect(cardNames.filter(name => name === 'Spritz')).toHaveLength(4)
-      expect(cardNames.filter(name => name === 'Imperious Orders')).toHaveLength(2)
-      expect(cardNames.filter(name => name === 'Vague Orders')).toHaveLength(1)
+      expect(cardNames.filter(name => name === 'Imperious Instructions')).toHaveLength(2)
+      expect(cardNames.filter(name => name === 'Vague Instructions')).toHaveLength(1)
       expect(cardNames.filter(name => name === 'Tingle')).toHaveLength(2)
       expect(cardNames.filter(name => name === 'Easiest')).toHaveLength(1)
     })
@@ -427,12 +427,12 @@ describe('Card System', () => {
     })
 
     it('uses parameterized system for both clue types', () => {
-      // Test Imperious Orders (formerly Solid Clue)
+      // Test Imperious Instructions (formerly Solid Clue)
       const solidState = executeSolidClueEffect(gameState)
       const solidTilesWithClues = Array.from(solidState.board.tiles.values())
         .filter(tile => tile.annotations.some(a => a.type === 'clue_results'))
       
-      // Test Vague Orders (formerly Stretch Clue)  
+      // Test Vague Instructions (formerly Stretch Clue)  
       const stretchState = executeStretchClueEffect(gameState)
       const stretchTilesWithClues = Array.from(stretchState.board.tiles.values())
         .filter(tile => tile.annotations.some(a => a.type === 'clue_results'))

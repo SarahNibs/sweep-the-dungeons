@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { ShopOption, Card } from '../types'
+import { PileViewingScreen } from './PileViewingScreen'
 
 interface ShopSelectionScreenProps {
   shopOptions: ShopOption[]
@@ -11,19 +13,21 @@ interface ShopSelectionScreenProps {
   currentDeck?: Card[]
 }
 
-export function ShopSelectionScreen({ 
-  shopOptions, 
-  onPurchase, 
-  onExit, 
+export function ShopSelectionScreen({
+  shopOptions,
+  onPurchase,
+  onExit,
   currentCopper,
   purchasedItems,
   waitingForCardRemoval,
   onCardRemovalSelect,
   currentDeck
 }: ShopSelectionScreenProps) {
-  
+  const [viewingDeck, setViewingDeck] = useState(false)
+
   if (waitingForCardRemoval && currentDeck && onCardRemovalSelect) {
     return (
+      <>
       <div style={{
         position: 'fixed',
         top: 0,
@@ -42,11 +46,36 @@ export function ShopSelectionScreen({
           fontSize: '24px',
           fontWeight: 'bold',
           color: '#74b9ff',
-          margin: '0 0 30px 0',
+          margin: '0 0 20px 0',
           textAlign: 'center'
         }}>
           Choose a Card to Remove
         </h2>
+
+        <div style={{ marginBottom: '20px' }}>
+          <button
+            onClick={() => setViewingDeck(true)}
+            style={{
+              padding: '12px 24px',
+              fontSize: '16px',
+              backgroundColor: '#0984e3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#74b9ff'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#0984e3'
+            }}
+          >
+            View Deck
+          </button>
+        </div>
 
         <div style={{
           display: 'grid',
@@ -116,11 +145,21 @@ export function ShopSelectionScreen({
             </div>
           ))}
         </div>
+
+        {viewingDeck && (
+          <PileViewingScreen
+            pileType="deck"
+            cards={currentDeck}
+            onClose={() => setViewingDeck(false)}
+          />
+        )}
       </div>
+      </>
     )
   }
-  
+
   return (
+    <>
     <div style={{
       position: 'fixed',
       top: 0,
@@ -184,6 +223,32 @@ export function ShopSelectionScreen({
             Copper
           </div>
           
+          {/* View Deck button */}
+          {currentDeck && (
+            <button
+              onClick={() => setViewingDeck(true)}
+              style={{
+                padding: '10px 20px',
+                fontSize: '16px',
+                backgroundColor: '#0984e3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#74b9ff'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#0984e3'
+              }}
+            >
+              View Deck
+            </button>
+          )}
+
           {/* Exit button */}
           <button
             onClick={onExit}
@@ -332,7 +397,16 @@ export function ShopSelectionScreen({
           )
         })}
       </div>
+
+      {viewingDeck && currentDeck && (
+        <PileViewingScreen
+          pileType="deck"
+          cards={currentDeck}
+          onClose={() => setViewingDeck(false)}
+        />
+      )}
     </div>
+    </>
   )
 }
 

@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { UpgradeOption, Card as CardType } from '../types'
 import { Card } from './Card'
+import { PileViewingScreen } from './PileViewingScreen'
 
 interface UpgradeSelectionScreenProps {
   upgradeOptions: UpgradeOption[]
@@ -9,16 +11,18 @@ interface UpgradeSelectionScreenProps {
   onCardRemovalSelect?: (cardId: string) => void
 }
 
-export function UpgradeSelectionScreen({ 
-  upgradeOptions, 
-  onUpgradeSelect, 
+export function UpgradeSelectionScreen({
+  upgradeOptions,
+  onUpgradeSelect,
   currentDeck,
   waitingForCardRemoval,
   onCardRemovalSelect
 }: UpgradeSelectionScreenProps) {
-  
+  const [viewingDeck, setViewingDeck] = useState(false)
+
   if (waitingForCardRemoval) {
     return (
+      <>
       <div style={{
         position: 'fixed',
         top: 0,
@@ -37,12 +41,37 @@ export function UpgradeSelectionScreen({
           fontSize: '24px',
           fontWeight: 'bold',
           color: '#74b9ff',
-          margin: '0 0 30px 0',
+          margin: '0 0 20px 0',
           textAlign: 'center'
         }}>
           Select a card to remove from your deck
         </h2>
-        
+
+        <div style={{ marginBottom: '20px' }}>
+          <button
+            onClick={() => setViewingDeck(true)}
+            style={{
+              padding: '12px 24px',
+              fontSize: '16px',
+              backgroundColor: '#0984e3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#74b9ff'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#0984e3'
+            }}
+          >
+            View Deck
+          </button>
+        </div>
+
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
@@ -75,11 +104,21 @@ export function UpgradeSelectionScreen({
             </div>
           ))}
         </div>
+
+        {viewingDeck && (
+          <PileViewingScreen
+            pileType="deck"
+            cards={currentDeck}
+            onClose={() => setViewingDeck(false)}
+          />
+        )}
       </div>
+      </>
     )
   }
 
   return (
+    <>
     <div style={{
       position: 'fixed',
       top: 0,
@@ -206,6 +245,32 @@ export function UpgradeSelectionScreen({
         ))}
       </div>
 
+      {/* View Deck button */}
+      <div style={{ marginBottom: '20px' }}>
+        <button
+          onClick={() => setViewingDeck(true)}
+          style={{
+            padding: '12px 24px',
+            fontSize: '16px',
+            backgroundColor: '#0984e3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#74b9ff'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#0984e3'
+          }}
+        >
+          View Deck
+        </button>
+      </div>
+
       {/* Current deck display */}
       <div style={{
         width: '100%',
@@ -268,6 +333,15 @@ export function UpgradeSelectionScreen({
           ))}
         </div>
       </div>
+
+      {viewingDeck && (
+        <PileViewingScreen
+          pileType="deck"
+          cards={currentDeck}
+          onClose={() => setViewingDeck(false)}
+        />
+      )}
     </div>
+    </>
   )
 }

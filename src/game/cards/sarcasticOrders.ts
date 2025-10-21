@@ -443,7 +443,7 @@ function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
   }
 
   // === GREEN CLUES GENERATION ===
-  // Same as enhanced Imperious Orders (solid clue) but only 5 draws instead of 10
+  // Same as enhanced Imperious Instructions (solid clue) but only 5 draws instead of 10
 
   const playerTiles = unrevealedTiles.filter(t => t.owner === 'player')
   const chosenPlayerTiles = selectTilesForClue(playerTiles, 2)

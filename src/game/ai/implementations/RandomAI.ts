@@ -1,5 +1,6 @@
 import { RivalAI, AIContext } from '../AITypes'
 import { GameState, Tile, ClueResult, Position } from '../../../types'
+import { hasSpecialTile } from '../../boardSystem'
 
 /**
  * RandomAI - Completely random tile selection
@@ -16,9 +17,9 @@ export class RandomAI implements RivalAI {
     _hiddenClues: { clueResult: ClueResult; targetPosition: Position }[],
     context: AIContext
   ): Tile[] {
-    // Get all unrevealed tiles
+    // Get all unrevealed tiles (excluding surface mines - AI never reveals them)
     const unrevealedTiles = Array.from(state.board.tiles.values())
-      .filter(tile => !tile.revealed && tile.owner !== 'empty')
+      .filter(tile => !tile.revealed && tile.owner !== 'empty' && !hasSpecialTile(tile, 'surfaceMine'))
 
     if (unrevealedTiles.length === 0) return []
 

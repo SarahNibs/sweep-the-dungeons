@@ -5,7 +5,7 @@ import { startShopSelection } from './shopSystem'
 import { calculateAdjacency, getNeighbors, positionToKey, removeSpecialTile } from './boardSystem'
 import { revealTileWithRelicEffects } from './cardEffects'
 
-import { getAllRelics, createCard } from './gameRepository'
+import { getAllRelics, createCard, getRewardCardPool } from './gameRepository'
 
 export function createRelicOptions(ownedRelics: Relic[] = []): RelicOption[] {
   const allRelics = getAllRelics()
@@ -285,39 +285,65 @@ export function triggerDustBunnyEffect(state: GameState): GameState {
   if (!hasRelic(state, 'Dust Bunny')) {
     return state
   }
-  
+
   // Find all unrevealed player tiles that are not dirty
   const unrevealedPlayerTiles = Array.from(state.board.tiles.values()).filter(tile =>
     tile.owner === 'player' &&
     !tile.revealed &&
     !tile.specialTiles.includes('extraDirty')
   )
-  
+
   if (unrevealedPlayerTiles.length === 0) {
     return state
   }
-  
+
   // Select a random player tile
   const randomTile = unrevealedPlayerTiles[Math.floor(Math.random() * unrevealedPlayerTiles.length)]
-  
-  // Reveal the tile
+
+  // Check if this tile has a surface mine and defuse it first
+  let currentState = state
+  let copperFromDefusing = 0
   const key = `${randomTile.position.x},${randomTile.position.y}`
-  const newTiles = new Map(state.board.tiles)
-  
+  let tileToReveal = randomTile
+
+  if (randomTile.specialTiles.includes('surfaceMine')) {
+    console.log(`🐰 DUST BUNNY: Defusing surface mine at (${randomTile.position.x}, ${randomTile.position.y}) before revealing`)
+    const newTiles = new Map(currentState.board.tiles)
+    const defusedTile = removeSpecialTile(randomTile, 'surfaceMine')
+    newTiles.set(key, defusedTile)
+    tileToReveal = defusedTile
+    currentState = {
+      ...currentState,
+      board: {
+        ...currentState.board,
+        tiles: newTiles
+      },
+      copper: currentState.copper + 3
+    }
+    copperFromDefusing = 3
+  }
+
+  // Now reveal the tile (with surface mine removed if it had one)
+  const newTiles = new Map(currentState.board.tiles)
+
   // Calculate adjacency count using the board's adjacency rule
-  const adjacencyCount = calculateAdjacency(state.board, randomTile.position, 'player')
-  
+  const adjacencyCount = calculateAdjacency(currentState.board, tileToReveal.position, 'player')
+
   newTiles.set(key, {
-    ...randomTile,
+    ...tileToReveal,
     revealed: true,
     revealedBy: 'player',
     adjacencyCount
   })
-  
+
+  if (copperFromDefusing > 0) {
+    console.log(`🐰 DUST BUNNY: Defused surface mine, +${copperFromDefusing} copper`)
+  }
+
   return {
-    ...state,
+    ...currentState,
     board: {
-      ...state.board,
+      ...currentState.board,
       tiles: newTiles
     }
   }
@@ -342,6 +368,7 @@ export function triggerTemporaryBunnyBuffs(state: GameState): GameState {
   // Reveal tiles for all buffs in a loop
   let currentState = state
   let buffsRemaining = state.temporaryBunnyBuffs
+  let totalCopperFromDefusing = 0
 
   while (buffsRemaining > 0) {
     // Find all unrevealed player tiles that are not dirty
@@ -362,15 +389,35 @@ export function triggerTemporaryBunnyBuffs(state: GameState): GameState {
     // Select a random player tile
     const randomTile = unrevealedPlayerTiles[Math.floor(Math.random() * unrevealedPlayerTiles.length)]
 
-    // Reveal the tile
+    // Check if this tile has a surface mine and defuse it first
     const key = `${randomTile.position.x},${randomTile.position.y}`
+    let tileToReveal = randomTile
+
+    if (randomTile.specialTiles.includes('surfaceMine')) {
+      console.log(`🐰 TEMPORARY BUNNY BUFF: Defusing surface mine at (${randomTile.position.x}, ${randomTile.position.y}) before revealing`)
+      const newTiles = new Map(currentState.board.tiles)
+      const defusedTile = removeSpecialTile(randomTile, 'surfaceMine')
+      newTiles.set(key, defusedTile)
+      tileToReveal = defusedTile
+      currentState = {
+        ...currentState,
+        board: {
+          ...currentState.board,
+          tiles: newTiles
+        },
+        copper: currentState.copper + 3
+      }
+      totalCopperFromDefusing += 3
+    }
+
+    // Now reveal the tile (with surface mine removed if it had one)
     const newTiles = new Map(currentState.board.tiles)
 
     // Calculate adjacency count using the board's adjacency rule
-    const adjacencyCount = calculateAdjacency(currentState.board, randomTile.position, 'player')
+    const adjacencyCount = calculateAdjacency(currentState.board, tileToReveal.position, 'player')
 
     newTiles.set(key, {
-      ...randomTile,
+      ...tileToReveal,
       revealed: true,
       revealedBy: 'player',
       adjacencyCount
@@ -385,6 +432,10 @@ export function triggerTemporaryBunnyBuffs(state: GameState): GameState {
     }
 
     buffsRemaining--
+  }
+
+  if (totalCopperFromDefusing > 0) {
+    console.log(`🐰 TEMPORARY BUNNY BUFFS: Defused surface mines, +${totalCopperFromDefusing} copper`)
   }
 
   return {
@@ -566,10 +617,130 @@ export function triggerInterceptedNoteEffect(state: GameState): GameState {
     }
   }
 
-  // Reveal the tile with 'player' to show player adjacency info
-  const newState = revealTileWithRelicEffects(currentState, position, 'player')
+  // Reveal the tile with 'player' to show player adjacency info (uncontrollable - random selection)
+  const newState = revealTileWithRelicEffects(currentState, position, 'player', false)
 
   console.log('  - Intercepted Communications effect completed')
   return newState
+}
+
+export function triggerHyperfocusEffect(state: GameState): GameState {
+  if (!hasRelic(state, 'Hyperfocus')) {
+    return state
+  }
+
+  console.log('🎯 Triggering Hyperfocus effect')
+
+  // Get all cards that exist from the reward pool
+  const allRewardCards = getRewardCardPool()
+
+  if (allRewardCards.length === 0) {
+    console.log('  - No reward cards available')
+    return state
+  }
+
+  // For each card, generate all 4 variants (regular, cost-reduced, enhanced, both)
+  // and filter to only those with final cost 0
+  interface CardVariant {
+    name: string
+    costReduced: boolean
+    enhanced: boolean
+    finalCost: number
+    weight: number
+  }
+
+  const zeroCostVariants: CardVariant[] = []
+
+  allRewardCards.forEach(card => {
+    // Variant 1: Regular (no upgrades)
+    const regularVariant = createCard(card.name, { costReduced: false, enhanced: false })
+    if (regularVariant.cost === 0) {
+      zeroCostVariants.push({
+        name: card.name,
+        costReduced: false,
+        enhanced: false,
+        finalCost: regularVariant.cost,
+        weight: 1/4
+      })
+    }
+
+    // Variant 2: Cost-reduced only (only if base cost > 0)
+    if (card.cost > 0) {
+      const costReducedVariant = createCard(card.name, { costReduced: true, enhanced: false })
+      if (costReducedVariant.cost === 0) {
+        zeroCostVariants.push({
+          name: card.name,
+          costReduced: true,
+          enhanced: false,
+          finalCost: costReducedVariant.cost,
+          weight: 1/8
+        })
+      }
+    }
+
+    // Variant 3: Enhanced only
+    const enhancedVariant = createCard(card.name, { costReduced: false, enhanced: true })
+    if (enhancedVariant.cost === 0) {
+      zeroCostVariants.push({
+        name: card.name,
+        costReduced: false,
+        enhanced: true,
+        finalCost: enhancedVariant.cost,
+        weight: 1/8
+      })
+    }
+
+    // Variant 4: Cost-reduced AND enhanced (only if base cost > 0)
+    if (card.cost > 0) {
+      const bothVariant = createCard(card.name, { costReduced: true, enhanced: true })
+      if (bothVariant.cost === 0) {
+        zeroCostVariants.push({
+          name: card.name,
+          costReduced: true,
+          enhanced: true,
+          finalCost: bothVariant.cost,
+          weight: 1/14
+        })
+      }
+    }
+  })
+
+  if (zeroCostVariants.length === 0) {
+    console.log('  - No cost-0 card variants available')
+    return state
+  }
+
+  // Weighted random selection
+  const totalWeight = zeroCostVariants.reduce((sum, v) => sum + v.weight, 0)
+  let random = Math.random() * totalWeight
+
+  let selectedVariant: CardVariant | null = null
+  for (const variant of zeroCostVariants) {
+    random -= variant.weight
+    if (random <= 0) {
+      selectedVariant = variant
+      break
+    }
+  }
+
+  // Fallback in case of floating point issues
+  if (!selectedVariant) {
+    selectedVariant = zeroCostVariants[zeroCostVariants.length - 1]
+  }
+
+  // Create the selected card
+  const hyperfocusCard = createCard(selectedVariant.name, {
+    costReduced: selectedVariant.costReduced,
+    enhanced: selectedVariant.enhanced
+  })
+
+  console.log(`  - Adding ${selectedVariant.name} (cost-reduced: ${selectedVariant.costReduced}, enhanced: ${selectedVariant.enhanced}) to hand`)
+  console.log(`  - Final card cost: ${hyperfocusCard.cost}`)
+
+  // Add to hand (not persistent deck)
+  return {
+    ...state,
+    hand: [...state.hand, hyperfocusCard]
+  }
 }
 

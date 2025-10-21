@@ -1,5 +1,5 @@
 import { GameState, CardEffect, Position, Tile, TileAnnotation, ClueResult, GameStatusInfo } from '../types'
-import { positionToKey, getTile, revealTileWithResult } from './boardSystem'
+import { positionToKey, getTile, revealTileWithResult, hasSpecialTile } from './boardSystem'
 import { triggerDoubleBroomEffect, checkFrillyDressEffect } from './relicSystem'
 import { removeStatusEffect } from './gameRepository'
 import { executeScoutEffect } from './cards/scout'
@@ -21,17 +21,91 @@ import { executeHorseEffect } from './cards/horse'
 import { executeEavesdroppingEffect } from './cards/eavesdropping'
 import { executeEmanationEffect } from './cards/emanation'
 import { executeBratEffect } from './cards/brat'
+import { executeSnipSnipEffect } from './cards/snipSnip'
 
 // Shared reveal function that includes relic effects
-export function revealTileWithRelicEffects(state: GameState, position: Position, revealer: 'player' | 'rival'): GameState {
+export function revealTileWithRelicEffects(
+  state: GameState,
+  position: Position,
+  revealer: 'player' | 'rival',
+  controllableReveal: boolean = true
+): GameState {
+  // Check for surface mine BEFORE revealing
+  const tileBeforeReveal = getTile(state.board, position)
+
+  if (tileBeforeReveal && hasSpecialTile(tileBeforeReveal, 'surfaceMine')) {
+    console.log('💣 SURFACE MINE DETECTED - Handling explosion')
+
+    // Handle surface mine explosion
+    let stateAfterExplosion = state
+
+    // If controllable player reveal, try to use Underwire protection
+    if (controllableReveal && revealer === 'player' && state.underwireProtection?.active) {
+      console.log('🛡️ UNDERWIRE TRIGGERED FOR SURFACE MINE')
+      const isEnhanced = state.underwireProtection.enhanced
+
+      // Consume Underwire protection
+      stateAfterExplosion = {
+        ...state,
+        underwireProtection: null,
+        underwireUsedThisTurn: !isEnhanced // Only mark for turn end if basic Underwire
+      }
+
+      // Remove the status effect
+      stateAfterExplosion = removeStatusEffect(stateAfterExplosion, 'underwire_protection')
+      console.log('🛡️ UNDERWIRE PROTECTION CONSUMED FOR SURFACE MINE')
+    }
+
+    // Explode the surface mine: change to empty and add destroyed special tile
+    const newTiles = new Map(stateAfterExplosion.board.tiles)
+    const originalOwner = tileBeforeReveal.owner
+    const explodedTile: Tile = {
+      ...tileBeforeReveal,
+      owner: 'empty',
+      specialTiles: ['destroyed'] // Replace surfaceMine with destroyed
+    }
+    newTiles.set(positionToKey(position), explodedTile)
+
+    stateAfterExplosion = {
+      ...stateAfterExplosion,
+      board: {
+        ...stateAfterExplosion.board,
+        tiles: newTiles
+      }
+    }
+
+    console.log('💥 SURFACE MINE EXPLODED - Tile marked as destroyed')
+
+    // Update adjacency_info annotations on neighboring tiles if owner changed
+    if (originalOwner !== 'empty') {
+      console.log('💥 Updating neighbor adjacency info after surface mine explosion')
+      stateAfterExplosion = updateNeighborAdjacencyInfo(stateAfterExplosion, position)
+    }
+
+    // Check game status (only ends game if controllable player reveal without Underwire)
+    if (controllableReveal && revealer === 'player' && !state.underwireProtection?.active) {
+      // Game should end - player revealed surface mine without protection
+      console.log('💥 GAME OVER - Surface mine without protection')
+      const gameStatus = checkGameStatus(stateAfterExplosion)
+      return {
+        ...stateAfterExplosion,
+        gameStatus
+      }
+    }
+
+    // For uncontrollable or rival reveals, just return the exploded state
+    return stateAfterExplosion
+  }
+
+  // Normal reveal flow if no surface mine
   const revealResult = revealTileWithResult(state.board, position, revealer)
   const newBoard = revealResult.board
-  
+
   let stateWithBoard = {
     ...state,
     board: newBoard
   }
-  
+
   // Handle Underwire protection if player revealed a mine
   if (revealer === 'player' && revealResult.revealed) {
     const tile = getTile(newBoard, position)
@@ -212,31 +286,31 @@ export function addOwnerSubsetAnnotation(
 export function addTileAnnotation(state: GameState, position: Position, annotation: TileAnnotation): GameState {
   const key = positionToKey(position)
   const tile = state.board.tiles.get(key)
-  
+
   if (!tile) return state
-  
+
   // Use new combining logic for owner_subset annotations
   if (annotation.type === 'owner_subset' && annotation.ownerSubset) {
     return addOwnerSubsetAnnotation(state, position, annotation.ownerSubset)
   }
-  
+
   // Legacy logic for non-subset annotations
   const newTiles = new Map(state.board.tiles)
   let existingAnnotations = [...tile.annotations]
-  
+
   // Handle annotation replacement rules
   if (annotation.type === 'rival') {
     // Enemy annotations override safety annotations
     existingAnnotations = existingAnnotations.filter(a => a.type !== 'safe' && a.type !== 'unsafe')
   }
-  
+
   const annotatedTile: Tile = {
     ...tile,
     annotations: [...existingAnnotations, annotation]
   }
-  
+
   newTiles.set(key, annotatedTile)
-  
+
   return {
     ...state,
     board: {
@@ -244,6 +318,113 @@ export function addTileAnnotation(state: GameState, position: Position, annotati
       tiles: newTiles
     }
   }
+}
+
+/**
+ * Updates adjacency_info annotations for all neighbors of a position
+ * Should be called when a tile's ownership changes (e.g., Snip Snip converting mine to neutral)
+ */
+export function updateNeighborAdjacencyInfo(state: GameState, changedPosition: Position): GameState {
+  const neighbors = Array.from(state.board.tiles.values()).filter(tile => {
+    // Find tiles that are neighbors of the changed position
+    const dx = Math.abs(tile.position.x - changedPosition.x)
+    const dy = Math.abs(tile.position.y - changedPosition.y)
+    return dx <= 1 && dy <= 1 && !(dx === 0 && dy === 0)
+  })
+
+  let newState = state
+
+  for (const neighborTile of neighbors) {
+    // Only update if this tile has an adjacency_info annotation
+    const hasAdjacencyInfo = neighborTile.annotations.some(a => a.type === 'adjacency_info')
+    if (!hasAdjacencyInfo) continue
+
+    // Find the existing adjacency_info annotation to determine if it was enhanced
+    const existingAnnotation = neighborTile.annotations.find(a => a.type === 'adjacency_info')
+    if (!existingAnnotation || !existingAnnotation.adjacencyInfo) continue
+
+    // Determine if this was an enhanced annotation (has all owner types)
+    const isEnhanced = 'mine' in existingAnnotation.adjacencyInfo
+
+    // Recalculate adjacency info
+    const neighborPositions = Array.from(newState.board.tiles.values()).filter(t => {
+      const dx = Math.abs(t.position.x - neighborTile.position.x)
+      const dy = Math.abs(t.position.y - neighborTile.position.y)
+      return dx <= 1 && dy <= 1 && !(dx === 0 && dy === 0)
+    })
+
+    const adjacencyInfo: { player?: number; neutral?: number; rival?: number; mine?: number } = {}
+
+    if (isEnhanced) {
+      // Enhanced version: show all adjacency info
+      let playerCount = 0
+      let neutralCount = 0
+      let rivalCount = 0
+      let mineCount = 0
+
+      for (const adjTile of neighborPositions) {
+        switch (adjTile.owner) {
+          case 'player':
+            playerCount++
+            break
+          case 'neutral':
+            neutralCount++
+            break
+          case 'rival':
+            rivalCount++
+            break
+          case 'mine':
+            mineCount++
+            break
+        }
+      }
+
+      adjacencyInfo.player = playerCount
+      adjacencyInfo.neutral = neutralCount
+      adjacencyInfo.rival = rivalCount
+      adjacencyInfo.mine = mineCount
+    } else {
+      // Basic version: only show player adjacency info
+      let playerCount = 0
+
+      for (const adjTile of neighborPositions) {
+        if (adjTile.owner === 'player') {
+          playerCount++
+        }
+      }
+
+      adjacencyInfo.player = playerCount
+    }
+
+    // Update the tile's annotation
+    const newTiles = new Map(newState.board.tiles)
+    const key = positionToKey(neighborTile.position)
+    const tileToUpdate = newTiles.get(key)
+
+    if (tileToUpdate) {
+      const otherAnnotations = tileToUpdate.annotations.filter(a => a.type !== 'adjacency_info')
+      newTiles.set(key, {
+        ...tileToUpdate,
+        annotations: [
+          ...otherAnnotations,
+          {
+            type: 'adjacency_info',
+            adjacencyInfo
+          }
+        ]
+      })
+
+      newState = {
+        ...newState,
+        board: {
+          ...newState.board,
+          tiles: newTiles
+        }
+      }
+    }
+  }
+
+  return newState
 }
 
 export function addClueResult(state: GameState, position: Position, clueResult: ClueResult): GameState {
@@ -408,6 +589,8 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
       return executeEmanationEffect(state, effect.target, card)
     case 'brat':
       return executeBratEffect(state, effect.target, card)
+    case 'snip_snip':
+      return executeSnipSnipEffect(state, effect.target, card)
     default:
       return state
   }
@@ -418,7 +601,7 @@ export function requiresTargeting(cardName: string, enhanced?: boolean): boolean
     return enhanced || false // Only enhanced Tryst requires targeting
   }
   // Masking has special handling - doesn't use regular targeting system
-  return cardName === 'Spritz' || cardName === 'Easiest' || cardName === 'Brush' || cardName === 'Sweep' || cardName === 'Canary' || cardName === 'Argument' || cardName === 'Horse' || cardName === 'Eavesdropping' || cardName === 'Emanation' || cardName === 'Brat'
+  return cardName === 'Spritz' || cardName === 'Easiest' || cardName === 'Brush' || cardName === 'Sweep' || cardName === 'Canary' || cardName === 'Argument' || cardName === 'Horse' || cardName === 'Eavesdropping' || cardName === 'Emanation' || cardName === 'Brat' || cardName === 'Snip, Snip'
 }
 
 export function getTargetingInfo(cardName: string, enhanced?: boolean): { count: number; description: string } | null {
@@ -447,6 +630,8 @@ export function getTargetingInfo(cardName: string, enhanced?: boolean): { count:
       return { count: 1, description: enhanced ? 'Select a card from hand to play for free and exhaust it (Masking doesn\'t exhaust)' : 'Select a card from hand to play for free and exhaust both cards' }
     case 'Brat':
       return { count: 1, description: enhanced ? 'Click a revealed tile to unreveal it (adjacency info remains). Gain 2 copper' : 'Click a revealed tile to unreveal it (adjacency info remains)' }
+    case 'Snip, Snip':
+      return { count: 1, description: enhanced ? 'Click a tile to defuse mines and get mine adjacency info. Defusing grants 2 copper' : 'Click a tile to defuse mines. Defusing grants 2 copper' }
     default:
       return null
   }

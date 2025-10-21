@@ -40,12 +40,34 @@ export function StatusEffects({ statusEffects }: StatusEffectsProps) {
           title={`${effect.name}: ${effect.description}`}
         >
           {effect.icon}
+          {/* Count indicator for effects with counts */}
+          {effect.count !== undefined && effect.count > 1 && (
+            <div style={{
+              position: 'absolute',
+              bottom: '-4px',
+              right: '-4px',
+              minWidth: '18px',
+              height: '18px',
+              backgroundColor: '#00b894',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              border: '2px solid white',
+              padding: '0 3px'
+            }}>
+              {effect.count}
+            </div>
+          )}
           {/* Enhanced indicator for enhanced effects */}
           {effect.enhanced && (
             <div style={{
               position: 'absolute',
-              bottom: '-2px',
-              right: '-2px',
+              top: '-4px',
+              right: '-4px',
               width: '16px',
               height: '16px',
               backgroundColor: '#a29bfe',

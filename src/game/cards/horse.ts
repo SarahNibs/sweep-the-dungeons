@@ -49,9 +49,9 @@ export function executeHorseEffect(state: GameState, target: Position, card?: im
   
   let newState = state
   let processedNonPlayerTiles = false
-  
-  if (card?.enhanced && safestOwner !== 'player') {
-    // Enhanced version: annotate instead of reveal for non-player owners
+
+  if (card?.enhanced) {
+    // Enhanced version: always annotate instead of reveal (for all owner types)
     const ownerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>([safestOwner as any])
     tilesToProcess.forEach(({ pos }) => {
       newState = addOwnerSubsetAnnotation(newState, pos, ownerSubset)
@@ -69,8 +69,8 @@ export function executeHorseEffect(state: GameState, target: Position, card?: im
           processedNonPlayerTiles = true
         }
       } else {
-        // For non-dirty tiles, reveal normally
-        newState = revealTileWithRelicEffects(newState, pos, 'player')
+        // For non-dirty tiles, reveal normally (uncontrollable - automatic area reveal)
+        newState = revealTileWithRelicEffects(newState, pos, 'player', false)
 
         // Check if the tile was actually revealed (it might not be if there was a goblin)
         const tileAfterReveal = getTile(newState.board, pos)
@@ -86,7 +86,7 @@ export function executeHorseEffect(state: GameState, target: Position, card?: im
         }
       }
     })
-    
+
     // Note: If safest owner is not player, this should end the turn
     // This will be handled by the store logic checking the card effect results
   }

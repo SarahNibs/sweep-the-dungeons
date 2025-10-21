@@ -25,63 +25,63 @@ export interface RelicDefinition {
 // Centralized card definitions
 export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   // Starter cards
-  'Imperious Orders': {
-    name: 'Imperious Orders',
+  'Imperious Instructions': {
+    name: 'Imperious Instructions',
     cost: 2,
     category: 'starter',
     description: {
-      base: 'Strong evidence of two of your tiles',
-      enhanced: 'Strong evidence of two of your tiles (never clues mines)'
+      base: 'Strong evidence of ~two of your tiles',
+      enhanced: 'Strong evidence of ~two of your tiles (never clues mines)'
     },
-    icon: '🔍'
+    icon: '👑'
   },
-  'Vague Orders': {
-    name: 'Vague Orders',
+  'Vague Instructions': {
+    name: 'Vague Instructions',
     cost: 2,
     category: 'starter',
     description: {
-      base: 'Evidence of five of your tiles',
-      enhanced: 'Evidence of five of your tiles (5 guaranteed bag pulls)'
+      base: 'Weak evidence of ~five of your tiles',
+      enhanced: 'Evidence of five of your tiles'
     },
     icon: '🔎'
   },
-  'Sarcastic Orders': {
-    name: 'Sarcastic Orders',
+  'Sarcastic Instructions': {
+    name: 'Sarcastic Instructions',
     cost: 2,
     category: 'starter',
     description: {
-      base: 'Complex clue with red anti-clue dots (DON\'T reveal these!) and/or green clue dots. Simulates two methods and uses the best',
-      enhanced: 'Complex clue with red anti-clue dots (DON\'T reveal these!) and/or green clue dots. Simulates two methods and uses the best. Gain 2 copper'
+      base: 'Evidence of ~two of your tiles vs ~one not yours, or of lots of your tiles AROUND 1-2 not yours',
+      enhanced: 'Evidence of ~two of your tiles vs ~one not yours, or of lots of your tiles AROUND 1-2 not yours. Gain 2 copper.'
     },
     icon: '😏'
   },
   'Spritz': {
     name: 'Spritz',
     cost: 1,
-    category: 'starter', 
+    category: 'starter',
     description: {
-      base: 'Click on an unrevealed tile to see if it\'s safe or dangerous',
-      enhanced: 'Click on an unrevealed tile to see if it\'s safe or dangerous. Also scouts a random adjacent tile.'
+      base: 'Spritz a tile to see if it\'s safe or dangerous',
+      enhanced: 'Spritz a tile to see if it\'s safe or dangerous. Also spritz a random adjacent tile.'
     },
-    icon: '👁️'
+    icon: '💦'
   },
   'Tingle': {
     name: 'Tingle',
     cost: 1,
     category: 'starter',
     description: {
-      base: 'Mark a random rival tile with a rival indicator and show player-tile adjacency info',
-      enhanced: 'Mark 2 random rival tiles with rival indicators and show player-tile adjacency info on each'
+      base: 'Sense adjacency info for a random rival tile',
+      enhanced: 'Sense adjacency info for two random rival tiles'
     },
-    icon: '📋'
+    icon: '😳'
   },
   'Easiest': {
     name: 'Easiest',
     cost: 1,
     category: 'starter',
     description: {
-      base: 'Click on two unrevealed tiles - the safer one will be revealed',
-      enhanced: 'Click on three unrevealed tiles - the safest one will be revealed'
+      base: 'Reveal the safer of two tiles',
+      enhanced: 'Reveal the safer of three tiles'
     },
     icon: '😴'
   },
@@ -93,7 +93,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     exhaust: true,
     category: 'reward',
     description: {
-      base: 'Gain 2 energy. Exhaust (remove from deck after use)',
+      base: 'Gain 2 energy. Exhaust.',
       enhanced: 'Gain 2 energy'
     },
     icon: '⚡'
@@ -106,15 +106,15 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
       base: 'Draw 3 cards',
       enhanced: 'Draw 5 cards'
     },
-    icon: '🃏'
+    icon: '🤷'
   },
   'Brush': {
     name: 'Brush',
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Select center of 3x3 area - exclude random owners from each tile',
-      enhanced: 'Select center of 3x3 area - exclude random owners from each tile (applies twice)'
+      base: 'Notice minor tile owner hints in a 3x3 area',
+      enhanced: 'Notice minor tile owner hints in a 3x3 area, twice'
     },
     icon: '🖌️'
   },
@@ -123,8 +123,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Disrupts rival\'s next turn by removing their guaranteed bag pulls',
-      enhanced: 'Disrupts rival\'s next turn by removing their guaranteed bag pulls (stronger disruption 0-4)'
+      base: 'Infodump to your rival, she may clean inattentively',
+      enhanced: 'Fascinate your rival infodumpingly, she will probably clean inattentively'
     },
     icon: '🌀'
   },
@@ -133,8 +133,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Select center of 5x5 area - removes all dirt from the area',
-      enhanced: 'Select center of 7x7 area - removes all dirt from the area'
+      base: 'Remove all dirt in a 5x5 area',
+      enhanced: 'Remove all dirt in a 7x7 area'
     },
     icon: '🧹'
   },
@@ -144,8 +144,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     exhaust: true,
     category: 'reward',
     description: {
-      base: 'The next time you reveal a mine this level, you do not lose. Exhaust (remove from deck after use)',
-      enhanced: 'The next time you reveal a mine this level, you do not lose and your turn does not end'
+      base: 'Protection against revealing one mine this floor. Exhaust.',
+      enhanced: 'Protection against revealing one mine this floor.'
     },
     icon: '🛡️'
   },
@@ -154,8 +154,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Rival reveals one of their tiles at random, then you reveal one of your tiles at random. Does not end your turn',
-      enhanced: 'Select target tile - rival and player each reveal tiles prioritized by distance from target'
+      base: 'You and your rival reveal a random tile for each other',
+      enhanced: 'You and your rival reveal a tile for each other as close to a designated tile as possible'
     },
     icon: '🥺'
   },
@@ -164,8 +164,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 0,
     category: 'reward',
     description: {
-      base: 'Select center of star area to detect mines - annotates tiles based on mine presence. Exhausts if mine found',
-      enhanced: 'Select center of 3x3 area to detect mines - annotates tiles based on mine presence. Exhausts if mine found'
+      base: 'A birb searches a burst 1 cross area for mines and exhausts if any are found',
+      enhanced: 'A birb searches a 3x3 area for mines and exhausts if any are found'
     },
     icon: '🐦'
   },
@@ -175,8 +175,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     exhaust: true,
     category: 'reward',
     description: {
-      base: 'Draw 2 cards. Exhaust (remove from deck after use)',
-      enhanced: 'Draw 4 cards. Exhaust (remove from deck after use)'
+      base: 'Draw 2 cards. Exhaust.',
+      enhanced: 'Draw 4 cards. Exhaust.'
     },
     icon: '🥤'
   },
@@ -185,8 +185,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Target a 3x3 area - annotate all neutral tiles as neutral and the rest as anything-but-neutral',
-      enhanced: 'Target a 3x3 area - annotate all neutral tiles as neutral and the rest as anything-but-neutral. Draw 1 card'
+      base: 'Harumph. Locate all neutral tiles in a 3x3 area.',
+      enhanced: 'Harumph. Locate all neutral tiles in a 3x3 area. Draw 1 card.'
     },
     icon: '😡'
   },
@@ -195,8 +195,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 3,
     category: 'reward',
     description: {
-      base: 'Target a small burst area (Manhattan distance 1) and pick the safest owner in area and reveal ALL tiles with that owner in area. Gain status: Horse cards cost 0 for rest of level. This will end your turn when safest owner is not player!',
-      enhanced: 'Target a small burst area (Manhattan distance 1) and pick the safest owner in area. If safest owner is player, reveal ALL tiles with that owner in area. Otherwise, annotate all tiles with that owner. Gain status: Horse cards cost 0 for rest of level'
+      base: 'Reveal ALL of the safest type of tile in a burst 1 cross area. After the upfront investment, Horse cards cost 0 for the rest of the floor.',
+      enhanced: 'Annotate ALL of the safest type of tile in a burst 1 cross area. After the upfront investment, Horse cards cost 0 for the rest of the floor.'
     },
     icon: '🐴'
   },
@@ -205,8 +205,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Target an unrevealed tile and get player adjacency info about that tile',
-      enhanced: 'Target an unrevealed tile and get ALL adjacency info (player, neutral, rival, mines) about that tile'
+      base: 'Listen in on a tile to get player adjacency info',
+      enhanced: 'Listen in on a tile to get ALL adjacency info (player, neutral, rival, mines)'
     },
     icon: '👂'
   },
@@ -215,8 +215,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Target a tile to destroy it. Lose 1 copper. Destroyed tiles don\'t count towards any owner totals and can end the level',
-      enhanced: 'Target a tile to destroy it. Destroyed tiles don\'t count towards any owner totals and can end the level'
+      base: 'Proclaim that nothing of value is on a tile and destroy it. Lose 2 copper.',
+      enhanced: 'Proclaim that nothing of value is on a tile and destroy it'
     },
     icon: '☢️'
   },
@@ -225,8 +225,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 0,
     category: 'reward',
     description: {
-      base: 'Choose another card in your hand (except another Masking), play it for free, and exhaust both that card and this Masking',
-      enhanced: 'Choose another card in your hand (except another Masking), play it for free, and exhaust that card (this Masking doesn\'t exhaust)'
+      base: 'Play and exhaust another card in your hand for free. Exhaust.',
+      enhanced: 'Play and exhaust another card in your hand for free'
     },
     icon: '🎭'
   },
@@ -236,10 +236,31 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     exhaust: true,
     category: 'reward',
     description: {
-      base: 'Target a revealed tile to make it unrevealed (adjacency information remains). Exhaust (remove from deck after use)',
-      enhanced: 'Target a revealed tile to make it unrevealed (adjacency information remains). Gain 2 copper. Exhaust (remove from deck after use)'
+      base: 'Unreveal a tile. Exhaust.',
+      enhanced: 'Unreveal a tile. Gain 2 copper. Exhaust.'
     },
     icon: '😈'
+  },
+  'Snip, Snip': {
+    name: 'Snip, Snip',
+    cost: 1,
+    category: 'reward',
+    description: {
+      base: 'Defuse all mines on a tile. If any mine is defused, gain 2 copper, then reveal the tile.',
+      enhanced: 'Defuse all mines on a tile. If any mine is defused, gain 2 copper, then reveal the tile and sense nearby mines.'
+    },
+    icon: '✂️'
+  },
+  'Nap': {
+    name: 'Nap',
+    cost: 1,
+    exhaust: true,
+    category: 'reward',
+    description: {
+      base: 'Remember something important from your exhaust',
+      enhanced: 'Remember something important from your exhaust and gain the energy to do it'
+    },
+    icon: '💤'
   },
 }
 
@@ -292,14 +313,14 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     description: 'everything is just... smoother',
     hoverText: 'Estrogen: replaces three random non-upgraded cards in your deck with their energy-upgraded versions',
     category: 'rare',
-    icon: '💊'
+    icon: '💉'
   },
   'Progesterone': {
     name: 'Progesterone',
     description: "nothing's easier but everything's better",
     hoverText: 'Progesterone: replaces three random non-upgraded cards in your deck with their enhance-upgraded versions',
     category: 'rare',
-    icon: '💉'
+    icon: '💊'
   },
   'Tiara': {
     name: 'Tiara',
@@ -328,6 +349,13 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     hoverText: 'Eyeshadow: your rival gets a random [0-1] added to each priority (permanent half-Ramble effect)',
     category: 'common',
     icon: '👁️'
+  },
+  'Hyperfocus': {
+    name: 'Hyperfocus',
+    description: 'you will *definitely* do *something*',
+    hoverText: 'Hyperfocus: at the beginning of each floor, add a random cost-0 card to your first turn hand (not added to persistent deck)',
+    category: 'common',
+    icon: '🎯'
   }
 }
 
@@ -380,12 +408,12 @@ export function createRelic(name: string): Relic {
 
 export function getStarterCards(): Card[] {
   return [
-    // One copy of Imperious Orders
-    createCard('Imperious Orders'),
-    // One copy of Sarcastic Orders
-    createCard('Sarcastic Orders'),
-    // One copy of Vague Orders
-    createCard('Vague Orders'),
+    // One copy of Imperious Instructions
+    createCard('Imperious Instructions'),
+    // One copy of Sarcastic Instructions
+    createCard('Sarcastic Instructions'),
+    // One copy of Vague Instructions
+    createCard('Vague Instructions'),
     // Three copies of Spritz
     createCard('Spritz'),
     createCard('Spritz'),
@@ -417,12 +445,11 @@ export function getCardDescription(card: Card): string {
     return 'Unknown card'
   }
 
-  const baseCost = `Cost: ${card.cost} energy. `
-  const description = card.enhanced && definition.description.enhanced 
+  const description = card.enhanced && definition.description.enhanced
     ? definition.description.enhanced
     : definition.description.base
 
-  return baseCost + description
+  return description
 }
 
 export function getCardIcon(cardName: string): string {
@@ -448,11 +475,10 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         id: baseId,
         type: 'underwire_protection',
         icon: '🛡️',
-        name: enhanced ? 'Enhanced Underwire' : 'Underwire Protection',
-        description: enhanced 
-          ? 'The next time you reveal a mine this level, you do not lose and your turn does not end'
-          : 'The next time you reveal a mine this level, you do not lose',
-        enhanced
+        name: 'Underwire Protection',
+        description: 'Protects from revealing mines (prevents loss)',
+        enhanced,
+        count: 1
       }
     case 'ramble_active':
       return {
@@ -493,9 +519,27 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
 }
 
 export function addStatusEffect(state: GameState, effectType: StatusEffect['type'], enhanced?: boolean): GameState {
-  // Check if effect already exists (don't duplicate, except for underwire_protection which stacks)
   const existingEffect = state.activeStatusEffects.find(effect => effect.type === effectType)
-  if (existingEffect && effectType !== 'underwire_protection') {
+
+  // Special handling for underwire_protection - increment count instead of adding new instance
+  if (effectType === 'underwire_protection' && existingEffect) {
+    const currentCount = existingEffect.count || 1
+    const updatedEffect = {
+      ...existingEffect,
+      count: currentCount + 1,
+      enhanced: enhanced || existingEffect.enhanced // Keep enhanced if either is enhanced
+    }
+
+    return {
+      ...state,
+      activeStatusEffects: state.activeStatusEffects.map(effect =>
+        effect.type === effectType ? updatedEffect : effect
+      )
+    }
+  }
+
+  // For other effects, don't duplicate
+  if (existingEffect) {
     return state
   }
 
@@ -509,18 +553,26 @@ export function addStatusEffect(state: GameState, effectType: StatusEffect['type
 export function removeStatusEffect(state: GameState, effectType: StatusEffect['type']): GameState {
   console.log('🗑️ REMOVE STATUS EFFECT DEBUG')
   console.log('  - Removing effect type:', effectType)
-  console.log('  - Before removal:', state.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
+  console.log('  - Before removal:', state.activeStatusEffects.map(e => ({ type: e.type, id: e.id, count: e.count })))
 
   let filteredEffects: StatusEffect[]
 
-  // For underwire_protection (which can stack), only remove the first instance
+  // For underwire_protection, decrement count or remove if count reaches 0
   if (effectType === 'underwire_protection') {
-    const indexToRemove = state.activeStatusEffects.findIndex(effect => effect.type === effectType)
-    if (indexToRemove !== -1) {
-      filteredEffects = [
-        ...state.activeStatusEffects.slice(0, indexToRemove),
-        ...state.activeStatusEffects.slice(indexToRemove + 1)
-      ]
+    const existingEffect = state.activeStatusEffects.find(effect => effect.type === effectType)
+    if (existingEffect) {
+      const currentCount = existingEffect.count || 1
+      if (currentCount > 1) {
+        // Decrement count
+        filteredEffects = state.activeStatusEffects.map(effect =>
+          effect.type === effectType
+            ? { ...effect, count: currentCount - 1 }
+            : effect
+        )
+      } else {
+        // Remove effect entirely when count reaches 0
+        filteredEffects = state.activeStatusEffects.filter(effect => effect.type !== effectType)
+      }
     } else {
       filteredEffects = state.activeStatusEffects
     }
@@ -529,14 +581,14 @@ export function removeStatusEffect(state: GameState, effectType: StatusEffect['t
     filteredEffects = state.activeStatusEffects.filter(effect => effect.type !== effectType)
   }
 
-  console.log('  - After filtering:', filteredEffects.map(e => ({ type: e.type, id: e.id })))
+  console.log('  - After filtering:', filteredEffects.map(e => ({ type: e.type, id: e.id, count: e.count })))
 
   const result = {
     ...state,
     activeStatusEffects: filteredEffects
   }
 
-  console.log('  - Final result activeStatusEffects:', result.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
+  console.log('  - Final result activeStatusEffects:', result.activeStatusEffects.map(e => ({ type: e.type, id: e.id, count: e.count })))
 
   return result
 }

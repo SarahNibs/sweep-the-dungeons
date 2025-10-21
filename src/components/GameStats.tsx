@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { GameStatusInfo } from '../types'
+import { helpText } from '../helpText'
 
 // Inject CSS for pulse animation
 const pulseAnimation = `
@@ -30,6 +31,7 @@ export function GameStats({ onResetGame, gameStatus }: GameStatsProps) {
   const [isPressed, setIsPressed] = useState(false)
   const [animationProgress, setAnimationProgress] = useState(0)
   const [allowTransition, setAllowTransition] = useState(true)
+  const [showHelp, setShowHelp] = useState(false)
   const animationRef = useRef<number>()
   const startTimeRef = useRef<number>()
   const isAnimatingRef = useRef<boolean>(false)
@@ -116,77 +118,180 @@ export function GameStats({ onResetGame, gameStatus }: GameStatsProps) {
   }
 
   return (
-    <div 
-      style={{
-        margin: '20px auto',
-        width: 'fit-content',
-        padding: '3px', // Space for the border to prevent layout shifts
-      }}
-    >
-      <div 
-        title="Click and hold for new game"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '16px',
-          padding: '12px 20px',
-          backgroundColor: '#e5e5e5',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          userSelect: 'none',
-          border: isGameEnded ? `3px solid ${getPulseBorderColor()}` : '3px solid transparent',
-          animation: isGameEnded ? 'pulseGlow 1.5s ease-in-out infinite' : 'none',
-          color: getPulseBorderColor()
-        }}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-      >
+    <>
       <div
         style={{
-          position: 'relative',
-          overflow: 'hidden',
-          margin: '0',
-          fontSize: '24px',
-          color: '#4a4a4a',
-          minWidth: '200px',
-          minHeight: '30px'
+          margin: '20px auto',
+          width: 'fit-content',
+          padding: '3px', // Space for the border to prevent layout shifts
+          display: 'flex',
+          gap: '10px',
+          alignItems: 'center'
         }}
       >
-        {/* Original text */}
-        <h1 style={{
-          margin: '0',
-          fontSize: '24px',
-          color: '#4a4a4a',
-          transform: `translateX(${isPressed ? animationProgress * slideDistance : 0}%)`,
-          transition: allowTransition && !isPressed ? 'transform 0.2s ease' : 'none',
-          opacity: isPressed ? 1 - animationProgress * 0.3 : 1,
-          width: '100%',
-          whiteSpace: 'nowrap'
-        }}>
-          Sweep The Dungeons
-        </h1>
-        
-        {/* New text sliding in */}
-        {isPressed && (
-          <h1 style={{
-            position: 'absolute',
-            top: '0',
-            left: '0',
-            margin: '0',
+        <div
+          title="Click and hold for new game"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px',
+            padding: '12px 20px',
+            backgroundColor: '#e5e5e5',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            userSelect: 'none',
+            border: isGameEnded ? `3px solid ${getPulseBorderColor()}` : '3px solid transparent',
+            animation: isGameEnded ? 'pulseGlow 1.5s ease-in-out infinite' : 'none',
+            color: getPulseBorderColor()
+          }}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+        >
+          <div
+            style={{
+              position: 'relative',
+              overflow: 'hidden',
+              margin: '0',
+              fontSize: '24px',
+              color: '#4a4a4a',
+              minWidth: '200px',
+              minHeight: '30px'
+            }}
+          >
+            {/* Original text */}
+            <h1 style={{
+              margin: '0',
+              fontSize: '24px',
+              color: '#4a4a4a',
+              transform: `translateX(${isPressed ? animationProgress * slideDistance : 0}%)`,
+              transition: allowTransition && !isPressed ? 'transform 0.2s ease' : 'none',
+              opacity: isPressed ? 1 - animationProgress * 0.3 : 1,
+              width: '100%',
+              whiteSpace: 'nowrap'
+            }}>
+              Sweep The Dungeons
+            </h1>
+
+            {/* New text sliding in */}
+            {isPressed && (
+              <h1 style={{
+                position: 'absolute',
+                top: '0',
+                left: '0',
+                margin: '0',
+                fontSize: '24px',
+                color: '#4a4a4a',
+                transform: `translateX(${-slideDistance + animationProgress * slideDistance}%)`,
+                opacity: animationProgress,
+                width: '100%',
+                whiteSpace: 'nowrap'
+              }}>
+                Sweep The Dungeons
+              </h1>
+            )}
+          </div>
+        </div>
+
+        {/* Help button */}
+        <div
+          title="Help"
+          onClick={(e) => {
+            e.stopPropagation()
+            setShowHelp(true)
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '12px 16px',
+            backgroundColor: '#e5e5e5',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            userSelect: 'none',
+            border: '3px solid transparent',
             fontSize: '24px',
             color: '#4a4a4a',
-            transform: `translateX(${-slideDistance + animationProgress * slideDistance}%)`,
-            opacity: animationProgress,
+            fontWeight: 'bold'
+          }}
+        >
+          ?
+        </div>
+      </div>
+
+      {/* Help Screen Overlay */}
+      {showHelp && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
             width: '100%',
-            whiteSpace: 'nowrap'
-          }}>
-            Sweep The Dungeons
-          </h1>
-        )}
-      </div>
-      </div>
-    </div>
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={() => setShowHelp(false)}
+        >
+          <div
+            style={{
+              backgroundColor: '#2d3748',
+              borderRadius: '8px',
+              padding: '30px',
+              border: '2px solid #4a5568',
+              maxWidth: '600px',
+              width: '90%',
+              maxHeight: '80%',
+              overflow: 'auto',
+              position: 'relative'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowHelp(false)}
+              style={{
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                width: '30px',
+                height: '30px',
+                backgroundColor: '#4a5568',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '18px',
+                fontWeight: 'bold'
+              }}
+            >
+              ✕
+            </button>
+
+            <h2 style={{
+              color: '#e2e8f0',
+              marginBottom: '20px',
+              fontSize: '24px',
+              fontWeight: 'bold'
+            }}>
+              Help
+            </h2>
+
+            <div style={{
+              color: '#e2e8f0',
+              lineHeight: '1.6',
+              whiteSpace: 'pre-wrap',
+              fontFamily: 'monospace'
+            }}>
+              {helpText}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

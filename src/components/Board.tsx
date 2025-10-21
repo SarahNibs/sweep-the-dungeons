@@ -2,7 +2,7 @@ import { Board as BoardType, Tile as TileType, Position } from '../types'
 import { Tile } from './Tile'
 import { positionToKey } from '../game/boardSystem'
 import { useGameStore } from '../store'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface BoardProps {
   board: BoardType
@@ -11,8 +11,19 @@ interface BoardProps {
 }
 
 export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
-  const { rivalAnimation, trystAnimation, selectedCardName, pendingCardEffect, hand } = useGameStore()
+  const { rivalAnimation, trystAnimation, selectedCardName, pendingCardEffect, hand, adjacencyPatternAnimation, clearAdjacencyPatternAnimation } = useGameStore()
   const [areaHoverCenter, setAreaHoverCenter] = useState<Position | null>(null)
+
+  // Clear adjacency pattern animation after 1 second
+  useEffect(() => {
+    if (adjacencyPatternAnimation?.isActive) {
+      const timeout = setTimeout(() => {
+        clearAdjacencyPatternAnimation()
+      }, 1000)
+
+      return () => clearTimeout(timeout)
+    }
+  }, [adjacencyPatternAnimation, clearAdjacencyPatternAnimation])
   
   const isBrushTargeting = selectedCardName === 'Brush' && pendingCardEffect?.type === 'brush'
   const isSweepTargeting = selectedCardName === 'Sweep' && pendingCardEffect?.type === 'sweep'

@@ -43,6 +43,7 @@ function App() {
     activeStatusEffects,
     annotationButtons,
     maskingState,
+    napState,
     playCard,
     endTurn,
     resetGame,
@@ -64,6 +65,7 @@ function App() {
     getAllCardsInCollection,
     viewPile,
     closePileView,
+    selectCardForNap,
     debugWinLevel,
     debugGiveRelic,
     debugGiveCard,
@@ -337,6 +339,7 @@ function App() {
         <RelicSelectionScreen
           relicOptions={relicOptions}
           onRelicSelect={selectRelic}
+          currentDeck={getAllCardsInCollection()}
         />
       )}
 
@@ -493,6 +496,8 @@ function App() {
           pileType={pileViewingType}
           cards={pileViewingType === 'deck' ? deck : pileViewingType === 'discard' ? discard : exhaust}
           onClose={closePileView}
+          onCardClick={napState ? selectCardForNap : undefined}
+          isNapMode={!!napState}
         />
       )}
 

@@ -31,6 +31,8 @@ export type CardEffect =
   | { type: 'emanation'; target: Position }
   | { type: 'masking'; targetCardId: string }
   | { type: 'brat'; target: Position }
+  | { type: 'snip_snip'; target: Position }
+  | { type: 'nap'; targetCardId: string }
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
@@ -73,9 +75,10 @@ export interface Tile {
   revealedBy: 'player' | 'rival' | null
   adjacencyCount: number | null
   annotations: TileAnnotation[]
-  specialTiles: Array<'extraDirty' | 'goblin' | 'destroyed' | 'lair'> // Can have multiple special properties
+  specialTiles: Array<'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine'> // Can have multiple special properties
   underwireProtected?: boolean // True if this mine was protected by Underwire
   rivalMineProtected?: boolean // True if this mine was protected by rival mine protection
+  cleanedOnce?: boolean // True if this tile has been cleaned once by Spritz or Sweep (second cleaning defuses surface mines)
 }
 
 export interface Board {
@@ -107,11 +110,11 @@ export interface LevelConfig {
     neutral: number
     mine: number
   }
-  unusedLocations: number[][]
+  unusedLocations: number[][] | number // Array of [x,y] coordinates or number of random tiles
   specialTiles: Array<{
-    type: 'extraDirty' | 'goblin' | 'lair'
+    type: 'extraDirty' | 'goblin' | 'lair' | 'surfaceMine'
     count: number
-    placement: 'random' | 'nonmine' | 'empty' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> } | number[][]
+    placement: 'random' | 'nonmine' | 'empty' | 'playerOrNeutral' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> } | number[][]
   }>
   specialBehaviors: {
     rivalNeverMines?: boolean
@@ -119,6 +122,7 @@ export interface LevelConfig {
     initialRivalReveal?: number
     rivalAI?: string  // AI type to use for this level (e.g., 'conservative', 'random', 'noguess')
     rivalMineProtection?: number // Number of mines the rival can reveal without ending the game (awards 5 copper each)
+    rivalPlacesMines?: number // Number of surface mines to place on random unrevealed non-rival tiles after each rival turn
   }
   aiConfig?: {
     aiType: string           // e.g., "noguess", "conservative", "reasoning"
@@ -162,8 +166,11 @@ export interface GameState {
   // Dual rival clue system: visible clues (shown as X) vs AI clues (hidden)
   rivalHiddenClues: ClueResult[] // AI-only clues for rival decision making (not shown to player)
   tingleAnimation: {
+    isActive: boolean
     targetTile: Position | null
     isEmphasized: boolean
+    tilesRemaining: Tile[]
+    currentTileIndex: number
   } | null
   rivalAnimation: {
     isActive: boolean
@@ -177,6 +184,11 @@ export interface GameState {
     revealsRemaining: Array<{ tile: Tile; revealer: 'player' | 'rival' }>
     currentRevealIndex: number
   } | null
+  adjacencyPatternAnimation: {
+    isActive: boolean
+    highlightedTiles: Position[]
+    color: 'green' | 'red'
+  } | null
   rambleActive: boolean // True if Ramble was played this turn
   ramblePriorityBoosts: number[] // Array of max boost values from Rambles played this turn (e.g., [2, 4] for basic + enhanced)
   // Currency and shop system
@@ -187,6 +199,7 @@ export interface GameState {
   
   // Underwire protection
   underwireProtection: { active: boolean; enhanced: boolean } | null // Mine protection status
+  underwireProtectionCount: number // Number of remaining underwire protections
   underwireUsedThisTurn: boolean // True if underwire protection was consumed this turn (for turn ending logic)
   horseRevealedNonPlayer: boolean // True if Horse card revealed non-player tiles (for turn ending logic)
   
@@ -212,7 +225,10 @@ export interface GameState {
     neutral: boolean // Whether neutral button is depressed
     mine: boolean   // Whether mine button is depressed
   }
-  
+
+  // Card processing guard (prevents race conditions from rapid clicking)
+  isProcessingCard: boolean // True while a card is being played/animated
+
   // Queued card draws (for Mop effect when cleaning by revealing dirty tiles)
   queuedCardDraws: number // Number of cards to draw at start of next turn
 
@@ -223,6 +239,12 @@ export interface GameState {
   maskingState: {
     maskingCardId: string  // ID of the Masking card being played
     enhanced: boolean      // Whether the Masking card is enhanced
+  } | null
+
+  // Nap card state (for selecting which card to retrieve from exhaust)
+  napState: {
+    napCardId: string  // ID of the Nap card being played
+    enhanced: boolean  // Whether the Nap card is enhanced
   } | null
 }
 

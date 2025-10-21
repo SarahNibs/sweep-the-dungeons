@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Card as CardType } from '../types'
 import { Card } from './Card'
+import { PileViewingScreen } from './PileViewingScreen'
 
 interface CardSelectionScreenProps {
   cards: CardType[]
@@ -9,7 +11,10 @@ interface CardSelectionScreenProps {
 }
 
 export function CardSelectionScreen({ cards, onCardSelect, onSkip, currentDeck }: CardSelectionScreenProps) {
+  const [viewingDeck, setViewingDeck] = useState(false)
+
   return (
+    <>
     <div style={{
       position: 'fixed',
       top: 0,
@@ -57,8 +62,8 @@ export function CardSelectionScreen({ cards, onCardSelect, onSkip, currentDeck }
         ))}
       </div>
 
-      {/* Skip button */}
-      <div style={{ marginBottom: '40px' }}>
+      {/* Skip button and View Deck button */}
+      <div style={{ marginBottom: '40px', display: 'flex', gap: '20px' }}>
         <button
           onClick={onSkip}
           style={{
@@ -80,6 +85,28 @@ export function CardSelectionScreen({ cards, onCardSelect, onSkip, currentDeck }
           }}
         >
           Skip
+        </button>
+        <button
+          onClick={() => setViewingDeck(true)}
+          style={{
+            padding: '12px 24px',
+            fontSize: '16px',
+            backgroundColor: '#0984e3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#74b9ff'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#0984e3'
+          }}
+        >
+          View Deck
         </button>
       </div>
 
@@ -146,5 +173,14 @@ export function CardSelectionScreen({ cards, onCardSelect, onSkip, currentDeck }
         </div>
       </div>
     </div>
+
+    {viewingDeck && (
+      <PileViewingScreen
+        pileType="deck"
+        cards={currentDeck}
+        onClose={() => setViewingDeck(false)}
+      />
+    )}
+    </>
   )
 }

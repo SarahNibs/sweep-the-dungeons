@@ -1,6 +1,6 @@
 import { GameState, Position } from '../../types'
 import { removeSpecialTile, cleanGoblin, hasSpecialTile } from '../boardSystem'
-import { triggerMopEffect } from '../relicSystem'
+import { triggerMopEffect, hasRelic } from '../relicSystem'
 
 export function executeSweepEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
   let currentBoard = state.board
@@ -56,7 +56,76 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
     board: currentBoard
   }
 
-  // Trigger Mop effect only for cleaned dirt tiles (not goblins)
+  // Third pass: handle surface mines based on cleaning state
+  let copperFromDefusing = 0
+  let surfaceMinesDefused = 0
+  const hasMop = hasRelic(finalState, 'Mop')
+
+  for (let dx = -range; dx <= range; dx++) {
+    for (let dy = -range; dy <= range; dy++) {
+      const x = target.x + dx
+      const y = target.y + dy
+      const key = `${x},${y}`
+      const tile = finalState.board.tiles.get(key)
+
+      if (tile && hasSpecialTile(tile, 'surfaceMine')) {
+        let shouldDefuse = false
+        const newTiles = new Map(finalState.board.tiles)
+        let currentTile = tile
+
+        // With Mop: always defuse
+        if (hasMop) {
+          console.log(`💣 SWEEP + MOP: Defusing surface mine at (${x}, ${y})`)
+          shouldDefuse = true
+        }
+        // Second cleaning (already cleaned once by Spritz or Sweep): defuse
+        else if (currentTile.cleanedOnce) {
+          console.log(`💣 SWEEP (2nd cleaning): Defusing surface mine at (${x}, ${y})`)
+          shouldDefuse = true
+        }
+        // First cleaning without Mop: mark as cleanedOnce
+        else {
+          console.log(`💣 SWEEP (1st cleaning): Marking surface mine at (${x}, ${y}) as cleanedOnce`)
+          currentTile = { ...currentTile, cleanedOnce: true }
+          newTiles.set(key, currentTile)
+          finalState = {
+            ...finalState,
+            board: {
+              ...finalState.board,
+              tiles: newTiles
+            }
+          }
+        }
+
+        if (shouldDefuse) {
+          const defusedTile = removeSpecialTile(currentTile, 'surfaceMine')
+          newTiles.set(key, defusedTile)
+          finalState = {
+            ...finalState,
+            board: {
+              ...finalState.board,
+              tiles: newTiles
+            }
+          }
+          copperFromDefusing += 3
+          surfaceMinesDefused++
+        }
+      }
+    }
+  }
+
+  if (surfaceMinesDefused > 0) {
+    finalState = {
+      ...finalState,
+      copper: finalState.copper + copperFromDefusing
+    }
+    console.log(`💣 SWEEP: Defused ${surfaceMinesDefused} surface mines, +${copperFromDefusing} copper`)
+
+    // Count defused mines as cleaning for Mop effect (card draw)
+    tilesCleanedCount += surfaceMinesDefused
+  }
+
+  // Trigger Mop effect for cleaned dirt tiles + defused surface mines
   finalState = triggerMopEffect(finalState, tilesCleanedCount)
 
   return finalState

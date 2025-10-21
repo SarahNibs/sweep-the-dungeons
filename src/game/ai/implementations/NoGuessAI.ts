@@ -2,6 +2,7 @@ import { RivalAI, AIContext } from '../AITypes'
 import { GameState, Tile, ClueResult, Position } from '../../../types'
 import { calculateTilePriorities } from '../utils/priorityScoring'
 import { logAIPriorityAnalysis } from '../utils/aiCommon'
+import { hasSpecialTile } from '../../boardSystem'
 
 /**
  * NoGuessAI - The current default AI implementation
@@ -31,8 +32,14 @@ export class NoGuessAI implements RivalAI {
 
     // Return ordered list, stopping when we would reveal a non-rival tile
     // Skip mines if rivalNeverMines is enabled
+    // Skip surface mines (AI never reveals them)
     const tilesToReveal: Tile[] = []
     for (const item of tilesWithPriority) {
+      // Skip surface mine tiles (AI never reveals them)
+      if (hasSpecialTile(item.tile, 'surfaceMine')) {
+        continue
+      }
+
       // Skip mine tiles if rivalNeverMines is enabled
       if (rivalNeverMines && item.tile.owner === 'mine') {
         continue

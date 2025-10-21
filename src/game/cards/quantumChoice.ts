@@ -34,8 +34,8 @@ export function executeQuantumEffect(state: GameState, targets: Position[]): Gam
   // If multiple tiles have same safety, choose randomly
   const chosenTile = safestTiles[Math.floor(Math.random() * safestTiles.length)]
   
-  // Reveal the chosen tile using the shared reveal function that includes relic effects
-  const stateAfterReveal = revealTileWithRelicEffects(state, chosenTile.pos, 'player')
+  // Reveal the chosen tile (uncontrollable - game chooses the safest tile)
+  const stateAfterReveal = revealTileWithRelicEffects(state, chosenTile.pos, 'player', false)
   
   // Add annotations to the non-revealed tiles
   const nonRevealedTiles = validTiles.filter(({ pos }) => 

@@ -21,17 +21,18 @@ const getClueHoverText = (clueResult: ClueResult): string => {
   } else if (clueResult.cardType === 'stretch_clue') {
     return clueResult.enhanced ? 'Vague+' : 'Vague'
   } else if (clueResult.cardType === 'sarcastic_orders') {
-    const antiClueText = clueResult.isAntiClue ? " (DON'T REVEAL)" : ''
+    const antiClueText = clueResult.isAntiClue ? " (CLUED *AGAINST*)" : ''
     return (clueResult.enhanced ? 'Sarcastic+' : 'Sarcastic') + antiClueText
   }
   return 'Rival Clue'
 }
 
 export function Tile({ tile, onClick, isTargeting = false, isSelected = false, isEnemyHighlighted = false, isTrystHighlighted = false, isBrushHighlighted = false, onMouseEnter, onMouseLeave }: TileProps) {
-  const { 
-    hoveredClueId, 
-    setHoveredClueId, 
+  const {
+    hoveredClueId,
+    setHoveredClueId,
     tingleAnimation,
+    adjacencyPatternAnimation,
     useDefaultAnnotations,
     enabledOwnerPossibilities,
     setUseDefaultAnnotations,
@@ -66,11 +67,23 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
   
   // Check if this tile should be emphasized due to Tingle animation
   const isTingleEmphasized = () => {
-    return tingleAnimation && 
+    return tingleAnimation &&
+           tingleAnimation.isActive &&
            tingleAnimation.targetTile &&
            tingleAnimation.targetTile.x === tile.position.x &&
            tingleAnimation.targetTile.y === tile.position.y &&
            tingleAnimation.isEmphasized
+  }
+
+  // Check if this tile should be highlighted due to adjacency pattern animation
+  const isAdjacencyHighlighted = () => {
+    if (!adjacencyPatternAnimation || !adjacencyPatternAnimation.isActive) return null
+
+    const isHighlighted = adjacencyPatternAnimation.highlightedTiles.some(
+      pos => pos.x === tile.position.x && pos.y === tile.position.y
+    )
+
+    return isHighlighted ? adjacencyPatternAnimation.color : null
   }
   
   const handleClick = () => {
@@ -711,6 +724,27 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           </div>
         )
       }
+
+      // Add surface mine icon for surface mine tiles
+      if (tile.specialTiles.includes('surfaceMine')) {
+        elements.push(
+          <div
+            key="surface-mine-icon"
+            title="Surface Mine: Explodes when revealed or hit by Emanation"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              right: '4px',
+              transform: 'translateY(-50%)',
+              fontSize: '16px',
+              pointerEvents: 'none',
+              zIndex: 999
+            }}
+          >
+            💣
+          </div>
+        )
+      }
       } // End of non-adjacency annotations for unrevealed tiles
 
     // Render destroyed tile explosion (shown for both revealed and unrevealed)
@@ -969,12 +1003,14 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         width: '56px',
         height: '56px',
         backgroundColor: getTileColor(),
-        border: isSelected ? '3px solid #ffc107' : 
-                isTargeting ? '2px solid #007bff' : 
+        border: isSelected ? '3px solid #ffc107' :
+                isTargeting ? '2px solid #007bff' :
+                isAdjacencyHighlighted() === 'green' ? '3px solid #22c55e' :
+                isAdjacencyHighlighted() === 'red' ? '3px solid #dc3545' :
                 isEnemyHighlighted || isTingleEmphasized() ? '3px solid #dc3545' :
                 isTrystHighlighted ? '3px solid #9b59b6' :
                 isBrushHighlighted ? '3px solid #007bff' :
-                isClueHighlighted() ? '2px solid #40c057' : 
+                isClueHighlighted() ? '2px solid #40c057' :
                 '2px solid #333',
         borderRadius: '4px',
         display: 'flex',
@@ -987,13 +1023,16 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         transition: 'all 0.2s ease',
         userSelect: 'none',
         transform: (isHovered && !tile.revealed) ? 'scale(1.05)' : 'scale(1)',
-        boxShadow: isEnemyHighlighted || isTingleEmphasized() ? '0 0 12px rgba(220, 53, 69, 0.6)' :
+        boxShadow: isAdjacencyHighlighted() === 'green' ? '0 0 12px rgba(34, 197, 94, 0.6)' :
+                   isAdjacencyHighlighted() === 'red' ? '0 0 12px rgba(220, 53, 69, 0.6)' :
+                   isEnemyHighlighted || isTingleEmphasized() ? '0 0 12px rgba(220, 53, 69, 0.6)' :
                    isTrystHighlighted ? '0 0 12px rgba(155, 89, 182, 0.6)' :
                    isBrushHighlighted ? '0 0 12px rgba(0, 123, 255, 0.8)' :
                    isClueHighlighted() ? '0 0 8px rgba(64, 192, 87, 0.4)' :
-                   (isHovered && !tile.revealed) ? '0 2px 4px rgba(0,0,0,0.3)' : 
+                   (isHovered && !tile.revealed) ? '0 2px 4px rgba(0,0,0,0.3)' :
                    'none',
-        animation: isEnemyHighlighted || isTingleEmphasized() ? 'pulse 1s ease-in-out infinite' : 
+        animation: isAdjacencyHighlighted() ? 'pulse 1s ease-in-out infinite' :
+                   isEnemyHighlighted || isTingleEmphasized() ? 'pulse 1s ease-in-out infinite' :
                    isTrystHighlighted ? 'pulse 1s ease-in-out infinite' :
                    'none'
       }}

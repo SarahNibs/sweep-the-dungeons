@@ -9,11 +9,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Technology Stack
 
 - **Frontend**: React 18+ with TypeScript
-- **State Management**: Zustand 
+- **State Management**: Zustand
 - **Styling**: Tailwind CSS
 - **Animation**: Framer Motion
 - **Build Tool**: Vite
 - **Deployment**: Static build for itch.io hosting
+
+### CRITICAL: Module Imports
+
+**⚠️ NEVER USE `require()` - This project uses ES modules exclusively**
+
+This is a Vite + TypeScript project that runs in the browser. Using CommonJS `require()` will cause runtime errors:
+- ❌ `const { foo } = require('./bar')` - WRONG
+- ✅ `import { foo } from './bar'` - CORRECT
+
+**Always use ES6 import syntax at the top of files:**
+- Named imports: `import { foo, bar } from './module'`
+- Default imports: `import Foo from './module'`
+- Type imports: `import type { FooType } from './types'`
+
+If you need to import something dynamically within a function, use dynamic imports:
+- ✅ `const module = await import('./module')`
+- ✅ `import('./module').then(({ foo }) => { ... })`
+
+This has been a recurring issue across multiple sessions. **Never use require() under any circumstances.**
 
 ## Architecture Principles
 

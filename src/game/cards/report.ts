@@ -77,3 +77,65 @@ export function executeTargetedReportEffect(state: GameState, targetPosition: Po
     }
   }
 }
+
+export function executeTingleEffect(state: GameState, targetPosition: Position, isEnhanced: boolean): GameState {
+  // Get the target tile to determine its owner
+  const targetTile = getTile(state.board, targetPosition)
+
+  if (!targetTile || targetTile.revealed || targetTile.owner === 'empty') {
+    return state
+  }
+
+  // Add owner annotation based on the tile's actual owner
+  const ownerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>([targetTile.owner])
+  let stateWithOwnerAnnotation = addOwnerSubsetAnnotation(state, targetPosition, ownerSubset)
+
+  // For enhanced Tingle, also add player adjacency information
+  if (!isEnhanced) {
+    return stateWithOwnerAnnotation
+  }
+
+  const annotatedTile = getTile(stateWithOwnerAnnotation.board, targetPosition)
+  if (!annotatedTile || annotatedTile.revealed) {
+    return stateWithOwnerAnnotation
+  }
+
+  // Get all neighbor positions of the target tile
+  const neighborPositions = getNeighbors(stateWithOwnerAnnotation.board, targetPosition)
+
+  // Count adjacent player tiles
+  let playerCount = 0
+  for (const neighborPos of neighborPositions) {
+    const neighborTile = getTile(stateWithOwnerAnnotation.board, neighborPos)
+    if (neighborTile && neighborTile.owner === 'player') {
+      playerCount++
+    }
+  }
+
+  // Remove any existing adjacency info annotation
+  const existingAnnotations = annotatedTile.annotations.filter(a => a.type !== 'adjacency_info')
+
+  // Add the new adjacency info annotation
+  const newAnnotations = [
+    ...existingAnnotations,
+    {
+      type: 'adjacency_info' as const,
+      adjacencyInfo: { player: playerCount }
+    }
+  ]
+
+  // Update the tile with the new annotation
+  const newTiles = new Map(stateWithOwnerAnnotation.board.tiles)
+  newTiles.set(`${targetPosition.x},${targetPosition.y}`, {
+    ...annotatedTile,
+    annotations: newAnnotations
+  })
+
+  return {
+    ...stateWithOwnerAnnotation,
+    board: {
+      ...stateWithOwnerAnnotation.board,
+      tiles: newTiles
+    }
+  }
+}

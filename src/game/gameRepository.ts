@@ -38,7 +38,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   'Vague Instructions': {
     name: 'Vague Instructions',
     cost: 2,
-    category: 'starter',
+    category: 'reward',
     description: {
       base: 'Weak evidence of ~five of your tiles',
       enhanced: 'Evidence of five of your tiles'
@@ -48,10 +48,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   'Sarcastic Instructions': {
     name: 'Sarcastic Instructions',
     cost: 2,
-    category: 'starter',
+    category: 'reward',
     description: {
       base: 'Evidence of ~two of your tiles vs ~one not yours, or of lots of your tiles AROUND 1-2 not yours',
-      enhanced: 'Evidence of ~two of your tiles vs ~one not yours, or of lots of your tiles AROUND 1-2 not yours. Gain 1 energy if any other Instructions card has been played this level.'
+      enhanced: 'Evidence of ~two of your tiles vs ~one not yours, or of lots of your tiles AROUND 1-2 not yours. Gain 1 energy if any other Instructions card has been played this floor.'
     },
     icon: '😏'
   },
@@ -60,8 +60,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'starter',
     description: {
-      base: 'Spritz a tile to see if it\'s safe or dangerous',
-      enhanced: 'Spritz a tile to see if it\'s safe or dangerous. Also spritz a random adjacent tile.'
+      base: 'Spritz a tile to clean it and see if it\'s safe or dangerous',
+      enhanced: 'Spritz a tile to clean it and see if it\'s safe or dangerous. Also spritz a random adjacent tile.'
     },
     icon: '💦'
   },
@@ -70,8 +70,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'starter',
     description: {
-      base: 'Sense adjacency info for a random rival tile',
-      enhanced: 'Sense adjacency info for two random rival tiles'
+      base: 'Annotate a random rival or mine tile with its owner',
+      enhanced: 'Annotate a random rival or mine tile with its owner, and sense player adjacency info for it'
     },
     icon: '😳'
   },
@@ -81,7 +81,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     category: 'starter',
     description: {
       base: 'Reveal the safer of two tiles',
-      enhanced: 'Reveal the safer of three tiles'
+      enhanced: 'Reveal the safest of three tiles'
     },
     icon: '😴'
   },
@@ -287,21 +287,21 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   'Dust Bunny': {
     name: 'Dust Bunny',
     description: 'animal companion who helps you clean',
-    hoverText: 'Dust Bunny: when you start a new level, you immediately reveal one of your non-dirty tiles at random, getting adjacency info just as if you revealed it normally',
+    hoverText: 'Dust Bunny: when you start a new floor, you immediately reveal one of your non-dirty tiles at random, getting adjacency info just as if you revealed it normally',
     category: 'common',
     icon: '🐰'
   },
   'Frilly Dress': {
     name: 'Frilly Dress',
     description: 'your counterpart sometimes watches you clean rather than cleaning themselves',
-    hoverText: 'Frilly Dress: revealing neutral tiles on your first turn of any level does not end your turn',
+    hoverText: 'Frilly Dress: revealing neutral tiles on your first turn of any floor does not end your turn',
     category: 'common',
     icon: '👗'
   },
   'Busy Canary': {
     name: 'Busy Canary',
-    description: 'industrious bird who scans for mines at level start',
-    hoverText: 'Busy Canary: at the beginning of every level, randomly scan up to 2 areas for mines',
+    description: 'industrious bird who scans for mines at floor start',
+    hoverText: 'Busy Canary: at the beginning of every floor, randomly scan up to 2 areas for mines',
     category: 'common',
     icon: '🐦'
   },
@@ -336,21 +336,21 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   'Tiara': {
     name: 'Tiara',
     description: 'now *you* are the princess',
-    hoverText: 'Tiara: receive double the copper after each level',
+    hoverText: 'Tiara: receive double the copper after each floor',
     category: 'rare',
     icon: '👑'
   },
   'Intercepted Communications': {
     name: 'Intercepted Communications',
     description: 'intel from rival communications',
-    hoverText: 'Intercepted Communications: at the beginning of each level, one of the rival\'s tiles is revealed at random, giving info about adjacent player tiles',
+    hoverText: 'Intercepted Communications: at the beginning of each floor, one of the rival\'s tiles is revealed at random, giving info about adjacent player tiles',
     category: 'common',
     icon: '📝'
   },
   'Handbag': {
     name: 'Handbag',
     description: 'carry extra supplies for the start of battle',
-    hoverText: 'Handbag: draw 2 additional cards at the start of your first turn each level',
+    hoverText: 'Handbag: draw 2 additional cards at the start of your first turn each floor',
     category: 'common',
     icon: '👜'
   },
@@ -421,10 +421,10 @@ export function getStarterCards(): Card[] {
   return [
     // One copy of Imperious Instructions
     createCard('Imperious Instructions'),
-    // One copy of Sarcastic Instructions
-    createCard('Sarcastic Instructions'),
-    // One copy of Vague Instructions
-    createCard('Vague Instructions'),
+    // Zero copies of Sarcastic Instructions
+    // createCard('Sarcastic Instructions'),
+    // Zero copies of Vague Instructions
+    // createCard('Vague Instructions'),
     // Three copies of Spritz
     createCard('Spritz'),
     createCard('Spritz'),
@@ -433,7 +433,9 @@ export function getStarterCards(): Card[] {
     createCard('Tingle'),
     createCard('Tingle'),
     createCard('Tingle'),
-    // One copy of Easiest
+    // Three copies of Easiest
+    createCard('Easiest'),
+    createCard('Easiest'),
     createCard('Easiest')
   ]
 }
@@ -506,7 +508,7 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         type: 'manhattan_adjacency',
         icon: '🔢',
         name: 'Manhattan Distance 2',
-        description: 'This level uses Manhattan distance (4-way) adjacency rules at distance 2 instead of standard 8-way'
+        description: 'This floor uses Manhattan distance (4-way) adjacency rules at distance 2 instead of standard 8-way'
       }
     case 'horse_discount':
       return {
@@ -514,7 +516,7 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         type: 'horse_discount',
         icon: '🐴',
         name: 'Horse Discount',
-        description: 'Horse cards cost 0 energy for the rest of this level'
+        description: 'Horse cards cost 0 energy for the rest of this floor'
       }
     case 'rival_never_mines':
       return {
@@ -522,7 +524,15 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         type: 'rival_never_mines',
         icon: '🚫',
         name: 'Rival Mine Avoidance',
-        description: 'Your rival will never reveal mine tiles this level'
+        description: 'Your rival will never reveal mine tiles this floor'
+      }
+    case 'grace':
+      return {
+        id: baseId,
+        type: 'grace',
+        icon: '🤞',
+        name: 'Grace',
+        description: 'Prevents losing to one mine reveal this floor (adds Evidence to hand if triggered)'
       }
     default:
       throw new Error(`Unknown status effect type: ${type}`)

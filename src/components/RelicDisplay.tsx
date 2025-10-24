@@ -1,5 +1,6 @@
 import { Relic } from '../types'
 import { getRelicIcon } from '../game/gameRepository'
+import { Tooltip } from './Tooltip'
 
 interface RelicDisplayProps {
   relics: Relic[]
@@ -27,24 +28,24 @@ export function RelicDisplay({ relics }: RelicDisplayProps) {
       </div>
 
       {relics.map((relic, index) => (
-        <div
-          key={index}
-          style={{
-            width: '40px',
-            height: '40px',
-            border: '2px solid #74b9ff',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '20px',
-            backgroundColor: 'rgba(116, 185, 255, 0.1)',
-            cursor: 'pointer'
-          }}
-          title={relic.hoverText}
-        >
-          {getRelicIcon(relic.name)}
-        </div>
+        <Tooltip key={index} text={relic.hoverText} style={{ display: 'inline-block' }}>
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              border: '2px solid #74b9ff',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '20px',
+              backgroundColor: 'rgba(116, 185, 255, 0.1)',
+              cursor: 'pointer'
+            }}
+          >
+            {getRelicIcon(relic.name)}
+          </div>
+        </Tooltip>
       ))}
     </div>
   )

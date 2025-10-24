@@ -1,6 +1,7 @@
 import { Card as CardType } from '../types'
 import { getCardIcon, getCardDescription } from '../game/gameRepository'
 import { useGameStore } from '../store'
+import { Tooltip } from './Tooltip'
 
 // Energy pips display
 const renderEnergyPips = (cost: number, isPlayable: boolean) => {
@@ -79,41 +80,38 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
   const zIndex = isHovered ? baseZIndex + 100 : baseZIndex + index
   
   return (
-    <div
-      onClick={handleClick}
-      title={getCardDescription(card)}
-      style={{
-        position: 'relative',
-        width: '80px',
-        height: '100px',
-        border: `2px solid ${isPlayable ? '#5a5a5a' : '#8a8a8a'}`,
-        borderRadius: '6px',
-        padding: '4px',
-        marginLeft: index === 0 ? '0px' : `-${cardOverlap}px`,
-        backgroundColor: isPlayable ? '#e8e8e8' : '#b8b8b8',
-        cursor: isPlayable ? 'pointer' : 'not-allowed',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        transition: 'transform 0.2s, box-shadow 0.2s, z-index 0.1s',
-        zIndex: zIndex,
-        transform: isHovered ? 'translateY(-10px) scale(1.05)' : 'translateY(0) scale(1)'
-      }}
-      onMouseEnter={() => {
-        onHover?.(true)
-      }}
-      onMouseLeave={() => {
-        onHover?.(false)
-      }}
-    >
-      {/* Energy cost pips - positioned in top-left corner */}
+    <Tooltip text={getCardDescription(card)} style={{ display: 'inline-block' }}>
       <div
-        title={`Cost ${effectiveCost}`}
+        onClick={handleClick}
         style={{
-          position: 'absolute',
-          top: '4px',
-          left: '4px',
+          position: 'relative',
+          width: '80px',
+          height: '100px',
+          border: `2px solid ${isPlayable ? '#5a5a5a' : '#8a8a8a'}`,
+          borderRadius: '6px',
+          padding: '4px',
+          marginLeft: index === 0 ? '0px' : `-${cardOverlap}px`,
+          backgroundColor: isPlayable ? '#e8e8e8' : '#b8b8b8',
+          cursor: isPlayable ? 'pointer' : 'not-allowed',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          transition: 'transform 0.2s, box-shadow 0.2s, z-index 0.1s',
+          zIndex: zIndex,
+          transform: isHovered ? 'translateY(-10px) scale(1.05)' : 'translateY(0) scale(1)'
+        }}
+        onMouseEnter={() => {
+          onHover?.(true)
+        }}
+        onMouseLeave={() => {
+          onHover?.(false)
+        }}
+      >
+        {/* Energy cost pips - positioned in top-left corner */}
+        <Tooltip text={`Cost ${effectiveCost}`} position="right" style={{ position: 'absolute', top: '4px', left: '4px', display: 'inline-block' }}>
+          <div
+            style={{
           zIndex: 1,
           ...(showUpgradeIndicator === 'cost_reduction' && {
             backgroundColor: '#00b894',
@@ -125,7 +123,8 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
       >
         {renderEnergyPips(effectiveCost, isPlayable)}
       </div>
-      
+        </Tooltip>
+
       {/* Enhanced effect indicator - positioned in bottom-left corner */}
       {(showUpgradeIndicator === 'enhance_effect' || card.enhanced) && (
         <div style={{
@@ -177,5 +176,6 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
         </div>
       </div>
     </div>
+    </Tooltip>
   )
 }

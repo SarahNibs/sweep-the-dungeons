@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { GameStatusInfo } from '../types'
 import { helpText } from '../helpText'
+import { Tooltip } from './Tooltip'
 
 // Inject CSS for pulse animation
 const pulseAnimation = `
@@ -129,26 +130,26 @@ export function GameStats({ onResetGame, gameStatus }: GameStatsProps) {
           alignItems: 'center'
         }}
       >
-        <div
-          title="Click and hold for new game"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '16px',
-            padding: '12px 20px',
-            backgroundColor: '#e5e5e5',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            userSelect: 'none',
-            border: isGameEnded ? `3px solid ${getPulseBorderColor()}` : '3px solid transparent',
-            animation: isGameEnded ? 'pulseGlow 1.5s ease-in-out infinite' : 'none',
-            color: getPulseBorderColor()
-          }}
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
-        >
+        <Tooltip text="Click and hold for new game" style={{ display: 'inline-block' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px',
+              padding: '12px 20px',
+              backgroundColor: '#e5e5e5',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              userSelect: 'none',
+              border: isGameEnded ? `3px solid ${getPulseBorderColor()}` : '3px solid transparent',
+              animation: isGameEnded ? 'pulseGlow 1.5s ease-in-out infinite' : 'none',
+              color: getPulseBorderColor()
+            }}
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+          >
           <div
             style={{
               position: 'relative',
@@ -193,11 +194,12 @@ export function GameStats({ onResetGame, gameStatus }: GameStatsProps) {
             )}
           </div>
         </div>
+        </Tooltip>
 
         {/* Help button */}
-        <div
-          title="Help"
-          onClick={(e) => {
+        <Tooltip text="Help" style={{ display: 'inline-block' }}>
+          <div
+            onClick={(e) => {
             e.stopPropagation()
             setShowHelp(true)
           }}
@@ -218,6 +220,7 @@ export function GameStats({ onResetGame, gameStatus }: GameStatsProps) {
         >
           ?
         </div>
+        </Tooltip>
       </div>
 
       {/* Help Screen Overlay */}

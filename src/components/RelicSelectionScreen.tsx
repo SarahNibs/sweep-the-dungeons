@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { RelicOption, Relic, Card as CardType } from '../types'
 import { getRelicIcon } from '../game/gameRepository'
 import { PileViewingScreen } from './PileViewingScreen'
+import { Tooltip } from './Tooltip'
 
 interface RelicSelectionScreenProps {
   relicOptions: RelicOption[]
@@ -73,34 +74,33 @@ export function RelicSelectionScreen({ relicOptions, onRelicSelect, currentDeck 
         flexWrap: 'wrap'
       }}>
         {relicOptions.map((option, index) => (
-          <div 
-            key={index} 
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '15px',
-              cursor: 'pointer',
-              padding: '30px',
-              borderRadius: '12px',
-              backgroundColor: 'rgba(0, 0, 0, 0.3)',
-              border: '2px solid transparent',
-              transition: 'all 0.2s',
-              minHeight: '300px',
-              width: '250px',
-              textAlign: 'center'
-            }}
-            title={option.relic.hoverText}
-            onClick={() => onRelicSelect(option.relic)}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#74b9ff'
-              e.currentTarget.style.backgroundColor = 'rgba(116, 185, 255, 0.1)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'transparent'
-              e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.3)'
-            }}
-          >
+          <Tooltip key={index} text={option.relic.hoverText} style={{ display: 'inline-block' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '15px',
+                cursor: 'pointer',
+                padding: '30px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                border: '2px solid transparent',
+                transition: 'all 0.2s',
+                minHeight: '300px',
+                width: '250px',
+                textAlign: 'center'
+              }}
+              onClick={() => onRelicSelect(option.relic)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#74b9ff'
+                e.currentTarget.style.backgroundColor = 'rgba(116, 185, 255, 0.1)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'transparent'
+                e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.3)'
+              }}
+            >
             {/* Relic Icon */}
             <div style={{
               width: '120px',
@@ -137,6 +137,7 @@ export function RelicSelectionScreen({ relicOptions, onRelicSelect, currentDeck 
               {option.relic.description}
             </div>
           </div>
+          </Tooltip>
         ))}
       </div>
 

@@ -11,6 +11,7 @@ import { ShopSelectionScreen } from './components/ShopSelectionScreen'
 import { PileViewingScreen } from './components/PileViewingScreen'
 import { TileCountsVertical } from './components/TileCountsVertical'
 import { StatusEffects } from './components/StatusEffects'
+import { Tooltip } from './components/Tooltip'
 import { useEffect, useState, useMemo } from 'react'
 
 // Helper to get all card names from the repository
@@ -164,47 +165,48 @@ function App() {
             marginTop: '20px' // Align with board grid (board has 20px internal padding)
           }}>
             {/* Copper counter at top - using original styling */}
-            <div 
-              style={{
-                width: '32px',
-                height: '32px',
-                backgroundColor: '#b8860b',
-                color: 'white',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                border: '2px solid #333',
-                margin: '0 auto'
-              }}
-              title={`Copper: ${copper}`}
-            >
-              {copper}
-            </div>
-            
-            {/* Relics vertically */}
-            {relics.length > 0 && relics.map((relic, index) => (
+            <Tooltip text={`Copper: ${copper}`} style={{ display: 'block', margin: '0 auto' }}>
               <div
-                key={index}
                 style={{
-                  width: '50px',
-                  height: '50px',
-                  border: '2px solid #74b9ff',
+                  width: '32px',
+                  height: '32px',
+                  backgroundColor: '#b8860b',
+                  color: 'white',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '24px',
-                  backgroundColor: 'rgba(116, 185, 255, 0.1)',
-                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  border: '2px solid #333',
                   margin: '0 auto'
                 }}
-                title={relic.hoverText}
               >
-                {getRelicIconFromRepo(relic.name)}
+                {copper}
               </div>
+            </Tooltip>
+            
+            {/* Relics vertically */}
+            {relics.length > 0 && relics.map((relic, index) => (
+              <Tooltip key={index} text={relic.hoverText} style={{ display: 'block', margin: '0 auto' }}>
+                <div
+                  style={{
+                    width: '50px',
+                    height: '50px',
+                    border: '2px solid #74b9ff',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    backgroundColor: 'rgba(116, 185, 255, 0.1)',
+                    cursor: 'pointer',
+                    margin: '0 auto'
+                  }}
+                >
+                  {getRelicIconFromRepo(relic.name)}
+                </div>
+              </Tooltip>
             ))}
           </div>
           
@@ -235,64 +237,67 @@ function App() {
             {/* Debug Buttons at bottom */}
             {gameStatus.status === 'playing' && (
               <>
-                <div
-                  onClick={debugWinLevel}
-                  style={{
-                    width: '30px',
-                    height: '30px',
-                    backgroundColor: '#28a745',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    fontSize: '16px',
-                    color: 'white',
-                    marginBottom: '5px'
-                  }}
-                  title="Debug: Instantly win the current level"
-                >
-                  ▶
-                </div>
+                <Tooltip text="Debug: Instantly win the current floor" style={{ display: 'block' }}>
+                  <div
+                    onClick={debugWinLevel}
+                    style={{
+                      width: '30px',
+                      height: '30px',
+                      backgroundColor: '#28a745',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      color: 'white',
+                      marginBottom: '5px'
+                    }}
+                  >
+                    ▶
+                  </div>
+                </Tooltip>
                 
-                <div
-                  onClick={() => setShowRelicDebug(true)}
-                  style={{
-                    width: '30px',
-                    height: '30px',
-                    backgroundColor: '#6f42c1',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    fontSize: '16px',
-                    color: 'white',
-                    marginBottom: '5px'
-                  }}
-                  title="Debug: Give relic"
-                >
-                  ✨
-                </div>
-                
-                <div
-                  onClick={() => setShowCardDebug(true)}
-                  style={{
-                    width: '30px',
-                    height: '30px',
-                    backgroundColor: '#fd7e14',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    fontSize: '16px',
-                    color: 'white'
-                  }}
-                  title="Debug: Give card"
-                >
-                  🃏
-                </div>
+                <Tooltip text="Debug: Give relic" style={{ display: 'block' }}>
+                  <div
+                    onClick={() => setShowRelicDebug(true)}
+                    style={{
+                      width: '30px',
+                      height: '30px',
+                      backgroundColor: '#6f42c1',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      color: 'white',
+                      marginBottom: '5px'
+                    }}
+                  >
+                    ✨
+                  </div>
+                </Tooltip>
+
+                <Tooltip text="Debug: Give card" style={{ display: 'block' }}>
+                  <div
+                    onClick={() => setShowCardDebug(true)}
+                    style={{
+                      width: '30px',
+                      height: '30px',
+                      backgroundColor: '#fd7e14',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      color: 'white'
+                    }}
+                  >
+                    🃏
+                  </div>
+                </Tooltip>
               </>
             )}
           </div>

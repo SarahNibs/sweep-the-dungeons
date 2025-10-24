@@ -138,7 +138,7 @@ export function Hand({ cards, onCardClick, canPlayCard, deckCount, discardCount,
         gap: '12px'
       }}>
         {/* Discard widget */}
-        <Tooltip text={`Discard: ${discardCount} cards used this level (click to view)`}>
+        <Tooltip text={`Discard: ${discardCount} cards used this floor (click to view)`}>
           <div 
             style={{
               width: '28px',
@@ -160,7 +160,7 @@ export function Hand({ cards, onCardClick, canPlayCard, deckCount, discardCount,
         </Tooltip>
         
         {/* Exhaust widget */}
-        <Tooltip text={`Exhaust: ${exhaustCount} cards removed this level (click to view)`}>
+        <Tooltip text={`Exhaust: ${exhaustCount} cards removed this floor (click to view)`}>
           <div 
             style={{
               width: '28px',

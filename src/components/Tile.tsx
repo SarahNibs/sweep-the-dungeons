@@ -1,6 +1,7 @@
 import { Tile as TileType, ClueResult } from '../types'
 import { useGameStore } from '../store'
 import { useState, useEffect } from 'react'
+import { Tooltip } from './Tooltip'
 
 interface TileProps {
   tile: TileType
@@ -340,90 +341,81 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
             if (isEnemyClue) {
               // Enemy Xs: bottom-left, going up and right
               elements.push(
-                <div
-                  key={`pip-${clueResult.id}-${clueIndex}-${i}`}
-                  title={getClueHoverText(clueResult)}
-                  style={{
-                    position: 'absolute',
-                    bottom: `${2 + rowPosition * 6}px`,
-                    left: `${2 + i * 6}px`,
-                    color: '#000000',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
-                    transition: 'all 0.15s ease'
-                  }}
-                  onMouseEnter={() => {
-                    setHoveredClueId(clueResult.id)
-                  }}
-                  onMouseLeave={() => {
-                    setHoveredClueId(null)
-                  }}
-                >
-                  ×
-                </div>
+                <Tooltip key={`pip-${clueResult.id}-${clueIndex}-${i}`} text={getClueHoverText(clueResult)} style={{ position: 'absolute', bottom: `${2 + rowPosition * 6}px`, left: `${2 + i * 6}px` }}>
+                  <div
+                    style={{
+                      color: '#000000',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={() => {
+                      setHoveredClueId(clueResult.id)
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredClueId(null)
+                    }}
+                  >
+                    ×
+                  </div>
+                </Tooltip>
               )
             } else if (isAntiClue) {
               // Anti-clue (red) Xs: top-left, going down and right, RED color
               elements.push(
-                <div
-                  key={`pip-${clueResult.id}-${clueIndex}-${i}`}
-                  title={getClueHoverText(clueResult)}
-                  style={{
-                    position: 'absolute',
-                    top: `${2 + rowPosition * 6}px`,
-                    left: `${2 + i * 6}px`,
-                    width: '12px',
-                    height: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: isThisClueHovered ? '#dc2626' : '#991b1b',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
-                    transition: 'all 0.15s ease',
-                    textShadow: '0 0 2px rgba(0, 0, 0, 0.8)'
-                  }}
-                  onMouseEnter={() => {
-                    setHoveredClueId(clueResult.id)
-                  }}
-                  onMouseLeave={() => {
-                    setHoveredClueId(null)
-                  }}
-                >
-                  ×
-                </div>
+                <Tooltip key={`pip-${clueResult.id}-${clueIndex}-${i}`} text={getClueHoverText(clueResult)} style={{ position: 'absolute', top: `${2 + rowPosition * 6}px`, left: `${2 + i * 6}px` }}>
+                  <div
+                    style={{
+                      width: '12px',
+                      height: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: isThisClueHovered ? '#dc2626' : '#991b1b',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
+                      transition: 'all 0.15s ease',
+                      textShadow: '0 0 2px rgba(0, 0, 0, 0.8)'
+                    }}
+                    onMouseEnter={() => {
+                      setHoveredClueId(clueResult.id)
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredClueId(null)
+                    }}
+                  >
+                    ×
+                  </div>
+                </Tooltip>
               )
             } else {
               // Player pips (green): top-left, going down and right
               elements.push(
-                <div
-                  key={`pip-${clueResult.id}-${clueIndex}-${i}`}
-                  title={getClueHoverText(clueResult)}
-                  style={{
-                    position: 'absolute',
-                    top: `${2 + rowPosition * 6}px`,
-                    left: `${2 + i * 6}px`,
-                    width: '4px',
-                    height: '4px',
-                    borderRadius: '50%',
-                    backgroundColor: isThisClueHovered ? '#22c55e' : '#16a34a',
-                    border: '0.5px solid black',
-                    cursor: 'pointer',
-                    transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
-                    transition: 'all 0.15s ease',
-                    boxShadow: isThisClueHovered ? '0 1px 3px rgba(40, 167, 69, 0.5)' : 'none'
-                  }}
-                  onMouseEnter={() => {
-                    setHoveredClueId(clueResult.id)
-                  }}
-                  onMouseLeave={() => {
-                    setHoveredClueId(null)
-                  }}
-                />
+                <Tooltip key={`pip-${clueResult.id}-${clueIndex}-${i}`} text={getClueHoverText(clueResult)} style={{ position: 'absolute', top: `${2 + rowPosition * 6}px`, left: `${2 + i * 6}px` }}>
+                  <div
+                    style={{
+                      width: '4px',
+                      height: '4px',
+                      borderRadius: '50%',
+                      backgroundColor: isThisClueHovered ? '#22c55e' : '#16a34a',
+                      border: '0.5px solid black',
+                      cursor: 'pointer',
+                      transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isThisClueHovered ? '0 1px 3px rgba(40, 167, 69, 0.5)' : 'none'
+                    }}
+                    onMouseEnter={() => {
+                      setHoveredClueId(clueResult.id)
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredClueId(null)
+                    }}
+                  />
+                </Tooltip>
               )
             }
           }
@@ -440,13 +432,9 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           : { text: '!', color: '#dc3545', tooltip: 'Tile is either rival or mine' }
         
         elements.push(
-          <div
-            key="safety"
-            title={display.tooltip}
-            style={{
-              position: 'absolute',
-              top: '2px',
-              right: '2px',
+          <Tooltip key="safety" text={display.tooltip} style={{ position: 'absolute', top: '2px', right: '2px' }}>
+            <div
+              style={{
               width: '16px',
               height: '16px',
               backgroundColor: display.color,
@@ -462,34 +450,32 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           >
             {display.text}
           </div>
+          </Tooltip>
         )
       }
       
       // Legacy rival annotations - keeping for backward compatibility but Report now uses subset system
       if (rivalAnnotations.length > 0) {
         elements.push(
-          <div
-            key="rival"
-            title="Tile is rival's"
-            style={{
-              position: 'absolute',
-              bottom: '2px',
-              right: '18px', // Moved left to avoid conflict with subset annotations
-              width: '16px',
-              height: '16px',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '10px',
-              fontWeight: 'bold',
-              border: '1px solid black'
-            }}
-          >
-            E
-          </div>
+          <Tooltip key="rival" text="Tile is rival's" style={{ position: 'absolute', bottom: '2px', right: '18px' }}>
+            <div
+              style={{
+                width: '16px',
+                height: '16px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                fontWeight: 'bold',
+                border: '1px solid black'
+              }}
+            >
+              E
+            </div>
+          </Tooltip>
         )
       }
       
@@ -514,19 +500,16 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         // Render the squares that are included in the subset
         includedOwners.forEach(info => {
           elements.push(
-            <div
-              key={`subset-${info.owner}`}
-              title={tooltipText}
-              style={{
-                position: 'absolute',
-                bottom: `${2 + info.position.top}px`,
-                right: `${2 + info.position.left}px`,
-                width: '4px',
-                height: '4px',
-                backgroundColor: info.color,
-                border: '0.5px solid black'
-              }}
-            />
+            <Tooltip key={`subset-${info.owner}`} text={tooltipText} style={{ position: 'absolute', bottom: `${2 + info.position.top}px`, right: `${2 + info.position.left}px` }}>
+              <div
+                style={{
+                  width: '4px',
+                  height: '4px',
+                  backgroundColor: info.color,
+                  border: '0.5px solid black'
+                }}
+              />
+            </Tooltip>
           )
         })
       }
@@ -621,49 +604,43 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         ]
         
         const includedOwners = ownerInfo.filter(info => combinedPossibility.has(info.owner))
-        const tooltipText = includedOwners.length === 1 
-          ? `Could be ${includedOwners[0].name.toLowerCase()}`
+        const tooltipText = includedOwners.length === 1
+          ? `Could only be ${includedOwners[0].name.toLowerCase()}`
           : `Could be ${includedOwners.map(info => info.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ', or $1')}`
         
         if (includedOwners.length === 1) {
           // Single possibility: large colored square
           const info = includedOwners[0]
           elements.push(
-            <div
-              key={`combined-single`}
-              title={tooltipText}
-              style={{
-                position: 'absolute',
-                top: '2px',
-                right: '2px',
-                width: '12px',
-                height: '12px', 
-                backgroundColor: info.color,
-                borderRadius: '2px',
-                border: '1px solid black',
-                opacity: 0.9
-              }}
-            />
+            <Tooltip key={`combined-single`} text={tooltipText} style={{ position: 'absolute', top: '2px', right: '2px' }}>
+              <div
+                style={{
+                  width: '12px',
+                  height: '12px',
+                  backgroundColor: info.color,
+                  borderRadius: '2px',
+                  border: '1px solid black',
+                  opacity: 0.9
+                }}
+              />
+            </Tooltip>
           )
         } else {
           // Multiple possibilities: small squares in 2x2 grid
           includedOwners.forEach(info => {
             elements.push(
-              <div
-                key={`combined-${info.owner}`}
-                title={tooltipText}
-                style={{
-                  position: 'absolute',
-                  top: `${2 + (4 - info.position.top)}px`, // Upper-right instead of bottom-right
-                  right: `${2 + info.position.left}px`,
-                  width: '4px',
-                  height: '4px',
-                  backgroundColor: info.color,
-                  borderRadius: '1px',
-                  border: '0.5px solid black',
-                  opacity: 0.8
-                }}
-              />
+              <Tooltip key={`combined-${info.owner}`} text={tooltipText} style={{ position: 'absolute', top: `${2 + (4 - info.position.top)}px`, right: `${2 + info.position.left}px` }}>
+                <div
+                  style={{
+                    width: '4px',
+                    height: '4px',
+                    backgroundColor: info.color,
+                    borderRadius: '1px',
+                    border: '0.5px solid black',
+                    opacity: 0.8
+                  }}
+                />
+              </Tooltip>
             )
           })
         }
@@ -728,21 +705,17 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       // Add surface mine icon for surface mine tiles
       if (tile.specialTiles.includes('surfaceMine')) {
         elements.push(
-          <div
-            key="surface-mine-icon"
-            title="Surface Mine: Explodes when revealed or hit by Emanation"
-            style={{
-              position: 'absolute',
-              top: '50%',
-              right: '4px',
-              transform: 'translateY(-50%)',
-              fontSize: '16px',
-              pointerEvents: 'none',
-              zIndex: 999
-            }}
-          >
-            💣
-          </div>
+          <Tooltip key="surface-mine-icon" text="Surface Mine: Explodes when revealed or hit by Emanation" style={{ position: 'absolute', top: '50%', right: '4px', transform: 'translateY(-50%)' }}>
+            <div
+              style={{
+                fontSize: '16px',
+                pointerEvents: 'none',
+                zIndex: 999
+              }}
+            >
+              💣
+            </div>
+          </Tooltip>
         )
       }
       } // End of non-adjacency annotations for unrevealed tiles
@@ -844,29 +817,25 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           positions.forEach((pos, index) => {
             if (pos.value !== undefined) {
               elements.push(
-                <div
-                  key={`adjacency-${index}`}
-                  style={{
-                    position: 'absolute',
-                    top: pos.top,
-                    left: pos.left,
-                    transform: 'translate(-50%, -50%)',
-                    width: '12px',
-                    height: '12px',
-                    backgroundColor: pos.color,
-                    color: 'white',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '8px',
-                    fontWeight: 'bold',
-                    zIndex: 1010
-                  }}
-                  title={`${pos.name}: ${pos.value}`}
-                >
-                  {pos.value}
-                </div>
+                <Tooltip key={`adjacency-${index}`} text={`${pos.name}: ${pos.value}`} style={{ position: 'absolute', top: pos.top, left: pos.left, transform: 'translate(-50%, -50%)' }}>
+                  <div
+                    style={{
+                      width: '12px',
+                      height: '12px',
+                      backgroundColor: pos.color,
+                      color: 'white',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '8px',
+                      fontWeight: 'bold',
+                      zIndex: 1010
+                    }}
+                  >
+                    {pos.value}
+                  </div>
+                </Tooltip>
               )
             }
           })
@@ -921,7 +890,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     const hasLair = tile.specialTiles.includes('lair')
     const hasDestroyed = tile.specialTiles.includes('destroyed')
 
-    return (
+    const content = (
       <div
         onClick={handleClick}
         onMouseEnter={() => {
@@ -932,7 +901,6 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           setIsHovered(false)
           onMouseLeave?.()
         }}
-        title={hasLair && !hasDestroyed ? 'Goblin Lair: Spawns a goblin after each rival turn' : undefined}
         style={{
           position: 'relative',
           width: '56px',
@@ -988,16 +956,20 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         )}
       </div>
     )
+
+    return hasLair && !hasDestroyed ? (
+      <Tooltip text="Goblin Lair: Spawns a goblin after each rival turn">
+        {content}
+      </Tooltip>
+    ) : content
   }
 
-  return (
-    <>
-      <div
-        onClick={handleClick}
-        onContextMenu={handleRightClick}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        title={tile.specialTiles.includes('extraDirty') && !tile.revealed ? 'Cannot reveal tile without cleaning it!' : undefined}
+  const mainTile = (
+    <div
+      onClick={handleClick}
+      onContextMenu={handleRightClick}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
       style={{
         position: 'relative',
         width: '56px',
@@ -1047,7 +1019,16 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       >
         {getOverlay()}
       </div>
-      
+  )
+
+  return (
+    <>
+      {tile.specialTiles.includes('extraDirty') && !tile.revealed ? (
+        <Tooltip text="Cannot reveal tile without cleaning it!">
+          {mainTile}
+        </Tooltip>
+      ) : mainTile}
+
       {/* Context Menu */}
       {showContextMenu && (
         <div
@@ -1094,28 +1075,28 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
               }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
                   {quadrant.map((combo, comboIndex) => (
-                    <div
-                      key={comboIndex}
-                      style={{
-                        padding: '4px 2px',
-                        cursor: 'pointer',
-                        backgroundColor: enabledOwnerPossibilities.has(combo) ? '#e9ecef' : 'transparent',
-                        border: '1px solid #eee',
-                        borderRadius: '2px',
-                        textAlign: 'center',
-                        fontSize: '10px',
-                        minHeight: '20px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      onClick={() => {
-                        toggleOwnerPossibility(combo)
-                      }}
-                      title={combo === '' ? 'Impossible (empty set)' : `Can be: ${combo.replace(/,/g, ', ')}`}
-                    >
-                      {getComboLabel(combo)}
-                    </div>
+                    <Tooltip key={comboIndex} text={combo === '' ? 'Impossible (empty set)' : `Can be: ${combo.replace(/,/g, ', ')}`}>
+                      <div
+                        style={{
+                          padding: '4px 2px',
+                          cursor: 'pointer',
+                          backgroundColor: enabledOwnerPossibilities.has(combo) ? '#e9ecef' : 'transparent',
+                          border: '1px solid #eee',
+                          borderRadius: '2px',
+                          textAlign: 'center',
+                          fontSize: '10px',
+                          minHeight: '20px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        onClick={() => {
+                          toggleOwnerPossibility(combo)
+                        }}
+                      >
+                        {getComboLabel(combo)}
+                      </div>
+                    </Tooltip>
                   ))}
                 </div>
               </div>

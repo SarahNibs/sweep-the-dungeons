@@ -171,6 +171,7 @@ export interface GameState {
     isEmphasized: boolean
     tilesRemaining: Tile[]
     currentTileIndex: number
+    isEnhanced?: boolean
   } | null
   rivalAnimation: {
     isActive: boolean
@@ -276,7 +277,7 @@ export interface ShopOption {
 
 export interface StatusEffect {
   id: string
-  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines' | 'rival_ai_type' | 'rival_mine_protection'
+  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines' | 'rival_ai_type' | 'rival_mine_protection' | 'grace'
   icon: string
   name: string
   description: string

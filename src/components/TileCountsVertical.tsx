@@ -1,5 +1,6 @@
 import { Board } from '../types'
 import { getUnrevealedCounts } from '../game/boardSystem'
+import { Tooltip } from './Tooltip'
 
 interface TileCountsVerticalProps {
   board: Board
@@ -32,31 +33,35 @@ export function TileCountsVertical({ board, annotationButtons, onToggleButton }:
       {tileInfo.map(({ type, count, color, label }) => {
         const isDepressed = annotationButtons[type]
         return (
-          <button 
-            key={type} 
-            onClick={() => onToggleButton(type)}
-            style={{
-              width: '40px',
-              height: '24px',
-              backgroundColor: color,
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'black',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              margin: '0 auto',
-              border: isDepressed ? '3px inset #999' : '3px outset #ccc',
-              cursor: 'pointer',
-              opacity: isDepressed ? 0.8 : 1,
-              transform: isDepressed ? 'translateY(1px)' : 'translateY(0)',
-              boxShadow: isDepressed ? 'inset 2px 2px 4px rgba(0,0,0,0.3)' : '2px 2px 4px rgba(0,0,0,0.2)'
-            }}
-            title={`${label}: ${count} (Click to ${isDepressed ? 'exclude' : 'include'} in annotations)`}
+          <Tooltip
+            key={type}
+            text={`${label}: ${count} (Click to ${isDepressed ? 'exclude' : 'include'} in annotations)`}
+            style={{ display: 'block', width: '100%' }}
           >
-            {count}
-          </button>
+            <button
+              onClick={() => onToggleButton(type)}
+              style={{
+                width: '40px',
+                height: '24px',
+                backgroundColor: color,
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'black',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                margin: '0 auto',
+                border: isDepressed ? '3px inset #999' : '3px outset #ccc',
+                cursor: 'pointer',
+                opacity: isDepressed ? 0.8 : 1,
+                transform: isDepressed ? 'translateY(1px)' : 'translateY(0)',
+                boxShadow: isDepressed ? 'inset 2px 2px 4px rgba(0,0,0,0.3)' : '2px 2px 4px rgba(0,0,0,0.2)'
+              }}
+            >
+              {count}
+            </button>
+          </Tooltip>
         )
       })}
     </div>

@@ -1,4 +1,5 @@
 import { StatusEffect } from '../types'
+import { Tooltip } from './Tooltip'
 
 interface StatusEffectsProps {
   statusEffects: StatusEffect[]
@@ -22,23 +23,22 @@ export function StatusEffects({ statusEffects }: StatusEffectsProps) {
       alignItems: 'center'
     }}>
       {visibleEffects.map((effect) => (
-        <div
-          key={effect.id}
-          style={{
-            width: '42px',
-            height: '42px',
-            border: '2px solid #e17055',
-            borderRadius: '6px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '20px',
-            backgroundColor: 'rgba(225, 112, 85, 0.1)',
-            cursor: 'pointer',
-            position: 'relative'
-          }}
-          title={`${effect.name}: ${effect.description}`}
-        >
+        <Tooltip key={effect.id} text={`${effect.name}: ${effect.description}`} style={{ display: 'inline-block' }}>
+          <div
+            style={{
+              width: '42px',
+              height: '42px',
+              border: '2px solid #e17055',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '20px',
+              backgroundColor: 'rgba(225, 112, 85, 0.1)',
+              cursor: 'pointer',
+              position: 'relative'
+            }}
+          >
           {effect.icon}
           {/* Count indicator for effects with counts */}
           {effect.count !== undefined && effect.count > 1 && (
@@ -84,6 +84,7 @@ export function StatusEffects({ statusEffects }: StatusEffectsProps) {
             </div>
           )}
         </div>
+        </Tooltip>
       ))}
     </div>
   )

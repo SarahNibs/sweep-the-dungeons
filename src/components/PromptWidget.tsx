@@ -19,9 +19,9 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel
       const isGameWon = levelConfig?.uponFinish?.winTheGame || false
       
       if (isGameWon) {
-        return `🎉 GAME WON! All levels complete! 🎉`
+        return `🎉 GAME WON! All floors complete! 🎉`
       } else {
-        return `🎉 Level ${levelNumber} Complete! ${rivalLeft} rival tiles left! 🎉`
+        return `🎉 Floor ${levelNumber} Complete! ${rivalLeft} rival tiles left! 🎉`
       }
     } else if (gameStatus.status === 'player_lost') {
       if (gameStatus.reason === 'player_revealed_mine') {
@@ -33,7 +33,7 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel
     } else if (targetingInfo) {
       return `${targetingInfo.description} (${targetingInfo.selected.length}/${targetingInfo.count})`
     } else {
-      return `Level ${levelNumber}: sweep, sweep`
+      return `Floor ${levelNumber}: sweep, sweep`
     }
   }
   
@@ -99,7 +99,7 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel
             fontWeight: 'bold'
           }}
         >
-          Next Level
+          Next Floor
         </button>
       )}
     </div>

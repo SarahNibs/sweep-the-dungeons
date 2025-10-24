@@ -1,7 +1,7 @@
 import { GameState, CardEffect, Position, Tile, TileAnnotation, ClueResult, GameStatusInfo } from '../types'
 import { positionToKey, getTile, revealTileWithResult, hasSpecialTile } from './boardSystem'
 import { triggerDoubleBroomEffect, checkFrillyDressEffect } from './relicSystem'
-import { removeStatusEffect } from './gameRepository'
+import { removeStatusEffect, createCard } from './gameRepository'
 import { executeScoutEffect } from './cards/scout'
 import { executeQuantumEffect } from './cards/quantumChoice'
 import { executeReportEffect } from './cards/report'
@@ -155,7 +155,36 @@ export function revealTileWithRelicEffects(
       console.log('  - activeStatusEffects:', stateWithBoard.activeStatusEffects)
       console.log('🛡️ UNDERWIRE PROTECTION CONSUMED')
     } else if (tile && tile.owner === 'mine') {
-      console.log('💥 MINE REVEALED WITHOUT PROTECTION - Game should end')
+      // Check for Grace status effect as fallback protection
+      const hasGrace = state.activeStatusEffects.some(effect => effect.type === 'grace')
+      if (hasGrace) {
+        console.log('🤞 GRACE TRIGGERED - Mine revealed with Grace protection!')
+
+        // Mark the mine tile as grace-protected
+        const newTiles = new Map(newBoard.tiles)
+        newTiles.set(`${position.x},${position.y}`, {
+          ...tile,
+          underwireProtected: true // Reuse this flag since it serves the same purpose
+        })
+
+        // Add Evidence card to hand
+        const evidenceCard = createCard('Evidence')
+
+        stateWithBoard = {
+          ...stateWithBoard,
+          board: {
+            ...newBoard,
+            tiles: newTiles
+          },
+          hand: [...stateWithBoard.hand, evidenceCard]
+        }
+
+        // Remove the Grace status effect
+        stateWithBoard = removeStatusEffect(stateWithBoard, 'grace')
+        console.log('🤞 GRACE PROTECTION CONSUMED - Evidence added to hand')
+      } else {
+        console.log('💥 MINE REVEALED WITHOUT PROTECTION - Game should end')
+      }
     }
   }
   

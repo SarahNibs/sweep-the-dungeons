@@ -733,6 +733,9 @@ export function createInitialState(
     }
   }
 
+  // Add Grace status effect at the start of every level
+  finalState = addStatusEffect(finalState, 'grace')
+
   // Add AI type status effect by getting AI info from controller
   if (levelConfig) {
     const aiController = new AIController()

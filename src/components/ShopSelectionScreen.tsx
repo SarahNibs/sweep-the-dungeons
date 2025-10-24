@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ShopOption, Card } from '../types'
 import { PileViewingScreen } from './PileViewingScreen'
-import { getRelicIcon } from '../game/gameRepository'
+import { getRelicIcon, getCardDescription, getCardIcon } from '../game/gameRepository'
 
 interface ShopSelectionScreenProps {
   shopOptions: ShopOption[]
@@ -25,6 +25,7 @@ export function ShopSelectionScreen({
   currentDeck
 }: ShopSelectionScreenProps) {
   const [viewingDeck, setViewingDeck] = useState(false)
+  const [hoveredItem, setHoveredItem] = useState<number | null>(null)
 
   if (waitingForCardRemoval && currentDeck && onCardRemovalSelect) {
     return (
@@ -284,10 +285,22 @@ export function ShopSelectionScreen({
           const isPurchased = purchasedItems?.has(index) || false
           const isAvailable = canAfford && !isPurchased
           
+          // Get hover text for cards and relics
+          const getHoverText = () => {
+            if (option.card) {
+              return getCardDescription(option.card)
+            }
+            if (option.relic) {
+              return option.relic.hoverText || option.relic.description
+            }
+            return option.description
+          }
+
           return (
-            <div 
-              key={index} 
+            <div
+              key={index}
               style={{
+                position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -305,12 +318,14 @@ export function ShopSelectionScreen({
               }}
               onClick={() => isAvailable && onPurchase(index)}
               onMouseEnter={(e) => {
+                setHoveredItem(index)
                 if (isAvailable) {
                   e.currentTarget.style.borderColor = '#74b9ff'
                   e.currentTarget.style.backgroundColor = 'rgba(116, 185, 255, 0.1)'
                 }
               }}
               onMouseLeave={(e) => {
+                setHoveredItem(null)
                 if (isAvailable) {
                   e.currentTarget.style.borderColor = 'transparent'
                   e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.3)'
@@ -320,6 +335,30 @@ export function ShopSelectionScreen({
                 }
               }}
             >
+              {/* Custom Tooltip */}
+              {hoveredItem === index && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-8px',
+                    left: '50%',
+                    transform: 'translate(-50%, -100%)',
+                    backgroundColor: '#1f2937',
+                    color: 'white',
+                    fontSize: '12px',
+                    borderRadius: '6px',
+                    padding: '4px 8px',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+                    whiteSpace: 'pre-wrap',
+                    maxWidth: '300px',
+                    zIndex: 1000,
+                    pointerEvents: 'none'
+                  }}
+                >
+                  {getHoverText()}
+                </div>
+              )}
+
               {/* Item Icon */}
               <div style={{
                 width: '60px',
@@ -414,11 +453,9 @@ export function ShopSelectionScreen({
 function getShopItemIcon(option: ShopOption): string {
   switch (option.type) {
     case 'add_card':
-      return '📜'
     case 'add_energy_card':
-      return '⚡'
     case 'add_enhanced_card':
-      return '✨'
+      return option.card ? getCardIcon(option.card.name) : '📜'
     case 'add_relic':
       return option.relic ? getRelicIcon(option.relic.name) : '🏺'
     case 'remove_card':

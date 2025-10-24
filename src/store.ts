@@ -5,7 +5,7 @@ import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
 import { startRelicSelection, selectRelic, closeRelicUpgradeDisplay } from './game/relicSystem'
 import { revealTile, revealTileWithResult, shouldRevealEndTurn, positionToKey, spawnGoblinsFromLairs, placeRivalSurfaceMines, getTile, hasSpecialTile, cleanGoblin } from './game/boardSystem'
 import { executeCardEffect, getTargetingInfo, checkGameStatus, getUnrevealedTilesByOwner, revealTileWithRelicEffects } from './game/cardEffects'
-import { executeTargetedReportEffect } from './game/cards/report'
+import { executeTingleEffect } from './game/cards/report'
 import { AIController } from './game/ai/AIController'
 import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowRelicReward, shouldShowShopReward, calculateCopperReward, getLevelConfig } from './game/levelSystem'
 import { startShopSelection, purchaseShopItem, removeSelectedCard, exitShop } from './game/shopSystem'
@@ -1014,32 +1014,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   executeTingleWithAnimation: (state: GameState, isEnhanced: boolean) => {
-    // Find random rival tiles to target (1 for normal, 2 for enhanced)
+    // Find random rival or mine tiles to target (1 for both versions)
     const rivalTiles = getUnrevealedTilesByOwner(state, 'rival')
-    if (rivalTiles.length === 0) return
+    const mineTiles = getUnrevealedTilesByOwner(state, 'mine')
+    const candidateTiles = [...rivalTiles, ...mineTiles]
 
-    // Helper function to check if a tile is unambiguously rival-only based on game annotations
-    const isUnambiguouslyRival = (tile: Tile): boolean => {
+    if (candidateTiles.length === 0) return
+
+    // Helper function to check if a tile is unambiguously identified based on game annotations
+    const isUnambiguous = (tile: Tile): boolean => {
       const subsetAnnotations = tile.annotations.filter(a => a.type === 'owner_subset')
       if (subsetAnnotations.length === 0) return false
 
       const latestSubset = subsetAnnotations[subsetAnnotations.length - 1]
       const ownerSubset = latestSubset.ownerSubset || new Set()
 
-      // Tile is unambiguous if it can only be rival (size 1 and contains only 'rival')
-      return ownerSubset.size === 1 && ownerSubset.has('rival')
+      // Tile is unambiguous if it can only be one owner (size 1)
+      return ownerSubset.size === 1
     }
 
-    // Separate rival tiles into ambiguous and unambiguous
-    const ambiguousRivalTiles = rivalTiles.filter(tile => !isUnambiguouslyRival(tile))
+    // Separate tiles into ambiguous and unambiguous
+    const ambiguousTiles = candidateTiles.filter(tile => !isUnambiguous(tile))
 
-    // Prefer ambiguous tiles if available, otherwise use all rival tiles
-    const preferredTiles = ambiguousRivalTiles.length > 0 ? ambiguousRivalTiles : rivalTiles
+    // Prefer ambiguous tiles if available, otherwise use all candidate tiles
+    const preferredTiles = ambiguousTiles.length > 0 ? ambiguousTiles : candidateTiles
 
-    const tilesToMark = isEnhanced ? Math.min(2, preferredTiles.length) : 1
-    const randomTiles: typeof rivalTiles = []
+    // Always mark only 1 tile (both base and enhanced versions)
+    const tilesToMark = 1
+    const randomTiles: Tile[] = []
 
-    // Select random tiles without replacement from preferred tiles
+    // Select random tile from preferred tiles
     const availableTiles = [...preferredTiles]
     for (let i = 0; i < tilesToMark; i++) {
       const randomIndex = Math.floor(Math.random() * availableTiles.length)
@@ -1054,7 +1058,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // In tests, execute immediately without animation
       let effectState = state
       for (const tile of randomTiles) {
-        effectState = executeTargetedReportEffect(effectState, tile.position)
+        effectState = executeTingleEffect(effectState, tile.position, isEnhanced)
       }
       set(effectState)
       return
@@ -1068,7 +1072,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         targetTile: randomTiles[0].position,
         isEmphasized: true,
         tilesRemaining: randomTiles,
-        currentTileIndex: 0
+        currentTileIndex: 0,
+        isEnhanced // Store isEnhanced so performNextTingleMark can use it
       }
     })
 
@@ -1121,7 +1126,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
 
         // Apply effect to current tile
-        let effectState = executeTargetedReportEffect(finalState, currentTile.position)
+        const isEnhanced = finalState.tingleAnimation?.isEnhanced || false
+        let effectState = executeTingleEffect(finalState, currentTile.position, isEnhanced)
 
         const nextIndex = currentTileIndex + 1
         if (nextIndex < tilesRemaining.length) {

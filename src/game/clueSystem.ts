@@ -171,16 +171,24 @@ export function generatePlayerSolidClue(
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
   const playerTiles = unrevealedTiles.filter(tile => tile.owner === 'player')
-  
+
   // Choose 2 player tiles
   const chosenPlayerTiles = selectTilesForClue(playerTiles, 2)
-  
+
   // Choose 6 other random tiles
-  const remainingTiles = unrevealedTiles.filter(tile => 
-    !chosenPlayerTiles.some(chosen => 
+  // For enhanced Imperious, exclude mines from "other random tiles"
+  const remainingTiles = unrevealedTiles.filter(tile => {
+    // Exclude already chosen player tiles
+    const isChosenPlayer = chosenPlayerTiles.some(chosen =>
       chosen.position.x === tile.position.x && chosen.position.y === tile.position.y
     )
-  )
+    if (isChosenPlayer) return false
+
+    // For enhanced, also exclude mines
+    if (enhanced && tile.owner === 'mine') return false
+
+    return true
+  })
   const chosenRandomTiles = selectTilesForClue(remainingTiles, 6)
   
   // Create bag: 12 copies of each player tile + 4 copies of each random tile (with spoiler adjustments)

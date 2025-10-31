@@ -2,12 +2,13 @@ import { Card, GameState } from '../types'
 import { createBoard, revealTileWithResult, getNeighbors, getTile } from './boardSystem'
 import { executeCardEffect, requiresTargeting } from './cardEffects'
 import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
-import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerBusyCanaryEffect, triggerInterceptedNoteEffect, triggerHyperfocusEffect, hasRelic } from './relicSystem'
+import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerBusyCanaryEffect, triggerInterceptedNoteEffect, triggerHyperfocusEffect, prepareGlassesEffect, hasRelic } from './relics'
 import { AIController } from './ai/AIController'
+import { decrementBurgerStacks } from './cards/burger'
 
 import { createCard as createCardFromRepository, getRewardCardPool, getStarterCards, removeStatusEffect, addStatusEffect } from './gameRepository'
 
-export function createCard(name: string, upgrades?: { costReduced?: boolean; enhanced?: boolean }): Card {
+export function createCard(name: string, upgrades?: { energyReduced?: boolean; enhanced?: boolean }): Card {
   return createCardFromRepository(name, upgrades)
 }
 
@@ -39,13 +40,19 @@ export function deductEnergy(
   context: string
 ): GameState {
   const cost = getEffectiveCardCost(card, statusEffectsForCost)
-  const newEnergy = state.energy - cost
+  let newEnergy = state.energy - cost
+
+  // Energy-reduced cards grant +1 energy when played
+  if (card.energyReduced) {
+    newEnergy += 1
+  }
 
   if (newEnergy < 0) {
     console.error(`❌ ENERGY BUG DETECTED in ${context}:`)
     console.error(`  - Current energy: ${state.energy}`)
     console.error(`  - Card cost: ${cost}`)
     console.error(`  - Card name: ${card.name}`)
+    console.error(`  - Energy-reduced: ${card.energyReduced}`)
     console.error(`  - Would result in: ${newEnergy} energy`)
     console.error(`  - This should have been caught by canPlayCard check!`)
 
@@ -59,17 +66,71 @@ export function deductEnergy(
   }
 }
 
-export function createNewLevelCards(): Card[] {
+export function createNewLevelCards(levelNumber: number): Card[] {
   const availableCards = getRewardCardPool()
-  
-  // Randomly select 3 different cards
-  const shuffled = [...availableCards]
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+
+  // Group cards by base name (treating all Gaze and Fetch variants as one group)
+  const cardGroups: Map<string, Card[]> = new Map()
+  for (const card of availableCards) {
+    let baseName = card.name
+    if (card.name.startsWith('Gaze')) baseName = 'Gaze'
+    if (card.name.startsWith('Fetch')) baseName = 'Fetch'
+
+    if (!cardGroups.has(baseName)) {
+      cardGroups.set(baseName, [])
+    }
+    cardGroups.get(baseName)!.push(card)
   }
-  
-  return shuffled.slice(0, 3)
+
+  // Shuffle the groups (each group has equal probability)
+  const groupNames = Array.from(cardGroups.keys())
+  for (let i = groupNames.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[groupNames[i], groupNames[j]] = [groupNames[j], groupNames[i]]
+  }
+
+  // Select 3 groups and pick random card from each
+  const selectedCards: Card[] = []
+  for (let i = 0; i < Math.min(3, groupNames.length); i++) {
+    const group = cardGroups.get(groupNames[i])!
+    const randomCard = group[Math.floor(Math.random() * group.length)]
+    selectedCards.push(randomCard)
+  }
+
+  // Apply random upgrades based on level (level 11+: 1 upgrade, level 16+: 2 upgrades)
+  const numUpgrades = levelNumber >= 16 ? 2 : levelNumber >= 11 ? 1 : 0
+
+  if (numUpgrades > 0) {
+    // Randomly select which cards to upgrade (without replacement)
+    const upgradeIndices = new Set<number>()
+    while (upgradeIndices.size < numUpgrades) {
+      upgradeIndices.add(Math.floor(Math.random() * 3))
+    }
+
+    // Apply random upgrades to selected cards
+    for (const index of upgradeIndices) {
+      const card = selectedCards[index]
+
+      // Determine which upgrades are applicable
+      const possibleUpgrades: Array<'enhanced' | 'energyReduced'> = []
+      possibleUpgrades.push('enhanced') // Enhanced is always possible
+      if (card.cost > 0) {
+        possibleUpgrades.push('energyReduced') // Energy reduction only for cost > 0
+      }
+
+      // Pick random upgrade
+      const upgradeType = possibleUpgrades[Math.floor(Math.random() * possibleUpgrades.length)]
+
+      console.log(`🎁 CARD REWARD UPGRADE (Level ${levelNumber}): Upgrading ${card.name} with ${upgradeType}`)
+
+      // Apply the upgrade
+      selectedCards[index] = createCard(card.name, {
+        [upgradeType]: true
+      })
+    }
+  }
+
+  return selectedCards
 }
 
 export function createStartingDeck(): Card[] {
@@ -218,8 +279,16 @@ export function selectCardForMasking(state: GameState, targetCardId: string): Ga
       case 'Snip, Snip':
         effectType = 'snip_snip'
         break
+      case 'Fan':
+        effectType = 'fan'
+        break
       default:
-        effectType = targetCard.name.toLowerCase().replace(' ', '_')
+        // Gaze cards and other cards
+        if (targetCard.name.startsWith('Gaze')) {
+          effectType = 'gaze'
+        } else {
+          effectType = targetCard.name.toLowerCase().replace(' ', '_')
+        }
     }
 
     // Keep maskingState and DON'T remove card from hand yet
@@ -274,6 +343,20 @@ export function selectCardForMasking(state: GameState, targetCardId: string): Ga
       // Basic Tryst (not enhanced) - no targeting needed
       newState = { ...newState, ...executeCardEffect(newState, { type: 'tryst', target: undefined }, targetCard) }
       break
+    case 'Burger':
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'burger' }, targetCard) }
+      break
+    case 'Twirl':
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'twirl' }, targetCard) }
+      break
+  }
+
+  // Grant +1 energy if the masked card is energy-reduced
+  if (targetCard.energyReduced) {
+    newState = {
+      ...newState,
+      energy: newState.energy + 1
+    }
   }
 
   // Exhaust the target card (always exhausts when played via Masking)
@@ -324,8 +407,12 @@ export function selectCardForNap(state: GameState, targetCardId: string): GameSt
   const newExhaust = state.exhaust.filter(card => card.id !== targetCardId)
   const newHand = [...state.hand, targetCard]
 
-  // If enhanced, gain energy equal to the card's cost
-  const energyGain = state.napState.enhanced ? targetCard.cost : 0
+  // Check if this is a Horse and if Horse discount is active
+  const horseDiscountActive = state.activeStatusEffects.some(e => e.type === 'horse_discount')
+  const effectiveCost = (targetCard.name === 'Horse' && horseDiscountActive) ? 0 : targetCard.cost
+
+  // If enhanced, gain energy equal to the card's effective cost
+  const energyGain = state.napState.enhanced ? effectiveCost : 0
   const newEnergy = state.energy + energyGain
 
   // Move Nap from discard to exhaust (always exhausts)
@@ -406,8 +493,18 @@ export function playCard(state: GameState, cardId: string): GameState {
       case 'Masking':
         effectType = 'masking'
         break
+      case 'Fan':
+        effectType = 'fan'
+        break
       default:
-        effectType = card.name.toLowerCase().replace(' ', '_')
+        // Gaze and Fetch cards and other cards
+        if (card.name.startsWith('Gaze')) {
+          effectType = 'gaze'
+        } else if (card.name.startsWith('Fetch')) {
+          effectType = 'fetch'
+        } else {
+          effectType = card.name.toLowerCase().replace(' ', '_')
+        }
     }
     
     return {
@@ -503,6 +600,12 @@ export function playCard(state: GameState, cardId: string): GameState {
       // Tryst needs animation - don't execute immediately
       newState = state
       break
+    case 'Burger':
+      newState = executeCardEffect(state, { type: 'burger' }, card)
+      break
+    case 'Twirl':
+      newState = executeCardEffect(state, { type: 'twirl' }, card)
+      break
   }
 
   const newHand = newState.hand.filter((_, index) => index !== cardIndex)
@@ -540,16 +643,28 @@ export function startNewTurn(state: GameState): GameState {
   console.log('  - Current queued card draws:', state.queuedCardDraws)
   console.log('  - Has Caffeinated relic:', hasRelic(state, 'Caffeinated'))
 
-  const discardedState = discardHand(state)
+  let currentState = state
+  let hasGlasses = false
 
-  // Draw regular 5 cards (or 4 with Caffeinated relic) plus any queued card draws
+  // Prepare Glasses relic effect (add Tingle to discard, animation will be triggered by store)
+  if (hasRelic(currentState, 'Glasses')) {
+    hasGlasses = true
+    currentState = prepareGlassesEffect(currentState)
+  }
+
+  const discardedState = discardHand(currentState)
+
+  // Draw regular 5 cards (or 4 with Caffeinated relic) plus any queued card draws plus burger bonus
   const baseCardDraw = hasRelic(state, 'Caffeinated') ? 4 : 5
-  const totalCardsToDraw = baseCardDraw + state.queuedCardDraws
-  
+  const burgerEffect = state.activeStatusEffects.find(e => e.type === 'burger')
+  const burgerBonus = burgerEffect ? 1 : 0 // Always +1 if Burger effect is active, regardless of stack count
+  const totalCardsToDraw = baseCardDraw + state.queuedCardDraws + burgerBonus
+
   console.log('  - Base card draw:', baseCardDraw)
   console.log('  - Queued card draws:', state.queuedCardDraws)
+  console.log('  - Burger bonus:', burgerBonus)
   console.log('  - Total cards to draw:', totalCardsToDraw)
-  
+
   const drawnState = drawCards(discardedState, totalCardsToDraw)
   
   // Remove ramble status effect at start of new turn
@@ -564,21 +679,24 @@ export function startNewTurn(state: GameState): GameState {
     hasRevealedNeutralThisTurn: false, // Reset neutral reveal tracking
     underwireUsedThisTurn: false, // Reset underwire usage tracking
     horseRevealedNonPlayer: false, // Reset horse turn ending tracking
+    fetchRevealedNonPlayer: false, // Reset fetch turn ending tracking
     shouldExhaustLastCard: false, // Reset dynamic exhaust tracking
-    queuedCardDraws: 0 // Clear queued card draws
+    queuedCardDraws: 0, // Clear queued card draws
+    glassesNeedsTingleAnimation: hasGlasses // Set flag if Glasses relic is active
   }
 }
 
 export function createInitialState(
-  levelId: string = 'intro', 
-  persistentDeck?: Card[], 
-  relics?: import('../types').Relic[], 
-  copper: number = 0, 
-  temporaryBunnyBuffs: number = 0, 
+  levelId: string = 'intro',
+  persistentDeck?: Card[],
+  relics?: import('../types').Relic[],
+  copper: number = 0,
+  temporaryBunnyBuffs: number = 0,
   playerAnnotationMode?: 'slash' | 'big_checkmark' | 'small_checkmark',
   useDefaultAnnotations?: boolean,
   enabledOwnerPossibilities?: Set<string>,
-  currentOwnerPossibilityIndex?: number
+  currentOwnerPossibilityIndex?: number,
+  preservedStatusEffects?: import('../types').StatusEffect[]
 ): GameState {
   const startingPersistentDeck = persistentDeck || createStartingDeck()
   const startingRelics = relics || []
@@ -663,12 +781,13 @@ export function createInitialState(
     underwireProtectionCount: 0,
     underwireUsedThisTurn: false,
     horseRevealedNonPlayer: false,
+    fetchRevealedNonPlayer: false,
     shouldExhaustLastCard: false,
     playerAnnotationMode: playerAnnotationMode || 'slash',
     useDefaultAnnotations: useDefaultAnnotations !== undefined ? useDefaultAnnotations : true,
     enabledOwnerPossibilities: enabledOwnerPossibilities || new Set(['player', 'rival', 'neutral', 'mine']),
     currentOwnerPossibilityIndex: currentOwnerPossibilityIndex || 0,
-    activeStatusEffects: [],
+    activeStatusEffects: preservedStatusEffects || [],
     annotationButtons: {
       player: false, // Start undepressed (no black slash)
       rival: true,   // Start depressed
@@ -677,14 +796,17 @@ export function createInitialState(
     },
     isProcessingCard: false,
     queuedCardDraws: 0,
+    glassesNeedsTingleAnimation: false,
     rivalMineProtectionCount: levelConfig?.specialBehaviors.rivalMineProtection || 0,
     maskingState: null,
     napState: null
   }
   
-  // Draw initial cards (4 with Caffeinated relic, 5 without)
+  // Draw initial cards (4 with Caffeinated relic, 5 without) plus Burger bonus
   const initialCardDraw = startingRelics.some(relic => relic.name === 'Caffeinated') ? 4 : 5
-  let finalState = drawCards(initialState, initialCardDraw)
+  const burgerEffect = preservedStatusEffects?.find(e => e.type === 'burger')
+  const burgerBonus = burgerEffect ? 1 : 0
+  let finalState = drawCards(initialState, initialCardDraw + burgerBonus)
 
   // Trigger Handbag effect if present (draw 2 additional cards on first turn)
   if (startingRelics.some(relic => relic.name === 'Handbag')) {
@@ -705,7 +827,13 @@ export function createInitialState(
   
   // Trigger Intercepted Communications effect if present
   finalState = triggerInterceptedNoteEffect(finalState)
-  
+
+  // Trigger Glasses effect if present (prepare Tingle for turn 1)
+  if (startingRelics.some(relic => relic.name === 'Glasses')) {
+    finalState = prepareGlassesEffect(finalState)
+    finalState = { ...finalState, glassesNeedsTingleAnimation: true }
+  }
+
   // Add manhattan adjacency status effect if board uses it
   if (finalState.board.adjacencyRule === 'manhattan-2') {
     finalState = addStatusEffect(finalState, 'manhattan_adjacency')
@@ -738,8 +866,7 @@ export function createInitialState(
 
   // Add AI type status effect by getting AI info from controller
   if (levelConfig) {
-    const aiController = new AIController()
-    const currentAI = aiController.getCurrentAI(finalState)
+    const currentAI = AIController.getCurrentAI(finalState)
 
     // Create a custom status effect for this AI type
     const aiStatusEffect = {
@@ -860,7 +987,11 @@ export function createInitialState(
 }
 
 export function startCardSelection(state: GameState): GameState {
-  const cardOptions = createNewLevelCards()
+  // Get the current level number for upgrade determination
+  const levelConfig = getLevelConfigFromSystem(state.currentLevelId)
+  const levelNumber = levelConfig?.levelNumber || 1
+
+  const cardOptions = createNewLevelCards(levelNumber)
   return {
     ...state,
     gamePhase: 'card_selection',
@@ -882,14 +1013,16 @@ export function selectNewCard(state: GameState, selectedCard: Card): GameState {
   
   // Add the selected card to the persistent deck
   const newPersistentDeck = [...state.persistentDeck, selectedCard]
-  
+
   // Return state with updated persistent deck but don't advance level yet
   // Level advancement will happen after upgrades (if any) are applied
   return {
     ...state,
     persistentDeck: newPersistentDeck,
     gamePhase: 'playing', // This will be overridden if upgrades are pending
-    cardSelectionOptions: undefined
+    cardSelectionOptions: undefined,
+    waitingForCardRemoval: false, // Clear any lingering card removal flags
+    bootsTransformMode: false // Clear Boots transformation mode
   }
 }
 
@@ -914,6 +1047,12 @@ export function advanceToNextLevel(state: GameState): GameState {
     console.log(`🔍 EVIDENCE PENALTY: Found ${evidenceCards.length} Evidence cards, losing ${copperPenalty} copper (${state.copper} -> ${copperAfterPenalty})`)
   }
 
+  // Decrement Burger stacks when advancing to next floor
+  const stateWithDecrementedBurger = decrementBurgerStacks(state)
+
+  // Extract Burger effect to pass to createInitialState so turn 1 benefits from it
+  const burgerEffect = stateWithDecrementedBurger.activeStatusEffects.find(e => e.type === 'burger')
+
   const newLevelState = createInitialState(
     nextLevelId,
     state.persistentDeck,
@@ -923,8 +1062,10 @@ export function advanceToNextLevel(state: GameState): GameState {
     state.playerAnnotationMode,
     state.useDefaultAnnotations,
     state.enabledOwnerPossibilities,
-    state.currentOwnerPossibilityIndex
+    state.currentOwnerPossibilityIndex,
+    burgerEffect ? [burgerEffect] : undefined
   )
+
   return newLevelState
 }
 
@@ -941,11 +1082,13 @@ export function skipCardSelection(state: GameState): GameState {
   }
   
   // Return state without advancing level yet
-  // Level advancement will happen after upgrades (if any) are applied  
+  // Level advancement will happen after upgrades (if any) are applied
   return {
     ...state,
     gamePhase: 'playing', // This will be overridden if upgrades are pending
-    cardSelectionOptions: undefined
+    cardSelectionOptions: undefined,
+    waitingForCardRemoval: false, // Clear any lingering card removal flags
+    bootsTransformMode: false // Clear Boots transformation mode
   }
 }
 
@@ -995,6 +1138,14 @@ export function cleanupMaskingAfterExecution(state: GameState): GameState {
 
   // If the executed card is still in hand or discard, move it to exhaust
   if (executedCard) {
+    // Grant +1 energy if the masked card is energy-reduced
+    if (executedCard.energyReduced) {
+      newState = {
+        ...newState,
+        energy: newState.energy + 1
+      }
+    }
+
     newState = {
       ...newState,
       hand: newState.hand.filter(card => card.id !== state.selectedCardId),

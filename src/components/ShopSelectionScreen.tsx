@@ -10,6 +10,7 @@ interface ShopSelectionScreenProps {
   currentCopper: number
   purchasedItems?: Set<number>
   waitingForCardRemoval?: boolean
+  bootsTransformMode?: boolean
   onCardRemovalSelect?: (cardId: string) => void
   currentDeck?: Card[]
 }
@@ -21,6 +22,7 @@ export function ShopSelectionScreen({
   currentCopper,
   purchasedItems,
   waitingForCardRemoval,
+  bootsTransformMode,
   onCardRemovalSelect,
   currentDeck
 }: ShopSelectionScreenProps) {
@@ -51,7 +53,9 @@ export function ShopSelectionScreen({
           margin: '0 0 20px 0',
           textAlign: 'center'
         }}>
-          Choose a Card to Remove
+          {bootsTransformMode
+            ? 'Select a card to transform into a random double-upgraded card'
+            : 'Choose a Card to Remove'}
         </h2>
 
         <div style={{ marginBottom: '20px' }}>
@@ -126,13 +130,13 @@ export function ShopSelectionScreen({
               }}>
                 Cost: {card.cost}
               </div>
-              {card.costReduced && (
+              {card.energyReduced && (
                 <div style={{
                   fontSize: '12px',
                   color: '#28a745',
                   fontStyle: 'italic'
                 }}>
-                  Energy Upgraded
+                  Energy Upgraded (+1 Energy)
                 </div>
               )}
               {card.enhanced && (
@@ -383,16 +387,6 @@ export function ShopSelectionScreen({
                 marginBottom: '8px'
               }}>
                 {option.displayName}
-                {isPurchased && (
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#28a745',
-                    fontWeight: 'normal',
-                    marginTop: '4px'
-                  }}>
-                    PURCHASED
-                  </div>
-                )}
               </div>
               
               {/* Item Description */}

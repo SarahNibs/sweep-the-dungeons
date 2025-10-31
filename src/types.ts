@@ -5,7 +5,7 @@ export interface Card {
   name: string
   cost: number
   exhaust?: boolean // If true, card is removed from deck after use
-  costReduced?: boolean // If true, card has received cost reduction upgrade
+  energyReduced?: boolean // If true, card grants +1 energy when played
   enhanced?: boolean // If true, card has received enhanced effect upgrade
 }
 
@@ -33,6 +33,11 @@ export type CardEffect =
   | { type: 'brat'; target: Position }
   | { type: 'snip_snip'; target: Position }
   | { type: 'nap'; targetCardId: string }
+  | { type: 'fan'; target: Position }
+  | { type: 'gaze'; target: Position }
+  | { type: 'fetch'; target: Position }
+  | { type: 'burger' }
+  | { type: 'twirl' }
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
@@ -157,6 +162,7 @@ export interface GameState {
   cardSelectionOptions?: Card[] // Three cards to choose from when advancing level
   upgradeOptions?: UpgradeOption[] // Three upgrade options to choose from
   waitingForCardRemoval?: boolean // True when remove card option was selected
+  bootsTransformMode?: boolean // True when Boots relic is transforming a card (uses card removal UI)
   pendingUpgradeOption?: UpgradeOption // The upgrade option waiting to be applied after card removal
   relicUpgradeResults?: { before: Card; after: Card }[] // Results from Estrogen/Progesterone relic effects
   relicOptions?: RelicOption[] // Three relic options to choose from
@@ -203,7 +209,8 @@ export interface GameState {
   underwireProtectionCount: number // Number of remaining underwire protections
   underwireUsedThisTurn: boolean // True if underwire protection was consumed this turn (for turn ending logic)
   horseRevealedNonPlayer: boolean // True if Horse card revealed non-player tiles (for turn ending logic)
-  
+  fetchRevealedNonPlayer: boolean // True if Fetch card revealed non-player tiles (for turn ending logic)
+
   // Dynamic exhaust (for cards that conditionally exhaust)
   shouldExhaustLastCard: boolean // True if the last played card should exhaust regardless of its exhaust property
   
@@ -232,6 +239,9 @@ export interface GameState {
 
   // Queued card draws (for Mop effect when cleaning by revealing dirty tiles)
   queuedCardDraws: number // Number of cards to draw at start of next turn
+
+  // Glasses Tingle animation (for Glasses relic effect)
+  glassesNeedsTingleAnimation: boolean // True if Glasses relic should trigger Tingle animation
 
   // Rival mine protection (special behavior)
   rivalMineProtectionCount: number // Number of remaining protected mine reveals
@@ -267,7 +277,7 @@ export interface RelicOption {
 }
 
 export interface ShopOption {
-  type: 'add_card' | 'add_energy_card' | 'add_enhanced_card' | 'add_relic' | 'remove_card' | 'temp_bunny'
+  type: 'add_card' | 'add_energy_card' | 'add_enhanced_card' | 'add_relic' | 'remove_card' | 'temp_bunny' | 'random_enhance'
   cost: number
   card?: Card // For card options
   relic?: Relic // For relic options
@@ -277,12 +287,12 @@ export interface ShopOption {
 
 export interface StatusEffect {
   id: string
-  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines' | 'rival_ai_type' | 'rival_mine_protection' | 'grace'
+  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines' | 'rival_ai_type' | 'rival_mine_protection' | 'grace' | 'burger'
   icon: string
   name: string
   description: string
   enhanced?: boolean // For enhanced effects
-  count?: number // For effects with counts (e.g., rival mine protection remaining)
+  count?: number // For effects with counts (e.g., rival mine protection remaining, burger stacks)
 }
 
 export type CardZone = 'deck' | 'hand' | 'discard'

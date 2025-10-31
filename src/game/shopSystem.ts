@@ -1,17 +1,37 @@
 import { ShopOption, GameState } from '../types'
 import { createCard, getRewardCardPool, getAllRelics } from './gameRepository'
 import { advanceToNextLevel } from './cardSystem'
-import { applyEstrogenEffect, applyProgesteroneEffect } from './relicSystem'
+import { applyEstrogenEffect, applyProgesteroneEffect, applyBootsEffect, transformCardForBoots, applyCrystalEffect } from './relics'
 
 export function createShopOptions(state: GameState): ShopOption[] {
   const options: ShopOption[] = []
-  
+
   // 2x random cards you can choose to add to your deck for 4 coppers apiece
   const availableCards = getRewardCardPool()
-  
-  // Shuffle and pick 2 random cards
-  const shuffledCards = [...availableCards].sort(() => Math.random() - 0.5)
-  const selectedCards = shuffledCards.slice(0, 2)
+
+  // Group cards by base name (treating all Gaze and Fetch variants as one group)
+  const cardGroups: Map<string, typeof availableCards> = new Map()
+  for (const card of availableCards) {
+    let baseName = card.name
+    if (card.name.startsWith('Gaze')) baseName = 'Gaze'
+    if (card.name.startsWith('Fetch')) baseName = 'Fetch'
+
+    if (!cardGroups.has(baseName)) {
+      cardGroups.set(baseName, [])
+    }
+    cardGroups.get(baseName)!.push(card)
+  }
+
+  // Shuffle the groups
+  const groupNames = Array.from(cardGroups.keys()).sort(() => Math.random() - 0.5)
+
+  // Select 2 groups and pick random card from each
+  const selectedCards = []
+  for (let i = 0; i < Math.min(2, groupNames.length); i++) {
+    const group = cardGroups.get(groupNames[i])!
+    const randomCard = group[Math.floor(Math.random() * group.length)]
+    selectedCards.push(randomCard)
+  }
   
   selectedCards.forEach(card => {
     options.push({
@@ -24,11 +44,11 @@ export function createShopOptions(state: GameState): ShopOption[] {
   })
   
   // 1x random energy-upgraded card for 8 coppers
-  // Filter out 0-cost cards for cost reduction (can't reduce cost below 0)
-  const costReducibleCards = getRewardCardPool().filter(card => card.cost > 0)
-  const energyCard = costReducibleCards.length > 0 
-    ? createCard(costReducibleCards[Math.floor(Math.random() * costReducibleCards.length)].name, { costReduced: true })
-    : createCard('Energized', { costReduced: true }) // Fallback if no cost-reducible cards
+  // Energy-upgraded cards grant +1 energy when played
+  const energyReducibleCards = getRewardCardPool().filter(card => card.cost > 0)
+  const energyCard = energyReducibleCards.length > 0
+    ? createCard(energyReducibleCards[Math.floor(Math.random() * energyReducibleCards.length)].name, { energyReduced: true })
+    : createCard('Energized', { energyReduced: true }) // Fallback if no eligible cards
   options.push({
     type: 'add_energy_card',
     cost: 8,
@@ -58,8 +78,12 @@ export function createShopOptions(state: GameState): ShopOption[] {
     !state.relics.some(ownedRelic => ownedRelic.name === relic.name)
   )
   
-  // Shuffle and pick up to 2 relics
-  const shuffledRelics = [...availableRelics].sort(() => Math.random() - 0.5)
+  // Shuffle using Fisher-Yates algorithm (proper random shuffle)
+  const shuffledRelics = [...availableRelics]
+  for (let i = shuffledRelics.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffledRelics[i], shuffledRelics[j]] = [shuffledRelics[j], shuffledRelics[i]]
+  }
   const selectedRelics = shuffledRelics.slice(0, Math.min(2, availableRelics.length))
   
   selectedRelics.forEach(relic => {
@@ -82,8 +106,7 @@ export function createShopOptions(state: GameState): ShopOption[] {
     })
   }
   
-  // 2x temporary "a bunny will reveal one of your tiles at random at the beginning of the next level" benefits
-  // for 3 and 6 coppers respectively
+  // 1x temporary "a bunny will reveal one of your tiles at random at the beginning of the next level" benefit for 3 copper
   options.push({
     type: 'temp_bunny',
     cost: 3,
@@ -91,11 +114,12 @@ export function createShopOptions(state: GameState): ShopOption[] {
     description: 'A bunny will reveal one of your tiles at the start of the next level'
   })
 
+  // 1x random enhance-upgrade for 6 copper
   options.push({
-    type: 'temp_bunny',
+    type: 'random_enhance',
     cost: 6,
-    displayName: 'Temporary Bunny Helper',
-    description: 'A bunny will reveal one of your tiles at the start of the next level'
+    displayName: 'Random Enhance Upgrade',
+    description: 'Randomly enhance a card in your deck that isn\'t already enhanced'
   })
   
   return options
@@ -159,14 +183,15 @@ export function purchaseShopItem(state: GameState, optionIndex: number): GameSta
           relics: [...newState.relics, option.relic]
         }
         
-        // Apply special relic effects for Estrogen and Progesterone
+        // Apply special relic effects for Estrogen, Progesterone, and Boots
         if (option.relic.name === 'Estrogen') {
           const relicEffectState = applyEstrogenEffect(newState)
           newState = {
             ...relicEffectState,
             // Preserve shop context
             copper: newState.copper,
-            purchasedShopItems: newState.purchasedShopItems
+            purchasedShopItems: newState.purchasedShopItems,
+            shopOptions: newState.shopOptions
           }
         } else if (option.relic.name === 'Progesterone') {
           const relicEffectState = applyProgesteroneEffect(newState)
@@ -174,7 +199,26 @@ export function purchaseShopItem(state: GameState, optionIndex: number): GameSta
             ...relicEffectState,
             // Preserve shop context
             copper: newState.copper,
-            purchasedShopItems: newState.purchasedShopItems
+            purchasedShopItems: newState.purchasedShopItems,
+            shopOptions: newState.shopOptions
+          }
+        } else if (option.relic.name === 'Boots') {
+          const relicEffectState = applyBootsEffect(newState)
+          newState = {
+            ...relicEffectState,
+            // Preserve shop context
+            copper: newState.copper,
+            purchasedShopItems: newState.purchasedShopItems,
+            shopOptions: newState.shopOptions
+          }
+        } else if (option.relic.name === 'Crystal') {
+          const relicEffectState = applyCrystalEffect(newState)
+          newState = {
+            ...relicEffectState,
+            // Preserve shop context
+            copper: newState.copper,
+            purchasedShopItems: newState.purchasedShopItems,
+            shopOptions: newState.shopOptions
           }
         }
       }
@@ -195,12 +239,50 @@ export function purchaseShopItem(state: GameState, optionIndex: number): GameSta
         temporaryBunnyBuffs: newState.temporaryBunnyBuffs + 1
       }
       break
+
+    case 'random_enhance':
+      // Find all cards in persistent deck that don't already have enhanced
+      const upgradableCards = newState.persistentDeck.filter(card => !card.enhanced)
+
+      if (upgradableCards.length === 0) {
+        // No cards to upgrade - just return state
+        console.warn('No cards available to enhance')
+        break
+      }
+
+      // Pick random card to enhance
+      const cardToEnhance = upgradableCards[Math.floor(Math.random() * upgradableCards.length)]
+
+      // Create the enhanced version
+      const enhancedCard = createCard(cardToEnhance.name, {
+        enhanced: true,
+        energyReduced: cardToEnhance.energyReduced
+      })
+
+      // Update persistent deck with enhanced version
+      const updatedDeck = newState.persistentDeck.map(card =>
+        card.id === cardToEnhance.id ? enhancedCard : card
+      )
+
+      newState = {
+        ...newState,
+        persistentDeck: updatedDeck,
+        gamePhase: 'relic_upgrade_display',
+        relicUpgradeResults: [{ before: cardToEnhance, after: enhancedCard }]
+      }
+      break
   }
-  
+
   return newState
 }
 
 export function removeSelectedCard(state: GameState, cardId: string): GameState {
+  // Check if this is Boots transformation mode
+  if (state.bootsTransformMode) {
+    return transformCardForBoots(state, cardId)
+  }
+
+  // Normal shop card removal
   const newPersistentDeck = state.persistentDeck.filter(card => card.id !== cardId)
   return {
     ...state,

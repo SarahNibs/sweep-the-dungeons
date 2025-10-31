@@ -1,6 +1,6 @@
 import { GameState, CardEffect, Position, Tile, TileAnnotation, ClueResult, GameStatusInfo } from '../types'
-import { positionToKey, getTile, revealTileWithResult, hasSpecialTile } from './boardSystem'
-import { triggerDoubleBroomEffect, checkFrillyDressEffect } from './relicSystem'
+import { positionToKey, getTile, revealTileWithResult, hasSpecialTile, calculateAdjacency } from './boardSystem'
+import { triggerDoubleBroomEffect, checkFrillyDressEffect } from './relics'
 import { removeStatusEffect, createCard } from './gameRepository'
 import { executeScoutEffect } from './cards/scout'
 import { executeQuantumEffect } from './cards/quantumChoice'
@@ -22,6 +22,11 @@ import { executeEavesdroppingEffect } from './cards/eavesdropping'
 import { executeEmanationEffect } from './cards/emanation'
 import { executeBratEffect } from './cards/brat'
 import { executeSnipSnipEffect } from './cards/snipSnip'
+import { executeFanEffect } from './cards/fan'
+import { executeGazeEffect } from './cards/gaze'
+import { executeFetchEffect } from './cards/fetch'
+import { executeBurgerEffect } from './cards/burger'
+import { executeTwirlEffect } from './cards/twirl'
 
 // Shared reveal function that includes relic effects
 export function revealTileWithRelicEffects(
@@ -295,14 +300,25 @@ export function addOwnerSubsetAnnotation(
       ownerSubset: finalOwnerSubset
     })
   }
-  
+
+  // AUTO-ANNOTATION: If owner_subset rules out 'player' and there's no existing player annotation, add one
+  const hasExistingPlayerAnnotation = tile.annotations.some(a => a.type === 'player_owner_possibility')
+  if (!hasExistingPlayerAnnotation && finalOwnerSubset.size > 0 && !finalOwnerSubset.has('player')) {
+    console.log(`🤖 AUTO-ANNOTATION: Adding not-player annotation at (${position.x}, ${position.y})`)
+    // Add player annotation that excludes 'player' (shows black slash)
+    finalAnnotations.push({
+      type: 'player_owner_possibility',
+      playerOwnerPossibility: new Set(finalOwnerSubset) // Use the same subset (which doesn't include player)
+    })
+  }
+
   const annotatedTile: Tile = {
     ...tile,
     annotations: finalAnnotations
   }
-  
+
   newTiles.set(key, annotatedTile)
-  
+
   return {
     ...state,
     board: {
@@ -453,6 +469,40 @@ export function updateNeighborAdjacencyInfo(state: GameState, changedPosition: P
     }
   }
 
+  // BUG FIX: Also update adjacencyCount on revealed neighboring tiles
+  // When a tile's owner changes (e.g., mine explodes to empty), adjacency counts need recalculation
+  for (const neighborTile of neighbors) {
+    // Only update revealed tiles
+    if (!neighborTile.revealed || !neighborTile.revealedBy) continue
+
+    // Recalculate adjacency count based on who revealed it
+    const newAdjacencyCount = calculateAdjacency(newState.board, neighborTile.position, neighborTile.revealedBy)
+
+    // Only update if the count changed
+    if (newAdjacencyCount !== neighborTile.adjacencyCount) {
+      console.log(`📐 Updating adjacencyCount for revealed tile at (${neighborTile.position.x}, ${neighborTile.position.y}): ${neighborTile.adjacencyCount} → ${newAdjacencyCount}`)
+
+      const newTiles = new Map(newState.board.tiles)
+      const key = positionToKey(neighborTile.position)
+      const tileToUpdate = newTiles.get(key)
+
+      if (tileToUpdate) {
+        newTiles.set(key, {
+          ...tileToUpdate,
+          adjacencyCount: newAdjacencyCount
+        })
+
+        newState = {
+          ...newState,
+          board: {
+            ...newState.board,
+            tiles: newTiles
+          }
+        }
+      }
+    }
+  }
+
   return newState
 }
 
@@ -569,6 +619,7 @@ export function checkGameStatus(state: GameState): GameStatusInfo {
 
 
 export function executeCardEffect(state: GameState, effect: CardEffect, card?: import('../types').Card): GameState {
+  console.log('🎮 EXECUTE CARD EFFECT - Type:', effect.type, 'Effect:', effect, 'Card:', card?.name)
   switch (effect.type) {
     case 'scout':
       return executeScoutEffect(state, effect.target, card)
@@ -603,6 +654,7 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
     case 'underwire':
       return executeUnderwireEffect(state, card)
     case 'tryst':
+      console.log('🎯 CARD EFFECTS - About to call executeTrystEffect with target:', effect.target, 'card:', card?.name)
       return executeTrystEffect(state, effect.target, card)
     case 'canary':
       return executeCanaryEffect(state, effect.target, card)
@@ -620,6 +672,16 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
       return executeBratEffect(state, effect.target, card)
     case 'snip_snip':
       return executeSnipSnipEffect(state, effect.target, card)
+    case 'fan':
+      return executeFanEffect(state, effect.target, card?.enhanced)
+    case 'gaze':
+      return executeGazeEffect(state, effect.target, card)
+    case 'fetch':
+      return executeFetchEffect(state, effect.target, card)
+    case 'burger':
+      return executeBurgerEffect(state, card)
+    case 'twirl':
+      return executeTwirlEffect(state, card)
     default:
       return state
   }
@@ -630,7 +692,10 @@ export function requiresTargeting(cardName: string, enhanced?: boolean): boolean
     return enhanced || false // Only enhanced Tryst requires targeting
   }
   // Masking has special handling - doesn't use regular targeting system
-  return cardName === 'Spritz' || cardName === 'Easiest' || cardName === 'Brush' || cardName === 'Sweep' || cardName === 'Canary' || cardName === 'Argument' || cardName === 'Horse' || cardName === 'Eavesdropping' || cardName === 'Emanation' || cardName === 'Brat' || cardName === 'Snip, Snip'
+  // Gaze and Fetch cards all start with their base name
+  if (cardName.startsWith('Gaze')) return true
+  if (cardName.startsWith('Fetch')) return true
+  return cardName === 'Spritz' || cardName === 'Easiest' || cardName === 'Brush' || cardName === 'Sweep' || cardName === 'Canary' || cardName === 'Argument' || cardName === 'Horse' || cardName === 'Eavesdropping' || cardName === 'Emanation' || cardName === 'Brat' || cardName === 'Snip, Snip' || cardName === 'Fan'
 }
 
 export function getTargetingInfo(cardName: string, enhanced?: boolean): { count: number; description: string } | null {
@@ -661,6 +726,20 @@ export function getTargetingInfo(cardName: string, enhanced?: boolean): { count:
       return { count: 1, description: enhanced ? 'Click a revealed tile to unreveal it (adjacency info remains). Gain 2 copper' : 'Click a revealed tile to unreveal it (adjacency info remains)' }
     case 'Snip, Snip':
       return { count: 1, description: enhanced ? 'Click a tile to defuse mines and get mine adjacency info. Defusing grants 2 copper' : 'Click a tile to defuse mines. Defusing grants 2 copper' }
+    case 'Fan':
+      return { count: 1, description: enhanced ? 'Click a tile (burst star area) - blow dirt, goblins, and mines to random adjacent tiles' : 'Click a tile - blow dirt, goblins, and mines to random adjacent tiles' }
+    case 'Gaze ↑':
+    case 'Gaze ↓':
+    case 'Gaze ←':
+    case 'Gaze →':
+      const gazeDirection = cardName.includes('↑') ? 'upward' : cardName.includes('↓') ? 'downward' : cardName.includes('←') ? 'left' : 'right'
+      return { count: 1, description: enhanced ? `Click start tile, search ${gazeDirection} for first rival AND mine, annotate them and all checked tiles` : `Click start tile, search ${gazeDirection} for first rival, annotate it and all checked tiles as not rival` }
+    case 'Fetch ↑':
+    case 'Fetch ↓':
+    case 'Fetch ←':
+    case 'Fetch →':
+      const fetchDirection = cardName.includes('↑') ? 'upward' : cardName.includes('↓') ? 'downward' : cardName.includes('←') ? 'left' : 'right'
+      return { count: 1, description: enhanced ? `Click start tile, check ${fetchDirection} for most common owner (tiebreak to safest), reveal all of that owner, annotate rest. Draw a card.` : `Click start tile, check ${fetchDirection} for most common owner (tiebreak to safest), reveal all of that owner, annotate rest. Turn ends if not player.` }
     default:
       return null
   }

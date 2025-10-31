@@ -1,6 +1,6 @@
 import { GameState, Position } from '../../types'
 import { removeSpecialTile, cleanGoblin, hasSpecialTile } from '../boardSystem'
-import { triggerMopEffect, hasRelic } from '../relicSystem'
+import { triggerMopEffect, hasRelic } from '../relics'
 
 export function executeSweepEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
   let currentBoard = state.board

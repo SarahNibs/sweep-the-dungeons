@@ -110,37 +110,40 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
       >
         {/* Energy cost pips - positioned in top-left corner */}
         <Tooltip text={`Cost ${effectiveCost}`} position="right" style={{ position: 'absolute', top: '4px', left: '4px', display: 'inline-block' }}>
-          <div
-            style={{
-          zIndex: 1,
-          ...(showUpgradeIndicator === 'cost_reduction' && {
-            backgroundColor: '#00b894',
-            borderRadius: '50%',
-            padding: '3px',
-            border: '2px solid #00b894'
-          })
-        }}
-      >
-        {renderEnergyPips(effectiveCost, isPlayable)}
-      </div>
+          <div style={{ zIndex: 1 }}>
+            {renderEnergyPips(effectiveCost, isPlayable)}
+          </div>
         </Tooltip>
 
-      {/* Enhanced effect indicator - positioned in bottom-left corner */}
+      {/* Energy-reduced indicator - positioned on left side, above enhanced indicator */}
+      {(showUpgradeIndicator === 'cost_reduction' || card.energyReduced) && (
+        <Tooltip text="Gain 1 energy when played" style={{ position: 'absolute', bottom: '30px', left: '4px', display: 'inline-block' }}>
+          <div style={{
+            backgroundColor: '#00b894',
+            borderRadius: '50%',
+            width: '16px',
+            height: '16px',
+            zIndex: 1
+          }} />
+        </Tooltip>
+      )}
+
+      {/* Enhanced effect indicator - positioned in lower left */}
       {(showUpgradeIndicator === 'enhance_effect' || card.enhanced) && (
         <div style={{
           position: 'absolute',
-          bottom: '4px',
+          bottom: '8px',
           left: '4px',
           zIndex: 1,
           backgroundColor: '#a29bfe',
           borderRadius: '50%',
-          width: '20px',
-          height: '20px',
+          width: '16px',
+          height: '16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: 'white',
-          fontSize: '14px',
+          fontSize: '12px',
           fontWeight: 'bold'
         }}>
           +
@@ -148,26 +151,29 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
       )}
       
       {/* Card content */}
-      <div style={{ 
-        textAlign: 'center',
-        marginTop: '8px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
+      <div style={{
+        position: 'relative',
+        width: '100%',
         height: '100%'
       }}>
-        <h3 style={{ 
-          margin: '0 0 8px 0', 
-          fontSize: '12px', 
+        {/* Card name at top */}
+        <h3 style={{
+          margin: '26px 4px 0 4px',
+          fontSize: '12px',
           fontWeight: 'bold',
           lineHeight: '1.1',
-          color: isPlayable ? '#2d3436' : '#636e72'
+          color: isPlayable ? '#2d3436' : '#636e72',
+          textAlign: 'center'
         }}>
           {card.name}
         </h3>
-        
+
+        {/* Card icon positioned from bottom */}
         <div style={{
+          position: 'absolute',
+          bottom: '10px',
+          left: '50%',
+          transform: 'translateX(-50%)',
           fontSize: '28px',
           lineHeight: '1',
           userSelect: 'none'

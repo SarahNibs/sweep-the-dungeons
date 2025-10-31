@@ -1,6 +1,6 @@
 import { LevelConfig } from '../types'
 import levelsConfig from '../../levels-config.json'
-import { hasRelic } from './relicSystem'
+import { hasRelic } from './relics'
 
 interface LevelsConfig {
   levels: LevelConfig[]
@@ -119,11 +119,19 @@ export function calculateCopperReward(state: import('../types').GameState): numb
   )
 
   let copperReward = unrevealedRivalTiles.length // 1 copper per unrevealed rival tile
+  const hasTiara = hasRelic(state, 'Tiara')
 
   // Tiara relic: double copper rewards
-  if (hasRelic(state, 'Tiara')) {
+  if (hasTiara) {
     copperReward *= 2
   }
+
+  console.log(`💰 COPPER REWARD CALCULATION:`)
+  console.log(`   - Unrevealed rival tiles: ${unrevealedRivalTiles.length}`)
+  console.log(`   - Has Tiara relic: ${hasTiara}`)
+  console.log(`   - Base copper: ${unrevealedRivalTiles.length}`)
+  console.log(`   - Final copper reward: ${copperReward}`)
+  console.log(`   - Current copper before reward: ${state.copper}`)
 
   return copperReward
 }

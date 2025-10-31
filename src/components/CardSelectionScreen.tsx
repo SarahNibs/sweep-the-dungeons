@@ -110,68 +110,6 @@ export function CardSelectionScreen({ cards, onCardSelect, onSkip, currentDeck }
         </button>
       </div>
 
-      {/* Current deck display */}
-      <div style={{
-        width: '100%',
-        maxWidth: '800px',
-        maxHeight: '200px',
-        overflowY: 'auto',
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
-        borderRadius: '8px',
-        border: '1px solid #74b9ff',
-        padding: '16px'
-      }}>
-        <h3 style={{
-          fontSize: '16px',
-          fontWeight: 'bold',
-          color: '#74b9ff',
-          margin: '0 0 12px 0',
-          textAlign: 'center'
-        }}>
-          Current Deck ({currentDeck.length} cards)
-        </h3>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '15px',
-          alignItems: 'center'
-        }}>
-          {Array.from({ length: Math.ceil(currentDeck.length / 12) }).map((_, rowIndex) => (
-            <div key={rowIndex} style={{
-              display: 'flex',
-              justifyContent: 'center',
-              position: 'relative',
-              height: '80px'
-            }}>
-              {currentDeck.slice(rowIndex * 12, (rowIndex + 1) * 12).map((card, cardIndex) => {
-                const cardsInThisRow = currentDeck.slice(rowIndex * 12, (rowIndex + 1) * 12).length
-                const totalWidth = (cardsInThisRow - 1) * 35
-                const leftOffset = -totalWidth / 2
-                
-                return (
-                  <div
-                    key={`${card.name}-${rowIndex}-${cardIndex}`}
-                    style={{
-                      position: 'absolute',
-                      left: `${leftOffset + cardIndex * 35}px`,
-                      zIndex: cardIndex,
-                      transform: 'scale(0.7)',
-                      transformOrigin: 'center center'
-                    }}
-                  >
-                    <Card 
-                      card={card}
-                      onClick={() => {}}
-                      isPlayable={true}
-                      applyStatusEffects={false}
-                    />
-                  </div>
-                )
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
 
     {viewingDeck && (

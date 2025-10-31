@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ CRITICAL: NO REQUIRE() - ES MODULES ONLY ⚠️
+
+**This is a Vite + TypeScript project. NEVER use `require()` - it will cause runtime errors.**
+
+```javascript
+// ❌ WRONG - WILL BREAK AT RUNTIME
+const { foo } = require('./bar')
+
+// ✅ CORRECT - Use ES6 imports
+import { foo } from './bar'
+```
+
+**If you write `require()` anywhere in this codebase, the application will crash.** Always use ES6 `import` statements at the top of files. See "Module Imports" section below for details.
+
 ## Project Overview
 
 "Sweep The Dungeons" is a single-player roguelike deckbuilder that combines Minesweeper-style grid mechanics with card-based information gathering. Players use cards to gather imperfect information about a grid, then make calculated risks revealing tiles while building their deck to reduce future uncertainty.

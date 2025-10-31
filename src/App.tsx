@@ -58,6 +58,7 @@ function App() {
     selectUpgrade,
     selectCardForRemoval,
     waitingForCardRemoval,
+    bootsTransformMode,
     selectRelic,
     closeRelicUpgradeDisplay,
     purchaseShopItem,
@@ -70,7 +71,9 @@ function App() {
     debugWinLevel,
     debugGiveRelic,
     debugGiveCard,
-    toggleAnnotationButton
+    toggleAnnotationButton,
+    glassesNeedsTingleAnimation,
+    executeTingleWithAnimation
   } = useGameStore()
 
   // Debug UI state
@@ -90,6 +93,16 @@ function App() {
   useEffect(() => {
     (window as any).useGameStore = useGameStore
   }, [])
+
+  // Check for Glasses relic Tingle animation on turn start
+  useEffect(() => {
+    if (glassesNeedsTingleAnimation) {
+      const state = useGameStore.getState()
+      executeTingleWithAnimation(state, false)
+      // Clear the flag after triggering animation
+      useGameStore.setState({ glassesNeedsTingleAnimation: false })
+    }
+  }, [glassesNeedsTingleAnimation, executeTingleWithAnimation])
 
   // Add keyboard shortcuts for toggling annotation buttons
   useEffect(() => {
@@ -335,6 +348,7 @@ function App() {
           onUpgradeSelect={selectUpgrade}
           currentDeck={getAllCardsInCollection()}
           waitingForCardRemoval={waitingForCardRemoval}
+          bootsTransformMode={bootsTransformMode}
           onCardRemovalSelect={selectCardForRemoval}
         />
       )}
@@ -345,6 +359,9 @@ function App() {
           relicOptions={relicOptions}
           onRelicSelect={selectRelic}
           currentDeck={getAllCardsInCollection()}
+          waitingForCardRemoval={waitingForCardRemoval}
+          bootsTransformMode={bootsTransformMode}
+          onCardRemovalSelect={selectCardForRemoval}
         />
       )}
 
@@ -418,7 +435,7 @@ function App() {
                       }}>
                         Cost: {result.before.cost}
                         {result.before.enhanced && ' • Enhanced'}
-                        {result.before.costReduced && ' • Cost Reduced'}
+                        {result.before.energyReduced && ' • Energy Reduced'}
                       </div>
                     </div>
                   </div>
@@ -453,7 +470,7 @@ function App() {
                       }}>
                         Cost: {result.after.cost}
                         {result.after.enhanced && ' • Enhanced'}
-                        {result.after.costReduced && ' • Cost Reduced'}
+                        {result.after.energyReduced && ' • Energy Reduced'}
                       </div>
                     </div>
                   </div>
@@ -490,6 +507,7 @@ function App() {
           currentCopper={copper}
           purchasedItems={purchasedShopItems}
           waitingForCardRemoval={waitingForCardRemoval}
+          bootsTransformMode={bootsTransformMode}
           onCardRemovalSelect={removeSelectedCard}
           currentDeck={getAllCardsInCollection()}
         />
@@ -642,7 +660,7 @@ function App() {
                   onClick={() => {
                     console.log(`🖱️ UI: Clicking card button for "${cardName}" with upgrade "${cardUpgradeType}"`)
                     const upgrades = cardUpgradeType === 'cost-reduced'
-                      ? { costReduced: true }
+                      ? { energyReduced: true }
                       : cardUpgradeType === 'enhanced'
                       ? { enhanced: true }
                       : undefined

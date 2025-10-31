@@ -44,20 +44,20 @@ export function StatusEffects({ statusEffects }: StatusEffectsProps) {
           {effect.count !== undefined && effect.count > 1 && (
             <div style={{
               position: 'absolute',
-              bottom: '-4px',
-              right: '-4px',
-              minWidth: '18px',
-              height: '18px',
-              backgroundColor: '#00b894',
-              borderRadius: '50%',
+              bottom: '-2px',
+              right: '-2px',
+              minWidth: '14px',
+              height: '14px',
+              backgroundColor: '#555',
+              borderRadius: '3px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'white',
-              fontSize: '12px',
+              fontSize: '10px',
               fontWeight: 'bold',
-              border: '2px solid white',
-              padding: '0 3px'
+              border: '1px solid #333',
+              padding: '0 2px'
             }}>
               {effect.count}
             </div>

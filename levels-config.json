@@ -799,7 +799,7 @@
         "relicReward": false,
         "upgradeReward": true,
         "shopReward": false,
-        "winTheGame": true,
+        "winTheGame": false,
         "nextLevel": ["L19"]
       },
       "description": "Mines? Just... on the surface?",
@@ -846,7 +846,7 @@
         "upgradeReward": true,
         "shopReward": false,
         "winTheGame": false,
-        "nextLevel": ["L19"]
+        "nextLevel": ["L20"]
       },
       "description": "Rival mines your tiles!",
       "dimensions": {

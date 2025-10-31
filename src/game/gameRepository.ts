@@ -85,6 +85,17 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     },
     icon: '😴'
   },
+  'Twirl': {
+    name: 'Twirl',
+    cost: 3,
+    exhaust: true,
+    category: 'starter',
+    description: {
+      base: 'Gain 3 copper. Exhaust.',
+      enhanced: 'Gain 5 copper. Exhaust.'
+    },
+    icon: '🌪️'
+  },
 
   // Reward/shop cards
   'Energized': {
@@ -273,6 +284,107 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     },
     icon: '🔍'
   },
+  'Fan': {
+    name: 'Fan',
+    cost: 1,
+    category: 'reward',
+    description: {
+      base: 'Target a tile. Any dirt, goblins, and surface mines are blown to a random adjacent unrevealed tile.',
+      enhanced: 'Target a tile and all tiles in manhattan distance 1. Any dirt, goblins, and surface mines are blown to a random adjacent unrevealed tile.'
+    },
+    icon: '🪭'
+  },
+  'Gaze ↑': {
+    name: 'Gaze ↑',
+    cost: 1,
+    category: 'reward',
+    description: {
+      base: 'Choose a tile, search upward for first rival tile. Annotate rival tile and all checked tiles as not rival.',
+      enhanced: 'Choose a tile, search upward for first rival AND first mine. Annotate found tiles and all checked tiles.'
+    },
+    icon: '👀'
+  },
+  'Gaze ↓': {
+    name: 'Gaze ↓',
+    cost: 1,
+    category: 'reward',
+    description: {
+      base: 'Choose a tile, search downward for first rival tile. Annotate rival tile and all checked tiles as not rival.',
+      enhanced: 'Choose a tile, search downward for first rival AND first mine. Annotate found tiles and all checked tiles.'
+    },
+    icon: '👀'
+  },
+  'Gaze ←': {
+    name: 'Gaze ←',
+    cost: 1,
+    category: 'reward',
+    description: {
+      base: 'Choose a tile, search left for first rival tile. Annotate rival tile and all checked tiles as not rival.',
+      enhanced: 'Choose a tile, search left for first rival AND first mine. Annotate found tiles and all checked tiles.'
+    },
+    icon: '👀'
+  },
+  'Gaze →': {
+    name: 'Gaze →',
+    cost: 1,
+    category: 'reward',
+    description: {
+      base: 'Choose a tile, search right for first rival tile. Annotate rival tile and all checked tiles as not rival.',
+      enhanced: 'Choose a tile, search right for first rival AND first mine. Annotate found tiles and all checked tiles.'
+    },
+    icon: '👀'
+  },
+  'Fetch ↑': {
+    name: 'Fetch ↑',
+    cost: 1,
+    category: 'reward',
+    description: {
+      base: 'Choose a tile, check it and all tiles upward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player.',
+      enhanced: 'Choose a tile, check it and all tiles upward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player. Draw a card.'
+    },
+    icon: '🎾'
+  },
+  'Fetch ↓': {
+    name: 'Fetch ↓',
+    cost: 1,
+    category: 'reward',
+    description: {
+      base: 'Choose a tile, check it and all tiles downward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player.',
+      enhanced: 'Choose a tile, check it and all tiles downward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player. Draw a card.'
+    },
+    icon: '🎾'
+  },
+  'Fetch ←': {
+    name: 'Fetch ←',
+    cost: 1,
+    category: 'reward',
+    description: {
+      base: 'Choose a tile, check it and all tiles leftward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player.',
+      enhanced: 'Choose a tile, check it and all tiles leftward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player. Draw a card.'
+    },
+    icon: '🎾'
+  },
+  'Fetch →': {
+    name: 'Fetch →',
+    cost: 1,
+    category: 'reward',
+    description: {
+      base: 'Choose a tile, check it and all tiles rightward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player.',
+      enhanced: 'Choose a tile, check it and all tiles rightward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player. Draw a card.'
+    },
+    icon: '🎾'
+  },
+  'Burger': {
+    name: 'Burger',
+    cost: 2,
+    category: 'reward',
+    exhaust: true,
+    description: {
+      base: 'Draw +1 card every turn for 2 floors. Stacks if played again.',
+      enhanced: 'Draw +1 card every turn for 3 floors. Draw a card now. Stacks if played again.'
+    },
+    icon: '🍔'
+  },
 }
 
 // Centralized relic definitions
@@ -367,12 +479,40 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     hoverText: 'Hyperfocus: at the beginning of each floor, add a random cost-0 card to your first turn hand (not added to persistent deck)',
     category: 'common',
     icon: '🎯'
+  },
+  'Choker': {
+    name: 'Choker',
+    description: 'strategic accessory for close games',
+    hoverText: 'Choker: when your rival reaches 5 tiles left unrevealed, the rival\'s turn ends',
+    category: 'common',
+    icon: '📿'
+  },
+  'Crystal': {
+    name: 'Crystal',
+    description: 'three shimmering amplifications',
+    hoverText: 'Crystal: add 3 doubly-enhanced Tingles to your permanent deck',
+    category: 'rare',
+    icon: '💎'
+  },
+  'Boots': {
+    name: 'Boots',
+    description: 'boots made for walking all over your deck',
+    hoverText: 'Boots: when gained, transform one of your cards into any random non-starter card with BOTH enhanced and energy upgrades',
+    category: 'rare',
+    icon: '👢'
+  },
+  'Glasses': {
+    name: 'Glasses',
+    description: 'see everything more clearly',
+    hoverText: 'Glasses: at the beginning of every turn, play a Tingle for free (adds a Tingle to discard)',
+    category: 'common',
+    icon: '👓'
   }
 }
 
 // Factory functions for creating cards and relics
 
-export function createCard(name: string, upgrades?: { costReduced?: boolean; enhanced?: boolean }): Card {
+export function createCard(name: string, upgrades?: { energyReduced?: boolean; enhanced?: boolean }): Card {
   const definition = CARD_DEFINITIONS[name]
   if (!definition) {
     throw new Error(`Unknown card: ${name}`)
@@ -381,11 +521,9 @@ export function createCard(name: string, upgrades?: { costReduced?: boolean; enh
   let cost = definition.cost
   let exhaust = definition.exhaust
 
-  // Apply upgrades
-  if (upgrades?.costReduced && cost > 0) {
-    cost = Math.max(0, cost - 1)
-  }
-  
+  // Energy-reduced cards no longer reduce cost - they grant +1 energy when played
+  // (Cost stays the same, but playing the card refunds 1 energy)
+
   // Enhanced Energized no longer exhausts
   if (upgrades?.enhanced && name === 'Energized') {
     exhaust = false
@@ -396,7 +534,7 @@ export function createCard(name: string, upgrades?: { costReduced?: boolean; enh
     name: definition.name,
     cost,
     exhaust,
-    costReduced: upgrades?.costReduced,
+    energyReduced: upgrades?.energyReduced,
     enhanced: upgrades?.enhanced
   }
 }
@@ -433,10 +571,11 @@ export function getStarterCards(): Card[] {
     createCard('Tingle'),
     createCard('Tingle'),
     createCard('Tingle'),
-    // Three copies of Easiest
+    // Two copies of Easiest
     createCard('Easiest'),
     createCard('Easiest'),
-    createCard('Easiest')
+    // One copy of Twirl
+    createCard('Twirl')
   ]
 }
 
@@ -444,8 +583,78 @@ export function getRewardCardPool(): Card[] {
   const rewardCardNames = Object.keys(CARD_DEFINITIONS).filter(
     name => CARD_DEFINITIONS[name].category === 'reward'
   )
-  
+
   return rewardCardNames.map(name => createCard(name))
+}
+
+/**
+ * Interface for weighted card selection
+ */
+export interface CardPoolEntry {
+  baseName: string           // e.g., "Fetch", "Monster", "Gaze"
+  weight: number             // relative probability (1.0 = normal, 1.5 = common, 0.67 = rare)
+  variants?: string[]        // e.g., ["Fetch ↑", "Fetch ↓", "Fetch ←", "Fetch →"]
+}
+
+/**
+ * Get weighted reward card pool for proper rarity and directional card handling
+ */
+export function getWeightedRewardCardPool(): CardPoolEntry[] {
+  return [
+    { baseName: 'Vague Instructions', weight: 1.0 },
+    { baseName: 'Sarcastic Instructions', weight: 1.0 },
+    { baseName: 'Energized', weight: 1.0 },
+    { baseName: 'Options', weight: 1.0 },
+    { baseName: 'Brush', weight: 1.0 },
+    { baseName: 'Ramble', weight: 1.0 },
+    { baseName: 'Sweep', weight: 1.5 }, // Common - appears 1.5x as often
+    { baseName: 'Underwire', weight: 1.0 },
+    { baseName: 'Tryst', weight: 1.0 },
+    { baseName: 'Canary', weight: 1.0 },
+    { baseName: 'Monster', weight: 1.0 },
+    { baseName: 'Argument', weight: 1.0 },
+    { baseName: 'Horse', weight: 1.0 },
+    { baseName: 'Eavesdropping', weight: 1.0 },
+    { baseName: 'Emanation', weight: 1.0 },
+    { baseName: 'Masking', weight: 1.0 },
+    { baseName: 'Brat', weight: 1.0 },
+    { baseName: 'Snip, Snip', weight: 1.0 },
+    { baseName: 'Nap', weight: 1.0 },
+    { baseName: 'Fan', weight: 1.0 },
+    { baseName: 'Gaze', weight: 1.0, variants: ['Gaze ↑', 'Gaze ↓', 'Gaze ←', 'Gaze →'] },
+    { baseName: 'Fetch', weight: 1.0, variants: ['Fetch ↑', 'Fetch ↓', 'Fetch ←', 'Fetch →'] },
+    { baseName: 'Burger', weight: 2/3 } // Rare - appears 2/3 as often
+  ]
+}
+
+/**
+ * Select a random card from weighted pool
+ * Directional cards (with variants) pick a random direction
+ */
+export function selectWeightedCard(pool: CardPoolEntry[]): string {
+  // Calculate total weight
+  const totalWeight = pool.reduce((sum, entry) => sum + entry.weight, 0)
+
+  // Random selection based on weight
+  let random = Math.random() * totalWeight
+
+  for (const entry of pool) {
+    random -= entry.weight
+    if (random <= 0) {
+      // If has variants, pick random variant (for directional cards)
+      if (entry.variants && entry.variants.length > 0) {
+        return entry.variants[Math.floor(Math.random() * entry.variants.length)]
+      }
+      return entry.baseName
+    }
+  }
+
+  // Fallback (shouldn't happen, but return first entry)
+  const firstEntry = pool[0]
+  if (firstEntry.variants && firstEntry.variants.length > 0) {
+    return firstEntry.variants[0]
+  }
+  return firstEntry.baseName
 }
 
 export function getAllRelics(): Relic[] {

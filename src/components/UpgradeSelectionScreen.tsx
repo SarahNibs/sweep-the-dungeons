@@ -8,6 +8,7 @@ interface UpgradeSelectionScreenProps {
   onUpgradeSelect: (option: UpgradeOption, selectedCardId?: string) => void
   currentDeck: CardType[]
   waitingForCardRemoval?: boolean
+  bootsTransformMode?: boolean
   onCardRemovalSelect?: (cardId: string) => void
 }
 
@@ -16,6 +17,7 @@ export function UpgradeSelectionScreen({
   onUpgradeSelect,
   currentDeck,
   waitingForCardRemoval,
+  bootsTransformMode,
   onCardRemovalSelect
 }: UpgradeSelectionScreenProps) {
   const [viewingDeck, setViewingDeck] = useState(false)
@@ -44,7 +46,9 @@ export function UpgradeSelectionScreen({
           margin: '0 0 20px 0',
           textAlign: 'center'
         }}>
-          Select a card to remove from your deck
+          {bootsTransformMode
+            ? 'Select a card to transform into a random double-upgraded card'
+            : 'Select a card to remove from your deck'}
         </h2>
 
         <div style={{ marginBottom: '20px' }}>

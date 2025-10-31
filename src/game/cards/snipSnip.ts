@@ -1,6 +1,6 @@
 import { GameState, Position, TileAnnotation } from '../../types'
 import { getTile, positionToKey, removeSpecialTile, hasSpecialTile, calculateAdjacency, getNeighbors } from '../boardSystem'
-import { addTileAnnotation, updateNeighborAdjacencyInfo } from '../cardEffects'
+import { addTileAnnotation, updateNeighborAdjacencyInfo, addOwnerSubsetAnnotation } from '../cardEffects'
 
 // Helper function to count adjacent mines
 function countAdjacentMines(state: GameState, position: Position): number {
@@ -83,13 +83,25 @@ export function executeSnipSnipEffect(state: GameState, target: Position, card?:
     newState = addTileAnnotation(newState, target, annotation)
   }
 
-  // Update board with changes
+  // Update board with changes BEFORE adding non-mine annotation
+  // (so the annotation doesn't get overwritten)
   newState = {
     ...newState,
     board: {
       ...newState.board,
       tiles: newTiles
     }
+  }
+
+  // If tile is not a mine and has no surface mine, annotate as not-mine
+  if (!mineDefused && !tile.revealed) {
+    console.log('✂️ SNIP SNIP: Tile is not a mine, annotating as player/neutral/rival')
+    const possibleOwners = new Set<'player' | 'rival' | 'neutral' | 'mine'>([
+      'player',
+      'rival',
+      'neutral'
+    ])
+    newState = addOwnerSubsetAnnotation(newState, target, possibleOwners)
   }
 
   // Update adjacency_info annotations on neighboring tiles if ownership changed

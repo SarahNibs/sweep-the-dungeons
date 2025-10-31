@@ -1,34 +1,34 @@
 import { GameState, UpgradeOption } from '../types'
 import { advanceToNextLevel } from './cardSystem'
 import { shouldShowRelicReward, shouldShowShopReward } from './levelSystem'
-import { startRelicSelection } from './relicSystem'
+import { startRelicSelection } from './relics'
 import { startShopSelection } from './shopSystem'
 
 import { createCard } from './gameRepository'
 
 export function createUpgradeOptions(state: GameState): UpgradeOption[] {
-  const upgradeableCards = state.persistentDeck.filter(card => 
-    !card.costReduced && !card.enhanced && card.cost > 0 // Exclude 0-cost cards from upgrades
+  const upgradeableCards = state.persistentDeck.filter(card =>
+    !card.energyReduced && !card.enhanced && card.cost > 0 // Exclude 0-cost cards from upgrades
   )
-  
+
   const options: UpgradeOption[] = []
-  
+
   // Option 1: Always remove a card
   options.push({
     type: 'remove_card'
   })
-  
-  // Option 2: Cost reduction - random eligible card
+
+  // Option 2: Energy reduction - random eligible card (grants +1 energy when played)
   if (upgradeableCards.length > 0) {
     const randomCard = upgradeableCards[Math.floor(Math.random() * upgradeableCards.length)]
-    const costReducedCard = createCard(randomCard.name, { costReduced: true })
+    const energyReducedCard = createCard(randomCard.name, { energyReduced: true })
     // Preserve the original card ID for upgrade tracking
-    costReducedCard.id = randomCard.id
-    
+    energyReducedCard.id = randomCard.id
+
     options.push({
       type: 'cost_reduction',
       card: randomCard,
-      displayCard: costReducedCard
+      displayCard: energyReducedCard
     })
   }
   

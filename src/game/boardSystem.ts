@@ -235,17 +235,24 @@ export function clearSpecialTileState(tile: Tile): Tile {
 export function calculateAdjacency(board: Board, position: Position, revealedBy: 'player' | 'rival'): number {
   const neighbors = getNeighbors(board, position)
   let count = 0
-  
+
   // Count adjacent tiles that belong to the revealer's team
   const targetOwner = revealedBy // 'player' or 'rival'
-  
+
+  console.log(`🔢 ADJACENCY CALC - Position (${position.x}, ${position.y}), revealedBy: ${revealedBy}, counting: ${targetOwner} tiles`)
+
   for (const neighborPos of neighbors) {
     const neighbor = getTile(board, neighborPos)
     if (neighbor && neighbor.owner === targetOwner) {
+      console.log(`  ✓ Found ${targetOwner} tile at (${neighborPos.x}, ${neighborPos.y})`)
       count++
+    } else if (neighbor) {
+      console.log(`  ✗ Tile at (${neighborPos.x}, ${neighborPos.y}) is ${neighbor.owner}, not ${targetOwner}`)
     }
   }
-  
+
+  console.log(`🔢 ADJACENCY CALC - Final count: ${count}`)
+
   return count
 }
 
@@ -257,6 +264,8 @@ export interface RevealResult {
 export function revealTileWithResult(board: Board, position: Position, revealedBy: 'player' | 'rival'): RevealResult {
   const key = positionToKey(position)
   const tile = board.tiles.get(key)
+
+  console.log(`🔍 REVEAL TILE WITH RESULT - Position (${position.x}, ${position.y}), revealedBy: ${revealedBy}, tile owner: ${tile?.owner}`)
 
   if (!tile || tile.revealed || tile.owner === 'empty') {
     return { board, revealed: false }

@@ -207,13 +207,13 @@ export function GameStats({ onResetGame, gameStatus }: GameStatsProps) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '12px 16px',
+            padding: '8px 12px',
             backgroundColor: '#e5e5e5',
             borderRadius: '8px',
             cursor: 'pointer',
             userSelect: 'none',
             border: '3px solid transparent',
-            fontSize: '24px',
+            fontSize: '18px',
             color: '#4a4a4a',
             fontWeight: 'bold'
           }}

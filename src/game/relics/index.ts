@@ -7,21 +7,28 @@ import { applyEstrogenEffect } from './estrogen'
 import { applyProgesteroneEffect } from './progesterone'
 import { applyBootsEffect } from './boots'
 import { applyCrystalEffect } from './crystal'
+import { applyBroomClosetEffect } from './broomCloset'
+import { applyNovelEffect } from './novel'
+import { applyCocktailEffect } from './cocktail'
 
 // Re-export all relic effects
 export { triggerDoubleBroomEffect } from './doubleBroom'
-export { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs } from './dustBunny'
+export { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerMatedPairEffect } from './dustBunny'
 export { checkFrillyDressEffect } from './frillyDress'
 export { triggerBusyCanaryEffect } from './busyCanary'
 export { triggerMopEffect } from './mop'
 export { triggerInterceptedNoteEffect } from './interceptedCommunications'
 export { triggerHyperfocusEffect } from './hyperfocus'
+export { triggerBleachEffect } from './bleach'
 export { applyEstrogenEffect } from './estrogen'
 export { applyProgesteroneEffect } from './progesterone'
 export { checkChokerEffect } from './choker'
 export { applyBootsEffect, transformCardForBoots } from './boots'
 export { prepareGlassesEffect } from './glasses'
 export { applyCrystalEffect } from './crystal'
+export { applyBroomClosetEffect } from './broomCloset'
+export { applyNovelEffect, transformInstructionsIfNovel } from './novel'
+export { applyCocktailEffect } from './cocktail'
 
 // Re-export utilities
 export { hasRelic } from './relicUtils'
@@ -30,9 +37,26 @@ export { hasRelic } from './relicUtils'
 export function createRelicOptions(ownedRelics: Relic[] = []): RelicOption[] {
   const allRelics = getAllRelics()
 
-  // Filter out relics the player already owns
+  // Filter out relics the player already owns or doesn't have prerequisites for
   const ownedRelicNames = new Set(ownedRelics.map(relic => relic.name))
-  const availableRelics = allRelics.filter(relic => !ownedRelicNames.has(relic.name))
+  const availableRelics = allRelics.filter(relic => {
+    // Already own this relic
+    if (ownedRelicNames.has(relic.name)) {
+      return false
+    }
+
+    // Check prerequisites - relic must have all prerequisite relics owned
+    if (relic.prerequisites && relic.prerequisites.length > 0) {
+      const hasAllPrerequisites = relic.prerequisites.every(prereqName =>
+        ownedRelicNames.has(prereqName)
+      )
+      if (!hasAllPrerequisites) {
+        return false
+      }
+    }
+
+    return true
+  })
 
   // Shuffle using Fisher-Yates algorithm (proper random shuffle)
   const shuffled = [...availableRelics]
@@ -56,7 +80,7 @@ export function selectRelic(state: GameState, selectedRelic: Relic): GameState {
     relicOptions: shouldPreserveRelicOptions ? state.relicOptions : undefined
   }
 
-  // Apply special relic effects for Estrogen, Progesterone, Boots, and Crystal
+  // Apply special relic effects for Estrogen, Progesterone, Boots, Crystal, Broom Closet, Novel, and Cocktail
   if (selectedRelic.name === 'Estrogen') {
     // Estrogen triggers upgrade display, continuation handled by closeRelicUpgradeDisplay
     return applyEstrogenEffect(updatedState)
@@ -69,6 +93,15 @@ export function selectRelic(state: GameState, selectedRelic: Relic): GameState {
   } else if (selectedRelic.name === 'Crystal') {
     // Crystal triggers upgrade display showing the 3 added Tingles
     return applyCrystalEffect(updatedState)
+  } else if (selectedRelic.name === 'Broom Closet') {
+    // Broom Closet removes all Spritz and adds 3 Broom cards
+    return applyBroomClosetEffect(updatedState)
+  } else if (selectedRelic.name === 'Novel') {
+    // Novel replaces all Instructions with doubly-upgraded Sarcastic Instructions
+    return applyNovelEffect(updatedState)
+  } else if (selectedRelic.name === 'Cocktail') {
+    // Cocktail removes all Scurry and adds 2 random cards
+    return applyCocktailEffect(updatedState)
   } else {
     // For other relics, set gamePhase to playing and continue normal flow
     updatedState = {
@@ -101,7 +134,14 @@ export function closeRelicUpgradeDisplay(state: GameState): GameState {
   const updatedState = {
     ...state,
     gamePhase: 'playing' as const,
-    relicUpgradeResults: undefined
+    relicUpgradeResults: undefined,
+    debugRelicAddition: undefined // Clear the debug flag
+  }
+
+  // Check if this was a debug relic addition (should stay on current level)
+  if (state.debugRelicAddition) {
+    console.log('📋 Debug relic addition - returning to playing without level advancement')
+    return updatedState
   }
 
   // Check if we're returning to an existing shop session (has shopOptions already)

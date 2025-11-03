@@ -3,8 +3,8 @@ import { AITurnResult, AIContext, RivalAI } from './AITypes'
 import { AIRegistry, selectAIForLevel } from './AIRegistry'
 import { generateDualRivalClues, applyVisibleRivalClues } from './utils/aiCommon'
 import { getLevelConfig, calculateCopperReward } from '../levelSystem'
-import { revealTile, revealTileWithResult, spawnGoblinsFromLairs, placeRivalSurfaceMines, getTile, hasSpecialTile, cleanGoblin, positionToKey } from '../boardSystem'
-import { checkGameStatus } from '../cardEffects'
+import { revealTileWithResult, spawnGoblinsFromLairs, placeRivalSurfaceMines, getTile, hasSpecialTile, cleanGoblin, positionToKey } from '../boardSystem'
+import { checkGameStatus, trackPlayerTileReveal } from '../cardEffects'
 import { startNewTurn } from '../cardSystem'
 import { isTestMode } from '../utils/testMode'
 import { checkChokerEffect } from '../relics'
@@ -145,14 +145,55 @@ export class AIController {
     }
     const tilesToReveal = rivalTurnResult.tilesToReveal
 
+    // Update rival clue results to include tiles that will be revealed this turn
+    const tilesRevealedPositions = tilesToReveal.map(t => t.position)
+    const updatedBoard = { ...stateWithRivalClue.board }
+    updatedBoard.tiles = new Map(stateWithRivalClue.board.tiles)
+
+    // Update all tiles that have rival clue annotations to include tiles revealed during this turn
+    for (const [key, tile] of stateWithRivalClue.board.tiles.entries()) {
+      const clueResultsAnnotation = tile.annotations.find(a => a.type === 'clue_results')
+      if (clueResultsAnnotation?.clueResults) {
+        const updatedClueResults = clueResultsAnnotation.clueResults.map(clueResult => {
+          if (clueResult.cardType === 'rival_clue') {
+            return {
+              ...clueResult,
+              tilesRevealedDuringTurn: tilesRevealedPositions
+            }
+          }
+          return clueResult
+        })
+
+        const updatedAnnotations = tile.annotations.map(annotation => {
+          if (annotation.type === 'clue_results') {
+            return {
+              ...annotation,
+              clueResults: updatedClueResults
+            }
+          }
+          return annotation
+        })
+
+        updatedBoard.tiles.set(key, {
+          ...tile,
+          annotations: updatedAnnotations
+        })
+      }
+    }
+
+    const stateWithUpdatedClues = {
+      ...stateWithRivalClue,
+      board: updatedBoard
+    }
+
     if (tilesToReveal.length === 0) {
       // No tiles to reveal, spawn goblins from lairs and place rival mines, then end rival turn immediately
-      const boardWithGoblins = spawnGoblinsFromLairs(stateWithRivalClue.board)
-      const levelConfig = getLevelConfig(stateWithRivalClue.currentLevelId)
+      const boardWithGoblins = spawnGoblinsFromLairs(stateWithUpdatedClues.board)
+      const levelConfig = getLevelConfig(stateWithUpdatedClues.currentLevelId)
       const mineCount = levelConfig?.specialBehaviors.rivalPlacesMines || 0
       const boardWithMines = placeRivalSurfaceMines(boardWithGoblins, mineCount)
       const newTurnState = startNewTurn({
-        ...stateWithRivalClue,
+        ...stateWithUpdatedClues,
         board: boardWithMines
       })
       this.setState({
@@ -164,21 +205,28 @@ export class AIController {
 
     if (isTestMode()) {
       // In tests, run rival turn synchronously
-      let boardState = stateWithRivalClue.board
+      let currentState = stateWithUpdatedClues
       for (const tile of tilesToReveal) {
-        boardState = revealTile(boardState, tile.position, 'rival')
+        const revealResult = revealTileWithResult(currentState.board, tile.position, 'rival')
+        currentState = {
+          ...currentState,
+          board: revealResult.board
+        }
+        // Track player tile reveals
+        currentState = trackPlayerTileReveal(currentState, tile.position, revealResult.revealed)
+
         if (tile.owner !== 'rival') break // Stop if non-rival tile revealed
       }
 
       // Spawn goblins from lairs and place rival mines before starting new turn
-      boardState = spawnGoblinsFromLairs(boardState)
-      const levelConfig = getLevelConfig(stateWithRivalClue.currentLevelId)
+      const boardWithGoblins = spawnGoblinsFromLairs(currentState.board)
+      const levelConfig = getLevelConfig(currentState.currentLevelId)
       const mineCount = levelConfig?.specialBehaviors.rivalPlacesMines || 0
-      boardState = placeRivalSurfaceMines(boardState, mineCount)
+      const boardWithMines = placeRivalSurfaceMines(boardWithGoblins, mineCount)
 
       const newTurnState = startNewTurn({
-        ...stateWithRivalClue,
-        board: boardState
+        ...currentState,
+        board: boardWithMines
       })
       this.setState({
         ...newTurnState,
@@ -189,7 +237,7 @@ export class AIController {
 
     // Start the animation sequence
     this.setState({
-      ...stateWithRivalClue,
+      ...stateWithUpdatedClues,
       currentPlayer: 'rival',
       rivalAnimation: {
         isActive: true,
@@ -292,6 +340,9 @@ export class AIController {
 
       // Check if rival revealed a mine with protection active
       let stateAfterReveal = { ...state, board: newBoard }
+
+      // Track player tile reveals and award copper every 5th reveal
+      stateAfterReveal = trackPlayerTileReveal(stateAfterReveal, tileToReveal.position, revealResult.revealed)
       if (tileAfterGoblinMove && tileAfterGoblinMove.owner === 'mine' && state.rivalMineProtectionCount > 0) {
         console.log(`🛡️ Rival revealed protected mine! Awarding 5 copper and decrementing protection count`)
 

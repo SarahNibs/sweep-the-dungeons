@@ -153,3 +153,71 @@ export function triggerTemporaryBunnyBuffs(state: GameState): GameState {
     temporaryBunnyBuffs: 0
   }
 }
+
+export function triggerMatedPairEffect(state: GameState): GameState {
+  if (!hasRelic(state, 'Mated Pair')) {
+    return state
+  }
+
+  // Find all unrevealed player tiles that are not dirty
+  const unrevealedPlayerTiles = Array.from(state.board.tiles.values()).filter(tile =>
+    tile.owner === 'player' &&
+    !tile.revealed &&
+    !tile.specialTiles.includes('extraDirty')
+  )
+
+  if (unrevealedPlayerTiles.length === 0) {
+    return state
+  }
+
+  // Select a random player tile
+  const randomTile = unrevealedPlayerTiles[Math.floor(Math.random() * unrevealedPlayerTiles.length)]
+
+  // Check if this tile has a surface mine and defuse it first
+  let currentState = state
+  let copperFromDefusing = 0
+  const key = `${randomTile.position.x},${randomTile.position.y}`
+  let tileToReveal = randomTile
+
+  if (randomTile.specialTiles.includes('surfaceMine')) {
+    console.log(`🍐 MATED PAIR: Defusing surface mine at (${randomTile.position.x}, ${randomTile.position.y}) before revealing`)
+    const newTiles = new Map(currentState.board.tiles)
+    const defusedTile = removeSpecialTile(randomTile, 'surfaceMine')
+    newTiles.set(key, defusedTile)
+    tileToReveal = defusedTile
+    currentState = {
+      ...currentState,
+      board: {
+        ...currentState.board,
+        tiles: newTiles
+      },
+      copper: currentState.copper + 3
+    }
+    copperFromDefusing = 3
+  }
+
+  // Now reveal the tile (with surface mine removed if it had one)
+  const newTiles = new Map(currentState.board.tiles)
+
+  // Calculate adjacency count using the board's adjacency rule
+  const adjacencyCount = calculateAdjacency(currentState.board, tileToReveal.position, 'player')
+
+  newTiles.set(key, {
+    ...tileToReveal,
+    revealed: true,
+    revealedBy: 'player',
+    adjacencyCount
+  })
+
+  if (copperFromDefusing > 0) {
+    console.log(`🍐 MATED PAIR: Defused surface mine, +${copperFromDefusing} copper`)
+  }
+
+  return {
+    ...currentState,
+    board: {
+      ...currentState.board,
+      tiles: newTiles
+    }
+  }
+}

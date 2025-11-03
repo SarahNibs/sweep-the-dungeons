@@ -36,8 +36,9 @@ export function executeEmanationEffect(state: GameState, target: Position, card?
 
     for (const pos of cardinalDirections) {
       const tile = getTile(currentState.board, pos)
-      if (tile && tile.owner !== 'empty') {
-        console.log(`  - Exploding cardinal tile at (${pos.x}, ${pos.y})`)
+      if (tile) {
+        // Destroy ALL adjacent tiles, including empty tiles (lairs, holes, etc.)
+        console.log(`  - Exploding cardinal tile at (${pos.x}, ${pos.y}) [owner: ${tile.owner}]`)
         currentState = {
           ...currentState,
           board: destroyTile(currentState.board, pos)

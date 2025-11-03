@@ -121,26 +121,37 @@ export class DebugController {
 
       console.log(`🎁 DEBUG: Giving relic "${relicName}"`, relic)
 
-      // Add the relic to the collection first
+      // Add the relic to the collection first, and mark as debug addition
       let newState = {
         ...currentState,
-        relics: [...currentState.relics, relic]
+        relics: [...currentState.relics, relic],
+        debugRelicAddition: true // Flag to prevent level advancement
       }
 
       // Apply special relic effects for relics that modify the deck
-      import('../relics').then(({ applyEstrogenEffect, applyProgesteroneEffect, applyBootsEffect, applyCrystalEffect }) => {
+      import('../relics').then(({ applyEstrogenEffect, applyProgesteroneEffect, applyBootsEffect, applyCrystalEffect, applyBroomClosetEffect, applyNovelEffect, applyCocktailEffect }) => {
+        let effectState: any = newState // Use any to avoid type issues with debugRelicAddition
+
         if (relic.name === 'Estrogen') {
-          newState = applyEstrogenEffect(newState)
+          effectState = { ...applyEstrogenEffect(newState), debugRelicAddition: true, gamePhase: currentState.gamePhase }
         } else if (relic.name === 'Progesterone') {
-          newState = applyProgesteroneEffect(newState)
+          effectState = { ...applyProgesteroneEffect(newState), debugRelicAddition: true, gamePhase: currentState.gamePhase }
         } else if (relic.name === 'Boots') {
-          newState = applyBootsEffect(newState)
+          effectState = { ...applyBootsEffect(newState), debugRelicAddition: true, gamePhase: currentState.gamePhase }
         } else if (relic.name === 'Crystal') {
-          newState = applyCrystalEffect(newState)
+          effectState = { ...applyCrystalEffect(newState), debugRelicAddition: true, gamePhase: currentState.gamePhase }
+        } else if (relic.name === 'Broom Closet') {
+          effectState = { ...applyBroomClosetEffect(newState), debugRelicAddition: true, gamePhase: currentState.gamePhase }
+        } else if (relic.name === 'Novel') {
+          effectState = { ...applyNovelEffect(newState), debugRelicAddition: true, gamePhase: currentState.gamePhase }
+        } else if (relic.name === 'Cocktail') {
+          effectState = { ...applyCocktailEffect(newState), debugRelicAddition: true, gamePhase: currentState.gamePhase }
+        } else {
+          effectState = newState
         }
 
-        console.log('New relics after update:', newState.relics.map(r => r.name))
-        this.setState(newState)
+        console.log('New relics after update:', effectState.relics.map((r: any) => r.name))
+        this.setState(effectState)
         console.log('✅ debugGiveRelic completed')
       }).catch(err => {
         console.error('Failed to import relic effects:', err)

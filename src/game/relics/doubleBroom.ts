@@ -1,6 +1,7 @@
 import { GameState } from '../../types'
 import { getNeighbors } from '../boardSystem'
 import { hasRelic } from './relicUtils'
+import { addOwnerSubsetAnnotation } from '../cardEffects'
 
 function applySingleOwnerExclusion(state: GameState, position: { x: number, y: number }): GameState {
   const key = `${position.x},${position.y}`
@@ -23,43 +24,7 @@ function applySingleOwnerExclusion(state: GameState, position: { x: number, y: n
   const allOwners: Array<'player' | 'rival' | 'neutral' | 'mine'> = ['player', 'rival', 'neutral', 'mine']
   const newOwnerSubset = new Set(allOwners.filter(owner => owner !== randomOwnerToExclude))
 
-  const existingSubsetAnnotation = tile.annotations.find(a => a.type === 'owner_subset')
-
-  let newAnnotations
-  if (existingSubsetAnnotation && existingSubsetAnnotation.ownerSubset) {
-    // Intersect with existing subset
-    const intersectedSubset = new Set(
-      Array.from(newOwnerSubset).filter(owner => existingSubsetAnnotation.ownerSubset!.has(owner))
-    )
-    newAnnotations = tile.annotations.map(a =>
-      a.type === 'owner_subset'
-        ? { ...a, ownerSubset: intersectedSubset }
-        : a
-    )
-  } else {
-    // Create new subset annotation
-    newAnnotations = [
-      ...tile.annotations,
-      {
-        type: 'owner_subset' as const,
-        ownerSubset: newOwnerSubset
-      }
-    ]
-  }
-
-  const newTiles = new Map(state.board.tiles)
-  newTiles.set(key, {
-    ...tile,
-    annotations: newAnnotations
-  })
-
-  return {
-    ...state,
-    board: {
-      ...state.board,
-      tiles: newTiles
-    }
-  }
+  return addOwnerSubsetAnnotation(state, position, newOwnerSubset)
 }
 
 export function triggerDoubleBroomEffect(state: GameState, revealedPosition: { x: number, y: number }): GameState {
@@ -80,9 +45,10 @@ export function triggerDoubleBroomEffect(state: GameState, revealedPosition: { x
     return state
   }
 
-  // Select up to 2 random adjacent tiles
+  // Select up to 2 random adjacent tiles (or 3 if Triple Broom is owned)
+  const numTiles = hasRelic(state, 'Triple Broom') ? 3 : 2
   const shuffled = [...unrevealedAdjacent].sort(() => Math.random() - 0.5)
-  const selectedTiles = shuffled.slice(0, Math.min(2, shuffled.length))
+  const selectedTiles = shuffled.slice(0, Math.min(numTiles, shuffled.length))
 
   // Apply single owner exclusion to each selected tile
   let newState = state

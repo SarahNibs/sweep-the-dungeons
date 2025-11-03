@@ -1,6 +1,6 @@
 import { GameState, Position, Card } from '../../types'
 import { getTile, revealTileWithResult } from '../boardSystem'
-import { addOwnerSubsetAnnotation, checkGameStatus } from '../cardEffects'
+import { addOwnerSubsetAnnotation, checkGameStatus, trackPlayerTileReveal } from '../cardEffects'
 import { createCard } from '../gameRepository'
 
 /**
@@ -106,6 +106,7 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
     // Consume all available protections and reveal the mines
     let protectionsLeft = totalProtections
     const partialRevealTiles: Position[] = []
+    const revealedPlayerTilePositions: Position[] = []
 
     for (const pos of tilesToReveal) {
       const tile = getTile(boardState, pos)
@@ -134,11 +135,25 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
         const result = revealTileWithResult(boardState, pos, 'player')
         boardState = result.board
 
+        // Track player tile reveals
+        if (result.revealed && tile && tile.owner === 'player') {
+          revealedPlayerTilePositions.push(pos)
+        }
+
         if (!result.revealed) {
           partialRevealTiles.push(pos)
           console.log(`🎾 Partial reveal at (${pos.x}, ${pos.y}) - goblin moved or dirt cleaned`)
         }
       }
+    }
+
+    // Update state with revealed player tiles
+    newState = {
+      ...newState,
+      board: boardState
+    }
+    for (const pos of revealedPlayerTilePositions) {
+      newState = trackPlayerTileReveal(newState, pos, true)
     }
 
     // Consume the protections from state
@@ -193,12 +208,18 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
 
   // Reveal all majority owner tiles, track which ones were actually revealed
   const partialRevealTiles: Position[] = []
+  const revealedPlayerTilePositions: Position[] = []
   let protectionsUsed = 0
 
   for (const pos of tilesToReveal) {
     const tile = getTile(boardState, pos)
     const result = revealTileWithResult(boardState, pos, 'player')
     boardState = result.board
+
+    // Track player tile reveals
+    if (result.revealed && tile && tile.owner === 'player') {
+      revealedPlayerTilePositions.push(pos)
+    }
 
     // If this was a mine that was revealed, mark it as protected
     if (tile && tile.owner === 'mine' && result.revealed) {
@@ -324,6 +345,11 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
         hand: [...newState.hand, drawnCard]
       }
     }
+  }
+
+  // Track all player tile reveals
+  for (const pos of revealedPlayerTilePositions) {
+    newState = trackPlayerTileReveal(newState, pos, true)
   }
 
   return newState

@@ -55,18 +55,21 @@ export function executeFanEffect(state: GameState, target: Position, enhanced: b
 
     if (!hasDirt && !hasGoblin && !hasMine) continue
 
-    // Get adjacent unrevealed tiles
+    // Get adjacent unrevealed nonempty tiles
     const neighbors = getNeighbors(state.board, pos)
     const unrevealedNeighbors = neighbors
       .map(nPos => ({ pos: nPos, tile: getTile(state.board, nPos) }))
-      .filter(({ tile }) => tile && !tile.revealed)
+      .filter(({ tile }) => tile && !tile.revealed && tile.owner !== 'empty')
 
-    if (unrevealedNeighbors.length === 0) continue
+    // If no adjacent unrevealed nonempty tiles, dirt/goblin/mine disappears
+    if (unrevealedNeighbors.length === 0) {
+      console.log(`🪭 No adjacent unrevealed tiles - dirt/goblin/mine at (${pos.x}, ${pos.y}) will disappear`)
+      continue
+    }
 
-    // Pick random neighbor
+    // Pick random adjacent neighbor
     const targetNeighbor = unrevealedNeighbors[Math.floor(Math.random() * unrevealedNeighbors.length)]
-
-    console.log(`🪭 Planning to blow from (${pos.x}, ${pos.y}) to (${targetNeighbor.pos.x}, ${targetNeighbor.pos.y})`)
+    console.log(`🪭 Planning to blow from (${pos.x}, ${pos.y}) to adjacent (${targetNeighbor.pos.x}, ${targetNeighbor.pos.y})`)
 
     operations.push({
       sourcePos: pos,

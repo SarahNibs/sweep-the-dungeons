@@ -1,6 +1,6 @@
 import { GameState, Position } from '../../types'
 import { getTile, positionToKey, removeSpecialTile, cleanGoblin, hasSpecialTile } from '../boardSystem'
-import { triggerMopEffect, hasRelic } from '../relics'
+import { triggerMopEffect, hasRelic, triggerBleachEffect } from '../relics'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
 
 export function executeScoutEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
@@ -37,6 +37,9 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
 
     // Draw card immediately for cleaning dirt (Mop relic effect)
     newState = triggerMopEffect(newState, 1)
+
+    // Spread clean to adjacent tiles (Bleach relic effect)
+    newState = triggerBleachEffect(newState, target)
   }
 
   // Handle surface mine defusing
@@ -116,25 +119,83 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
       { x: target.x - 1, y: target.y + 1 },
       { x: target.x + 1, y: target.y + 1 }
     ]
-    
+
     const unrevealedAdjacent = adjacentPositions.filter(pos => {
       const adjKey = `${pos.x},${pos.y}`
       const adjTile = stateWithMainScout.board.tiles.get(adjKey)
       return adjTile && !adjTile.revealed && adjTile.owner !== 'empty'
     })
-    
+
     if (unrevealedAdjacent.length > 0) {
       // Pick a random adjacent tile to scout
       const randomAdjacent = unrevealedAdjacent[Math.floor(Math.random() * unrevealedAdjacent.length)]
-      const adjTile = getTile(stateWithMainScout.board, randomAdjacent)
-      
+      let adjTile = getTile(stateWithMainScout.board, randomAdjacent)
+
       if (adjTile) {
+        let stateAfterAdjacentClean = stateWithMainScout
+
+        // Clean goblin if present on adjacent tile
+        if (hasSpecialTile(adjTile, 'goblin')) {
+          const { board: boardAfterGoblinMove } = cleanGoblin(stateAfterAdjacentClean.board, randomAdjacent)
+          stateAfterAdjacentClean = {
+            ...stateAfterAdjacentClean,
+            board: boardAfterGoblinMove
+          }
+        }
+
+        // Clean dirt if present on adjacent tile
+        if (hasSpecialTile(adjTile, 'extraDirty')) {
+          const key = positionToKey(randomAdjacent)
+          const newTiles = new Map(stateAfterAdjacentClean.board.tiles)
+          const currentTile = newTiles.get(key)!
+          const cleanedTile = removeSpecialTile(currentTile, 'extraDirty')
+          newTiles.set(key, cleanedTile)
+
+          stateAfterAdjacentClean = {
+            ...stateAfterAdjacentClean,
+            board: {
+              ...stateAfterAdjacentClean.board,
+              tiles: newTiles
+            }
+          }
+
+          // Draw card immediately for cleaning dirt (Mop relic effect)
+          stateAfterAdjacentClean = triggerMopEffect(stateAfterAdjacentClean, 1)
+
+          // Spread clean to adjacent tiles (Bleach relic effect)
+          stateAfterAdjacentClean = triggerBleachEffect(stateAfterAdjacentClean, randomAdjacent)
+        }
+
+        // Handle surface mine defusing on adjacent tile (enhanced Spritz always defuses)
+        adjTile = getTile(stateAfterAdjacentClean.board, randomAdjacent)!
+        if (hasSpecialTile(adjTile, 'surfaceMine')) {
+          console.log('💣 SPRITZ+ HIT SURFACE MINE ON ADJACENT TILE - defusing')
+          const key = positionToKey(randomAdjacent)
+          const newTiles = new Map(stateAfterAdjacentClean.board.tiles)
+          const defusedTile = removeSpecialTile(adjTile, 'surfaceMine')
+          newTiles.set(key, defusedTile)
+
+          stateAfterAdjacentClean = {
+            ...stateAfterAdjacentClean,
+            board: {
+              ...stateAfterAdjacentClean.board,
+              tiles: newTiles
+            },
+            copper: stateAfterAdjacentClean.copper + 3
+          }
+
+          console.log('  - Adjacent surface mine defused! +3 copper')
+
+          // Trigger Mop effect if player has Mop relic (defusing counts as cleaning)
+          stateAfterAdjacentClean = triggerMopEffect(stateAfterAdjacentClean, 1)
+        }
+
         const adjIsSafe = adjTile.owner === 'player' || adjTile.owner === 'neutral'
-        const adjOwnerSubset = adjIsSafe 
+        const adjOwnerSubset = adjIsSafe
           ? new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player', 'neutral'])
           : new Set<'player' | 'rival' | 'neutral' | 'mine'>(['rival', 'mine'])
-        
-        return addOwnerSubsetAnnotation(stateWithMainScout, randomAdjacent, adjOwnerSubset)
+
+        return addOwnerSubsetAnnotation(stateAfterAdjacentClean, randomAdjacent, adjOwnerSubset)
       }
     }
   }

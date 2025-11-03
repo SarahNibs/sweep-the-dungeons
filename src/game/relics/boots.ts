@@ -1,5 +1,5 @@
 import { GameState } from '../../types'
-import { getWeightedRewardCardPool, selectWeightedCard, createCard } from '../gameRepository'
+import { getWeightedRewardCardPool, selectWeightedCard, createCard, applyDIYGel } from '../gameRepository'
 
 /**
  * Boots relic: when gained, transform one of your cards into a random double-upgraded card
@@ -40,10 +40,11 @@ export function transformCardForBoots(state: GameState, cardId: string): GameSta
 
   // Create the double-upgraded card (both enhanced AND energyReduced)
   // This applies to ALL cards, including 0-cost cards (they stay 0-cost but get the flag)
-  const upgradedCard = createCard(selectedCardName, {
+  // Note: DIY Gel won't affect this since it's already enhanced
+  const upgradedCard = applyDIYGel(state.relics, createCard(selectedCardName, {
     energyReduced: true,
     enhanced: true
-  })
+  }))
 
   console.log(`👢 BOOTS: Transformed ${originalCard.name} into double-upgraded ${upgradedCard.name}`)
 

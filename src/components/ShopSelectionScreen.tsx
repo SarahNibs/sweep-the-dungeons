@@ -84,14 +84,20 @@ export function ShopSelectionScreen({
         </div>
 
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '20px',
-          alignItems: 'start',
-          justifyItems: 'center',
           maxWidth: '800px',
-          width: '100%'
+          width: '100%',
+          maxHeight: 'calc(100vh - 200px)', // Leave room for header and button
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          padding: '10px'
         }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '20px',
+            alignItems: 'start',
+            justifyItems: 'center'
+          }}>
           {currentDeck.map((card) => (
             <div 
               key={card.id} 
@@ -150,6 +156,7 @@ export function ShopSelectionScreen({
               )}
             </div>
           ))}
+          </div>
         </div>
 
         {viewingDeck && (

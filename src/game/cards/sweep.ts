@@ -1,6 +1,6 @@
 import { GameState, Position } from '../../types'
 import { removeSpecialTile, cleanGoblin, hasSpecialTile } from '../boardSystem'
-import { triggerMopEffect, hasRelic } from '../relics'
+import { triggerMopEffect, hasRelic, triggerBleachEffect } from '../relics'
 
 export function executeSweepEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
   let currentBoard = state.board
@@ -31,6 +31,7 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
   }
 
   // Second pass: clear dirt tiles and count for Mop
+  const cleanedPositions: Position[] = []
   for (let dx = -range; dx <= range; dx++) {
     for (let dy = -range; dy <= range; dy++) {
       const x = target.x + dx
@@ -47,6 +48,7 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
           tiles: newTiles
         }
         tilesCleanedCount++
+        cleanedPositions.push({ x, y })
       }
     }
   }
@@ -54,6 +56,11 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
   let finalState = {
     ...state,
     board: currentBoard
+  }
+
+  // Trigger Bleach effect for each cleaned position
+  for (const pos of cleanedPositions) {
+    finalState = triggerBleachEffect(finalState, pos)
   }
 
   // Third pass: handle surface mines based on cleaning state

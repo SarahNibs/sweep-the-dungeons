@@ -29,6 +29,7 @@ function App() {
     energy,
     maxEnergy,
     copper,
+    playerTilesRevealedCount,
     board,
     gameStatus,
     currentLevelId,
@@ -198,7 +199,25 @@ function App() {
                 {copper}
               </div>
             </Tooltip>
-            
+
+            {/* Player tile reveal counter */}
+            <Tooltip
+              text={`Every 5th player tile revealed grants 1 copper. Current progress: ${playerTilesRevealedCount % 5}/5`}
+              style={{ display: 'block', margin: '0 auto' }}
+            >
+              <div
+                style={{
+                  fontSize: '12px',
+                  textAlign: 'center',
+                  color: '#666',
+                  fontWeight: 'bold',
+                  margin: '0 auto'
+                }}
+              >
+                {playerTilesRevealedCount % 5}/5
+              </div>
+            </Tooltip>
+
             {/* Relics vertically */}
             {relics.length > 0 && relics.map((relic, index) => (
               <Tooltip key={index} text={relic.hoverText} style={{ display: 'block', margin: '0 auto' }}>

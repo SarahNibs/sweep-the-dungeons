@@ -38,6 +38,7 @@ export type CardEffect =
   | { type: 'fetch'; target: Position }
   | { type: 'burger' }
   | { type: 'twirl' }
+  | { type: 'donut' }
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
@@ -48,6 +49,7 @@ export interface ClueResult {
   clueOrder: number // Order in which this clue was played (1st, 2nd, 3rd...)
   clueRowPosition: number // Row position for this clue type (player/rival separate)
   isAntiClue?: boolean // If true, render as red dots (don't reveal these tiles)
+  tilesRevealedDuringTurn?: Position[] // For rival clues: tiles revealed by rival during this clue's turn
 }
 
 export interface TileAnnotation {
@@ -168,7 +170,7 @@ export interface GameState {
   relicOptions?: RelicOption[] // Three relic options to choose from
   relics: Relic[] // Relics the player currently has
   isFirstTurn: boolean // True if this is the first turn of the level (for Frilly Dress)
-  hasRevealedNeutralThisTurn: boolean // True if player revealed neutral on first turn (for Frilly Dress)
+  neutralsRevealedThisTurn: number // Number of neutrals revealed this turn (for Frilly Dress - allows 6 on turn 1)
   // Dual rival clue system: visible clues (shown as X) vs AI clues (hidden)
   rivalHiddenClues: ClueResult[] // AI-only clues for rival decision making (not shown to player)
   tingleAnimation: {
@@ -200,8 +202,10 @@ export interface GameState {
   ramblePriorityBoosts: number[] // Array of max boost values from Rambles played this turn (e.g., [2, 4] for basic + enhanced)
   // Currency and shop system
   copper: number // Copper currency earned from unrevealed rival tiles
+  playerTilesRevealedCount: number // Counter for player tiles revealed (every 5th grants 1 copper, persists across floors)
   shopOptions?: ShopOption[] // Available shop items
   purchasedShopItems?: Set<number> // Indices of purchased shop items (for current shop session)
+  shopVisitCount: number // Number of shops visited in current run (for progressive price increases)
   temporaryBunnyBuffs: number // Number of temporary bunny buffs for next level
   
   // Underwire protection
@@ -246,6 +250,9 @@ export interface GameState {
   // Rival mine protection (special behavior)
   rivalMineProtectionCount: number // Number of remaining protected mine reveals
 
+  // Debug relic addition flag (prevents level advancement when adding relics via debug menu)
+  debugRelicAddition?: boolean // True when relic was added via debug menu
+
   // Masking card state (for selecting which card to play with Masking)
   maskingState: {
     maskingCardId: string  // ID of the Masking card being played
@@ -270,6 +277,7 @@ export interface Relic {
   name: string
   description: string
   hoverText: string
+  prerequisites?: string[] // List of relic names that must be owned before this relic can be offered
 }
 
 export interface RelicOption {
@@ -287,12 +295,12 @@ export interface ShopOption {
 
 export interface StatusEffect {
   id: string
-  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines' | 'rival_ai_type' | 'rival_mine_protection' | 'grace' | 'burger'
+  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines' | 'rival_ai_type' | 'rival_mine_protection' | 'grace' | 'burger' | 'rival_places_mines'
   icon: string
   name: string
   description: string
   enhanced?: boolean // For enhanced effects
-  count?: number // For effects with counts (e.g., rival mine protection remaining, burger stacks)
+  count?: number // For effects with counts (e.g., rival mine protection remaining, burger stacks, rival places mines count)
 }
 
 export type CardZone = 'deck' | 'hand' | 'discard'

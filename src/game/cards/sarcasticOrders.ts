@@ -55,8 +55,8 @@ function generateMethod1(state: GameState): Method1Result {
       .map(pos => getTile(state.board, pos))
       .filter((t): t is Tile => t !== undefined)
 
-    // Skip if any adjacent tiles are mines
-    if (adjacentTiles.some(t => t.owner === 'mine')) {
+    // Skip if any unrevealed adjacent tiles are mines
+    if (adjacentTiles.some(t => t.owner === 'mine' && !t.revealed)) {
       continue
     }
 
@@ -71,14 +71,18 @@ function generateMethod1(state: GameState): Method1Result {
     // MANDATORY: Must have more than 50% player tiles
     const isMoreThanHalfPlayer = P > N / 2
 
+    // Exclusion rules: specific (N,P) combinations that don't qualify
+    const isExcludedCombination = (N === 3 && P === 2) || (N === 5 && P === 3)
+
     // Check eligibility: P > 0.8 * (N-1) OR (P >= 6 OR P is all/all-but-one remaining)
     // PLUS the mandatory >50% player tiles requirement
+    // MINUS the excluded combinations
     const threshold = 0.8 * (N - 1)
     const isHighPercentage = P > threshold
     const isHighCount = P >= 6
     const isAllOrAlmostAll = P >= totalPlayerTilesRemaining - 1
 
-    if (isMoreThanHalfPlayer && (isHighPercentage || isHighCount || isAllOrAlmostAll)) {
+    if (isMoreThanHalfPlayer && !isExcludedCombination && (isHighPercentage || isHighCount || isAllOrAlmostAll)) {
       const adjacentRival = adjacentUnrevealed.filter(t => t.owner === 'rival').length
       const adjacentNeutral = adjacentUnrevealed.filter(t => t.owner === 'neutral').length
 
@@ -135,12 +139,16 @@ function generateMethod1(state: GameState): Method1Result {
     `(${c.tile.position.x},${c.tile.position.y}): P=${c.adjacentPlayer} R=${c.adjacentRival} N=${c.adjacentNeutral}`
   ))
 
+  // Limit to at most the best 2 candidates
+  const limitedCandidates = candidates.slice(0, 2)
+  console.log(`Limited to ${limitedCandidates.length} candidates`)
+
   // Collect candidates until reaching 2+ adjacent rivals OR 4+ adjacent non-players
   const selectedTiles: Tile[] = []
   let totalAdjacentRivals = 0
   let totalAdjacentNonPlayers = 0
 
-  for (const candidate of candidates) {
+  for (const candidate of limitedCandidates) {
     selectedTiles.push(candidate.tile)
     totalAdjacentRivals += candidate.adjacentRival
     totalAdjacentNonPlayers += candidate.adjacentRival + candidate.adjacentNeutral

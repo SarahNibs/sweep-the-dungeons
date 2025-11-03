@@ -4,6 +4,7 @@ import { executeTingleEffect } from '../cards/report'
 import { selectTrystTiles } from '../cards/tryst'
 import { queueCardDrawsFromDirtCleaning } from '../cardSystem'
 import { isTestMode } from '../utils/testMode'
+import { triggerBleachEffect } from '../relics'
 
 /**
  * AnimationController handles card animations (Tingle, Tryst)
@@ -245,6 +246,9 @@ export class AnimationController {
         ...currentStateForReveal,
         queuedCardDraws: updatedState.queuedCardDraws
       }
+
+      // Spread clean to adjacent tiles (Bleach relic effect)
+      currentStateForReveal = triggerBleachEffect(currentStateForReveal, currentReveal.tile.position)
     }
 
     // Reveal the current tile

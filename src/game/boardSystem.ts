@@ -21,7 +21,8 @@ export function createTile(position: Position, owner: Tile['owner'], specialTile
     revealedBy: null,
     adjacencyCount: null,
     annotations: [],
-    specialTiles: specialTiles || []
+    specialTiles: specialTiles || [],
+    cleanedOnce: false // Initialize cleanedOnce to false for all new tiles
   }
 }
 

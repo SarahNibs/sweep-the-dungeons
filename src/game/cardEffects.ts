@@ -27,6 +27,37 @@ import { executeGazeEffect } from './cards/gaze'
 import { executeFetchEffect } from './cards/fetch'
 import { executeBurgerEffect } from './cards/burger'
 import { executeTwirlEffect } from './cards/twirl'
+import { executeDonutEffect } from './cards/donut'
+
+/**
+ * Track player tile reveals and award copper every 5th reveal.
+ * Call this after any tile reveal to track progress.
+ */
+export function trackPlayerTileReveal(
+  state: GameState,
+  position: Position,
+  wasRevealed: boolean
+): GameState {
+  if (!wasRevealed) return state
+
+  const tile = getTile(state.board, position)
+  if (!tile || tile.owner !== 'player') return state
+
+  const newCount = state.playerTilesRevealedCount + 1
+  const shouldAwardCopper = newCount % 5 === 0
+
+  const updatedState = {
+    ...state,
+    playerTilesRevealedCount: newCount,
+    copper: shouldAwardCopper ? state.copper + 1 : state.copper
+  }
+
+  if (shouldAwardCopper) {
+    console.log(`💰 PLAYER TILE REVEAL BONUS: Revealed ${newCount} player tiles total, awarded 1 copper!`)
+  }
+
+  return updatedState
+}
 
 // Shared reveal function that includes relic effects
 export function revealTileWithRelicEffects(
@@ -218,18 +249,21 @@ export function revealTileWithRelicEffects(
       if (tile && checkFrillyDressEffect(stateWithBoard, tile)) {
         stateWithBoard = {
           ...stateWithBoard,
-          hasRevealedNeutralThisTurn: true
+          neutralsRevealedThisTurn: stateWithBoard.neutralsRevealedThisTurn + 1
         }
       }
     }
   }
-  
+
+  // Track player tile reveals and award copper every 5th reveal
+  stateWithBoard = trackPlayerTileReveal(stateWithBoard, position, revealResult.revealed)
+
   console.log('🔚 REVEAL TILE WITH RELIC EFFECTS - FINAL STATE')
   console.log('  - Final underwireProtection:', stateWithBoard.underwireProtection)
   console.log('  - Final activeStatusEffects:', stateWithBoard.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
   console.log('  - Final hand size:', stateWithBoard.hand.length)
   console.log('  - Final deck size:', stateWithBoard.deck.length)
-  
+
   return stateWithBoard
 }
 
@@ -301,15 +335,38 @@ export function addOwnerSubsetAnnotation(
     })
   }
 
-  // AUTO-ANNOTATION: If owner_subset rules out 'player' and there's no existing player annotation, add one
-  const hasExistingPlayerAnnotation = tile.annotations.some(a => a.type === 'player_owner_possibility')
-  if (!hasExistingPlayerAnnotation && finalOwnerSubset.size > 0 && !finalOwnerSubset.has('player')) {
-    console.log(`🤖 AUTO-ANNOTATION: Adding not-player annotation at (${position.x}, ${position.y})`)
-    // Add player annotation that excludes 'player' (shows black slash)
-    finalAnnotations.push({
-      type: 'player_owner_possibility',
-      playerOwnerPossibility: new Set(finalOwnerSubset) // Use the same subset (which doesn't include player)
-    })
+  // AUTO-ANNOTATION: If owner_subset rules out 'player', auto-add or update player annotation
+  if (finalOwnerSubset.size > 0 && !finalOwnerSubset.has('player')) {
+    const existingPlayerAnnotation = tile.annotations.find(a => a.type === 'player_owner_possibility')
+
+    if (existingPlayerAnnotation?.playerOwnerPossibility) {
+      // Intersect with the owner subset to narrow it down
+      const intersected = new Set<'player' | 'rival' | 'neutral' | 'mine'>()
+      for (const owner of existingPlayerAnnotation.playerOwnerPossibility) {
+        if (finalOwnerSubset.has(owner)) {
+          intersected.add(owner)
+        }
+      }
+
+      // Remove old player annotation and add updated one
+      const withoutPlayerAnnotation = finalAnnotations.filter(a => a.type !== 'player_owner_possibility')
+      if (intersected.size > 0) {
+        console.log(`🤖 AUTO-ANNOTATION: Updating player annotation at (${position.x}, ${position.y})`)
+        withoutPlayerAnnotation.push({
+          type: 'player_owner_possibility',
+          playerOwnerPossibility: intersected
+        })
+      }
+      finalAnnotations.length = 0
+      finalAnnotations.push(...withoutPlayerAnnotation)
+    } else {
+      // No existing player annotation - add one with the owner subset (minus 'player')
+      console.log(`🤖 AUTO-ANNOTATION: Adding not-player annotation at (${position.x}, ${position.y})`)
+      finalAnnotations.push({
+        type: 'player_owner_possibility',
+        playerOwnerPossibility: new Set(finalOwnerSubset)
+      })
+    }
   }
 
   const annotatedTile: Tile = {
@@ -682,6 +739,8 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
       return executeBurgerEffect(state, card)
     case 'twirl':
       return executeTwirlEffect(state, card)
+    case 'donut':
+      return executeDonutEffect(state, card?.enhanced || false)
     default:
       return state
   }
@@ -695,14 +754,14 @@ export function requiresTargeting(cardName: string, enhanced?: boolean): boolean
   // Gaze and Fetch cards all start with their base name
   if (cardName.startsWith('Gaze')) return true
   if (cardName.startsWith('Fetch')) return true
-  return cardName === 'Spritz' || cardName === 'Easiest' || cardName === 'Brush' || cardName === 'Sweep' || cardName === 'Canary' || cardName === 'Argument' || cardName === 'Horse' || cardName === 'Eavesdropping' || cardName === 'Emanation' || cardName === 'Brat' || cardName === 'Snip, Snip' || cardName === 'Fan'
+  return cardName === 'Spritz' || cardName === 'Scurry' || cardName === 'Brush' || cardName === 'Sweep' || cardName === 'Canary' || cardName === 'Argument' || cardName === 'Horse' || cardName === 'Eavesdropping' || cardName === 'Emanation' || cardName === 'Brat' || cardName === 'Snip, Snip' || cardName === 'Fan'
 }
 
 export function getTargetingInfo(cardName: string, enhanced?: boolean): { count: number; description: string } | null {
   switch (cardName) {
     case 'Spritz':
       return { count: 1, description: enhanced ? 'Click on an unrevealed tile to scout (also scouts adjacent tile)' : 'Click on an unrevealed tile to scout' }
-    case 'Easiest':
+    case 'Scurry':
       return { count: enhanced ? 3 : 2, description: enhanced ? 'Click on three unrevealed tiles - the safest will be revealed' : 'Click on two unrevealed tiles - the safer will be revealed' }
     case 'Brush':
       return { count: 1, description: enhanced ? 'Click center of 3x3 area to exclude random owners (applies twice)' : 'Click center of 3x3 area to exclude random owners' }

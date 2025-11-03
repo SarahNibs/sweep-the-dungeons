@@ -38,7 +38,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     enabledOwnerPossibilities,
     setUseDefaultAnnotations,
     toggleOwnerPossibility,
-    toggleFilteredAnnotation
+    toggleFilteredAnnotation,
+    board
   } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
   const [showContextMenu, setShowContextMenu] = useState(false)
@@ -237,10 +238,29 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     if (!hoveredClueId) return false
 
     const clueResultsAnnotation = tile.annotations.find(a => a.type === 'clue_results')
-    if (!clueResultsAnnotation?.clueResults) return false
 
     // Check if this tile has a clue result with the hovered clue ID
-    return clueResultsAnnotation.clueResults.some(result => result.id === hoveredClueId)
+    if (clueResultsAnnotation?.clueResults) {
+      const hasMatchingClue = clueResultsAnnotation.clueResults.some(result => result.id === hoveredClueId)
+      if (hasMatchingClue) return true
+    }
+
+    // For rival clues: also highlight tiles that were revealed during that clue's turn
+    // Search across all tiles to find the hovered clue and its tilesRevealedDuringTurn
+    for (const boardTile of board.tiles.values()) {
+      const boardClueAnnotation = boardTile.annotations.find(a => a.type === 'clue_results')
+      if (boardClueAnnotation?.clueResults) {
+        const hoveredClueResult = boardClueAnnotation.clueResults.find(result => result.id === hoveredClueId)
+        if (hoveredClueResult?.cardType === 'rival_clue' && hoveredClueResult.tilesRevealedDuringTurn) {
+          const isInRevealedList = hoveredClueResult.tilesRevealedDuringTurn.some(
+            pos => pos.x === tile.position.x && pos.y === tile.position.y
+          )
+          if (isInRevealedList) return true
+        }
+      }
+    }
+
+    return false
   }
 
   const getTileColor = () => {
@@ -704,13 +724,22 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
 
       // Add surface mine icon for surface mine tiles
       if (tile.specialTiles.includes('surfaceMine')) {
+        const hasBeenCleanedOnce = tile.cleanedOnce
+        const tooltipText = hasBeenCleanedOnce
+          ? "Surface Mine (Cleaned Once): Will be defused if cleaned again!"
+          : "Surface Mine: Explodes when revealed or hit by Emanation"
+
         elements.push(
-          <Tooltip key="surface-mine-icon" text="Surface Mine: Explodes when revealed or hit by Emanation" style={{ position: 'absolute', top: '50%', right: '4px', transform: 'translateY(-50%)' }}>
+          <Tooltip key="surface-mine-icon" text={tooltipText} style={{ position: 'absolute', top: '50%', right: '4px', transform: 'translateY(-50%)' }}>
             <div
               style={{
                 fontSize: '16px',
                 pointerEvents: 'none',
-                zIndex: 999
+                zIndex: 999,
+                padding: '2px',
+                border: hasBeenCleanedOnce ? '2px solid #28a745' : 'none',
+                borderRadius: hasBeenCleanedOnce ? '4px' : '0',
+                backgroundColor: hasBeenCleanedOnce ? 'rgba(40, 167, 69, 0.2)' : 'transparent'
               }}
             >
               💣

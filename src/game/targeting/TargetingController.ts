@@ -231,25 +231,39 @@ export class TargetingController {
     const newDiscard = shouldExhaust ? effectState.discard : [...effectState.discard, card]
     const newExhaust = shouldExhaust ? [...effectState.exhaust, card] : effectState.exhaust
 
-    const stateBeforeEnergy = {
-      ...effectState,
-      hand: newHand,
-      discard: newDiscard,
-      exhaust: newExhaust,
-      pendingCardEffect: null,
-      selectedCardId: null,
-      shouldExhaustLastCard: false // Reset after use
-    }
-
     // CRITICAL: Use status effects from BEFORE card executed to calculate cost
     // This prevents cards like Horse from seeing their own discount status effect
     // IMPORTANT: Cards played via Masking should be free (don't deduct energy)
     let finalState: GameState
     if (currentState.maskingState) {
       // Card played via Masking - don't deduct energy, just cleanup masking state
-      finalState = cleanupMaskingAfterExecution(stateBeforeEnergy as GameState)
+      // IMPORTANT: Keep selectedCardId so cleanup can find the card and apply energyReduced bonus
+      const stateBeforeCleanup = {
+        ...effectState,
+        hand: newHand,
+        discard: newDiscard,
+        exhaust: newExhaust,
+        pendingCardEffect: null,
+        shouldExhaustLastCard: false // Reset after use
+        // DON'T clear selectedCardId yet - cleanup needs it
+      }
+      finalState = cleanupMaskingAfterExecution(stateBeforeCleanup as GameState)
+      // Clear selectedCardId after cleanup is done
+      finalState = {
+        ...finalState,
+        selectedCardId: null
+      }
     } else {
       // Normal card - deduct energy
+      const stateBeforeEnergy = {
+        ...effectState,
+        hand: newHand,
+        discard: newDiscard,
+        exhaust: newExhaust,
+        pendingCardEffect: null,
+        selectedCardId: null,
+        shouldExhaustLastCard: false // Reset after use
+      }
       finalState = deductEnergy(stateBeforeEnergy, card, currentState.activeStatusEffects, 'targetTileForCard (general)')
     }
 
@@ -304,9 +318,9 @@ export class TargetingController {
     // We still need to check Frilly Dress which is now handled in the centralized check
     if (effect.type === 'horse' && effectState.horseRevealedNonPlayer) {
       // Check if Frilly Dress would prevent turn ending
-      // This happens when revealing neutral on first turn
+      // This happens when revealing neutrals (up to 6) on first turn
       const hasFrillyDress = effectState.relics.some(r => r.name === 'Frilly Dress')
-      const frillyDressPrevents = hasFrillyDress && effectState.isFirstTurn && effectState.hasRevealedNeutralThisTurn
+      const frillyDressPrevents = hasFrillyDress && effectState.isFirstTurn && effectState.neutralsRevealedThisTurn < 6
 
       if (!frillyDressPrevents) {
         console.log('🐴 HORSE ENDING TURN - Revealed non-player tiles')

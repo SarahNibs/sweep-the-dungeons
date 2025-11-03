@@ -113,11 +113,24 @@ const updateStateWithCopperReward = (set: any, get: any, newState: GameState) =>
 }
 
 export const useGameStore = create<GameStore>((set, get) => {
+  // Create a wrapper for setState that handles game completion and copper rewards
+  const setStateWithGameCompletion = (newState: Partial<GameState> | GameState) => {
+    // If it's a partial state update, just use set directly
+    if (!('gameStatus' in newState) || !('board' in newState)) {
+      set(newState)
+      return
+    }
+
+    // Full state update - check for game completion
+    const fullState = newState as GameState
+    updateStateWithCopperReward(set, get, fullState)
+  }
+
   // Create controller instances with access to store get/set
-  const animationController = new AnimationController(get, set)
+  const animationController = new AnimationController(get, setStateWithGameCompletion)
   const annotationController = new AnnotationController(get, set)
-  const debugController = new DebugController(get, set)
-  const aiController = new AIController(get, set)
+  const debugController = new DebugController(get, setStateWithGameCompletion)
+  const aiController = new AIController(get, setStateWithGameCompletion)
 
   // Targeting controller needs access to store methods, so we create it lazily
   let targetingController: TargetingController | null = null
@@ -126,7 +139,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const store = get()
       targetingController = new TargetingController(
         get,
-        set,
+        setStateWithGameCompletion,
         store.executeTrystWithAnimation,
         store.startRivalTurn
       )

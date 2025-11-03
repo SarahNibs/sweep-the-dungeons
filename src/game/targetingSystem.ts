@@ -6,7 +6,7 @@ import { getTile, hasSpecialTile } from './boardSystem'
  *
  * 1. DIRECT_REVEAL: Click without card effect - only unrevealed, non-empty tiles
  * 2. SINGLE_UNREVEALED: Cards that target one unrevealed tile (Spritz)
- * 3. MULTI_UNREVEALED: Cards that target multiple unrevealed tiles sequentially (Easiest)
+ * 3. MULTI_UNREVEALED: Cards that target multiple unrevealed tiles sequentially (Scurry)
  * 4. SINGLE_FLEXIBLE: Cards that can target revealed tiles (Tryst enhanced, Brat, Eavesdropping - any tile including empty)
  * 5. SINGLE_SPECIAL: Cards with custom rules (Emanation - can target empty tiles with lairs)
  * 6. AREA_TARGET: Cards that target an area:

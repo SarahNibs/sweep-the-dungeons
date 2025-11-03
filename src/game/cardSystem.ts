@@ -2,11 +2,11 @@ import { Card, GameState } from '../types'
 import { createBoard, revealTileWithResult, getNeighbors, getTile } from './boardSystem'
 import { executeCardEffect, requiresTargeting } from './cardEffects'
 import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
-import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerBusyCanaryEffect, triggerInterceptedNoteEffect, triggerHyperfocusEffect, prepareGlassesEffect, hasRelic } from './relics'
+import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerMatedPairEffect, triggerBusyCanaryEffect, triggerInterceptedNoteEffect, triggerHyperfocusEffect, prepareGlassesEffect, hasRelic } from './relics'
 import { AIController } from './ai/AIController'
 import { decrementBurgerStacks } from './cards/burger'
 
-import { createCard as createCardFromRepository, getRewardCardPool, getStarterCards, removeStatusEffect, addStatusEffect } from './gameRepository'
+import { createCard as createCardFromRepository, getRewardCardPool, getStarterCards, removeStatusEffect, addStatusEffect, addCardToPersistentDeck } from './gameRepository'
 
 export function createCard(name: string, upgrades?: { energyReduced?: boolean; enhanced?: boolean }): Card {
   return createCardFromRepository(name, upgrades)
@@ -246,7 +246,7 @@ export function selectCardForMasking(state: GameState, targetCardId: string): Ga
       case 'Spritz':
         effectType = 'scout'
         break
-      case 'Easiest':
+      case 'Scurry':
         effectType = 'quantum'
         break
       case 'Brush':
@@ -457,7 +457,7 @@ export function playCard(state: GameState, cardId: string): GameState {
       case 'Spritz':
         effectType = 'scout'
         break
-      case 'Easiest':
+      case 'Scurry':
         effectType = 'quantum'
         break
       case 'Brush':
@@ -520,8 +520,31 @@ export function playCard(state: GameState, cardId: string): GameState {
   switch (card.name) {
     case 'Masking':
       // Masking enters card selection mode - don't execute immediately
-      // Remove card from hand first
+      // But first check if there are any valid cards in hand to use with Masking
       const handWithoutMasking = state.hand.filter((_, index) => index !== cardIndex)
+
+      // Check if there are any valid cards that can be used with Masking
+      // The only invalid card is another Masking
+      const hasValidCards = handWithoutMasking.some(c => c.name !== 'Masking')
+
+      // If no valid cards, just exhaust Masking without entering masking mode
+      if (!hasValidCards) {
+        console.log('🎭 MASKING: No valid cards in hand - exhausting without effect')
+        const stateWithoutCard = {
+          ...state,
+          hand: handWithoutMasking
+        }
+        const stateAfterEnergy = deductEnergy(stateWithoutCard, card, state.activeStatusEffects, 'playCard (Masking - no targets)')
+
+        // Exhaust Masking immediately
+        return {
+          ...stateAfterEnergy,
+          exhaust: [...stateAfterEnergy.exhaust, card],
+          selectedCardName: null,
+          isProcessingCard: false
+        }
+      }
+
       // Deduct energy for Masking (cost 0 but follow normal flow)
       const stateAfterMasking = deductEnergy(
         {
@@ -606,6 +629,9 @@ export function playCard(state: GameState, cardId: string): GameState {
     case 'Twirl':
       newState = executeCardEffect(state, { type: 'twirl' }, card)
       break
+    case 'Donut':
+      newState = executeCardEffect(state, { type: 'donut' }, card)
+      break
   }
 
   const newHand = newState.hand.filter((_, index) => index !== cardIndex)
@@ -615,8 +641,8 @@ export function playCard(state: GameState, cardId: string): GameState {
   const newDiscard = shouldExhaust ? newState.discard : [...newState.discard, card]
   const newExhaust = shouldExhaust ? [...newState.exhaust, card] : newState.exhaust
 
-  // Deduct energy safely
-  const stateWithoutEnergy = {
+  // Apply relic-based effects after playing the card
+  let finalState = {
     ...newState,
     hand: newHand,
     discard: newDiscard,
@@ -624,8 +650,18 @@ export function playCard(state: GameState, cardId: string): GameState {
     selectedCardName: card.name
   }
 
+  // Fanfic effect: Draw a card and lose 1 copper when playing Sarcastic Instructions
+  if (card.name === 'Sarcastic Instructions' && finalState.relics.some(r => r.name === 'Fanfic')) {
+    const stateAfterDraw = drawCards(finalState, 1)
+    finalState = {
+      ...stateAfterDraw,
+      copper: Math.max(0, stateAfterDraw.copper - 1),
+      selectedCardName: card.name // Preserve selectedCardName
+    }
+  }
+
   // Use current status effects for cost (effects haven't changed yet for immediate cards)
-  return deductEnergy(stateWithoutEnergy, card, stateWithoutEnergy.activeStatusEffects, 'playCard (immediate effect)')
+  return deductEnergy(finalState, card, finalState.activeStatusEffects, 'playCard (immediate effect)')
 }
 
 export function discardHand(state: GameState): GameState {
@@ -676,7 +712,7 @@ export function startNewTurn(state: GameState): GameState {
     rambleActive: false, // Clear ramble effect at start of new turn
     ramblePriorityBoosts: [], // Clear ramble priority boosts
     isFirstTurn: false, // No longer first turn after first turn
-    hasRevealedNeutralThisTurn: false, // Reset neutral reveal tracking
+    neutralsRevealedThisTurn: 0, // Reset neutral reveal counter
     underwireUsedThisTurn: false, // Reset underwire usage tracking
     horseRevealedNonPlayer: false, // Reset horse turn ending tracking
     fetchRevealedNonPlayer: false, // Reset fetch turn ending tracking
@@ -696,7 +732,9 @@ export function createInitialState(
   useDefaultAnnotations?: boolean,
   enabledOwnerPossibilities?: Set<string>,
   currentOwnerPossibilityIndex?: number,
-  preservedStatusEffects?: import('../types').StatusEffect[]
+  preservedStatusEffects?: import('../types').StatusEffect[],
+  shopVisitCount: number = 0,
+  playerTilesRevealedCount: number = 0
 ): GameState {
   const startingPersistentDeck = persistentDeck || createStartingDeck()
   const startingRelics = relics || []
@@ -765,7 +803,7 @@ export function createInitialState(
     relics: startingRelics,
     relicOptions: undefined,
     isFirstTurn: true,
-    hasRevealedNeutralThisTurn: false,
+    neutralsRevealedThisTurn: 0,
     rivalHiddenClues: [],
     tingleAnimation: null,
     rivalAnimation: null,
@@ -774,8 +812,10 @@ export function createInitialState(
     rambleActive: false,
     ramblePriorityBoosts: [],
     copper,
+    playerTilesRevealedCount,
     shopOptions: undefined,
     purchasedShopItems: undefined,
+    shopVisitCount,
     temporaryBunnyBuffs,
     underwireProtection: null,
     underwireProtectionCount: 0,
@@ -813,12 +853,20 @@ export function createInitialState(
     finalState = drawCards(finalState, 2)
   }
 
+  // Trigger Pockets effect if present (draw 1 additional card on first turn)
+  if (startingRelics.some(relic => relic.name === 'Pockets')) {
+    finalState = drawCards(finalState, 1)
+  }
+
   // Trigger Hyperfocus effect if present (add random cost-0 card to hand)
   finalState = triggerHyperfocusEffect(finalState)
 
   // Trigger Dust Bunny effect if present
   finalState = triggerDustBunnyEffect(finalState)
-  
+
+  // Trigger Mated Pair effect if present (reveals second player tile)
+  finalState = triggerMatedPairEffect(finalState)
+
   // Trigger temporary bunny buffs if present
   finalState = triggerTemporaryBunnyBuffs(finalState)
   
@@ -858,6 +906,23 @@ export function createInitialState(
     finalState = {
       ...finalState,
       activeStatusEffects: [...finalState.activeStatusEffects, protectionStatusEffect]
+    }
+  }
+
+  // Add rival places mines status effect if special behavior is active
+  if (levelConfig?.specialBehaviors.rivalPlacesMines && levelConfig.specialBehaviors.rivalPlacesMines > 0) {
+    const rivalMiningStatusEffect = {
+      id: crypto.randomUUID(),
+      type: 'rival_places_mines' as const,
+      icon: '💣',
+      name: 'Rival Mining Alert',
+      description: `Rival places ${levelConfig.specialBehaviors.rivalPlacesMines} surface mine${levelConfig.specialBehaviors.rivalPlacesMines > 1 ? 's' : ''} on your tiles after each turn!`,
+      count: levelConfig.specialBehaviors.rivalPlacesMines
+    }
+
+    finalState = {
+      ...finalState,
+      activeStatusEffects: [...finalState.activeStatusEffects, rivalMiningStatusEffect]
     }
   }
 
@@ -1011,8 +1076,8 @@ export function selectNewCard(state: GameState, selectedCard: Card): GameState {
     }
   }
   
-  // Add the selected card to the persistent deck
-  const newPersistentDeck = [...state.persistentDeck, selectedCard]
+  // Add the selected card to the persistent deck (respecting DIY Gel)
+  const newPersistentDeck = addCardToPersistentDeck(state, selectedCard)
 
   // Return state with updated persistent deck but don't advance level yet
   // Level advancement will happen after upgrades (if any) are applied
@@ -1063,7 +1128,9 @@ export function advanceToNextLevel(state: GameState): GameState {
     state.useDefaultAnnotations,
     state.enabledOwnerPossibilities,
     state.currentOwnerPossibilityIndex,
-    burgerEffect ? [burgerEffect] : undefined
+    burgerEffect ? [burgerEffect] : undefined,
+    state.shopVisitCount, // Preserve shop visit count across levels
+    state.playerTilesRevealedCount // Preserve player tile reveal counter across levels
   )
 
   return newLevelState

@@ -13,13 +13,14 @@ export interface CardDefinition {
   icon: string
 }
 
-// Relic definitions with all properties centralized  
+// Relic definitions with all properties centralized
 export interface RelicDefinition {
   name: string
   description: string
   hoverText: string
-  category: 'common' | 'rare'
+  category: 'common' | 'uncommon' | 'rare'
   icon: string
+  prerequisites?: string[] // List of relic names that must be owned before this relic can be offered
 }
 
 // Centralized card definitions
@@ -75,15 +76,15 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     },
     icon: '😳'
   },
-  'Easiest': {
-    name: 'Easiest',
+  'Scurry': {
+    name: 'Scurry',
     cost: 1,
     category: 'starter',
     description: {
       base: 'Reveal the safer of two tiles',
       enhanced: 'Reveal the safest of three tiles'
     },
-    icon: '😴'
+    icon: '🐁'
   },
   'Twirl': {
     name: 'Twirl',
@@ -385,6 +386,16 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     },
     icon: '🍔'
   },
+  'Donut': {
+    name: 'Donut',
+    cost: 1,
+    category: 'reward',
+    description: {
+      base: 'Summon a goblin on a random unrevealed player tile and annotate it as player',
+      enhanced: 'Summon 2 goblins on random unrevealed player tiles and annotate them as player'
+    },
+    icon: '🍩'
+  },
 }
 
 // Centralized relic definitions
@@ -406,7 +417,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   'Frilly Dress': {
     name: 'Frilly Dress',
     description: 'your counterpart sometimes watches you clean rather than cleaning themselves',
-    hoverText: 'Frilly Dress: revealing neutral tiles on your first turn of any floor does not end your turn',
+    hoverText: 'Frilly Dress: revealing neutral tiles on your first turn of any floor does not end your turn (up to 6 neutrals)',
     category: 'common',
     icon: '👗'
   },
@@ -507,7 +518,121 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     hoverText: 'Glasses: at the beginning of every turn, play a Tingle for free (adds a Tingle to discard)',
     category: 'common',
     icon: '👓'
+  },
+  'Broom Closet': {
+    name: 'Broom Closet',
+    description: 'trade in all your Spritz for better cleaning tools',
+    hoverText: 'Broom Closet: when gained, remove all Spritz cards from your deck and add 3 Broom cards (one regular, one energy-upgraded, one enhance-upgraded)',
+    category: 'rare',
+    icon: '🚪'
+  },
+  'Novel': {
+    name: 'Novel',
+    description: 'rewrite the instruction manual',
+    hoverText: 'Novel: when gained, replace all Instruction cards with doubly-upgraded Sarcastic Instructions. Future Instruction card additions are also replaced.',
+    category: 'rare',
+    icon: '📖'
+  },
+  'Bleach': {
+    name: 'Bleach',
+    description: 'powerful cleaning agent spreads to adjacent tiles',
+    hoverText: 'Bleach: whenever you clean a tile, also clean the N/S/E/W adjacent tiles',
+    category: 'common',
+    icon: '🧴'
+  },
+  'Cocktail': {
+    name: 'Cocktail',
+    description: 'trade in your Scurry cards for random variety',
+    hoverText: 'Cocktail: when gained, remove all Scurry cards from your deck and add 2 random cards instead',
+    category: 'uncommon',
+    icon: '🍸'
+  },
+  'DIY Gel': {
+    name: 'DIY Gel',
+    description: 'every new card is automatically enhanced',
+    hoverText: 'DIY Gel: every card you add to your permanent deck will be automatically enhance-upgraded',
+    category: 'rare',
+    icon: '🧴',
+    prerequisites: ['Progesterone']
+  },
+  'Tea': {
+    name: 'Tea',
+    description: 'unlimited neutral reveals on first turn',
+    hoverText: 'Tea: Frilly Dress is no longer limited to 6 neutrals',
+    category: 'uncommon',
+    icon: '☕',
+    prerequisites: ['Frilly Dress']
+  },
+  'Triple Broom': {
+    name: 'Triple Broom',
+    description: 'brush even more nearby tiles when cleaning',
+    hoverText: 'Triple Broom: revealing applies Brush effect to 3 random adjacent unrevealed tiles instead of 2',
+    category: 'uncommon',
+    icon: '3️⃣',
+    prerequisites: ['Double Broom']
+  },
+  'Mated Pair': {
+    name: 'Mated Pair',
+    description: 'a second bunny companion to help you clean',
+    hoverText: 'Mated Pair: reveal a second player tile at the start of each floor (Dust Bunny reveals the first, Mated Pair reveals the second)',
+    category: 'uncommon',
+    icon: '🍐',
+    prerequisites: ['Dust Bunny']
+  },
+  'Pockets': {
+    name: 'Pockets',
+    description: 'carry even more supplies for the start of battle',
+    hoverText: 'Pockets: draw a third extra card at the start of your first turn each floor (Handbag draws the first two, Pockets draws the third)',
+    category: 'uncommon',
+    icon: '👖',
+    prerequisites: ['Handbag']
+  },
+  'Mascara': {
+    name: 'Mascara',
+    description: 'even more distracting beauty',
+    hoverText: 'Mascara: your rival gets an additional random [0-0.5] added to each priority (stacks with Eyeshadow for [0-1.5] total)',
+    category: 'uncommon',
+    icon: '✏️',
+    prerequisites: ['Eyeshadow']
+  },
+  'Geode': {
+    name: 'Geode',
+    description: 'crystal amplifies all tingles',
+    hoverText: 'Geode: whenever you play a Tingle, draw a card (includes Tingles played by Glasses)',
+    category: 'rare',
+    icon: '💎',
+    prerequisites: ['Crystal']
+  },
+  'Fanfic': {
+    name: 'Fanfic',
+    description: 'rewrite the sarcasm for fun and profit',
+    hoverText: 'Fanfic: playing a Sarcastic Instructions draws a card and loses 1 copper',
+    category: 'rare',
+    icon: '📜',
+    prerequisites: ['Novel']
   }
+}
+
+// Helper function to apply DIY Gel enhancement to a card if owned
+export function applyDIYGel(relics: Relic[], card: Card): Card {
+  const hasDIYGel = relics.some(r => r.name === 'DIY Gel')
+
+  // If DIY Gel is owned and the card is not already enhanced, enhance it
+  if (hasDIYGel && !card.enhanced) {
+    return createCard(card.name, {
+      enhanced: true,
+      energyReduced: card.energyReduced
+    })
+  }
+
+  // Otherwise, return the card as-is
+  return card
+}
+
+// Helper function to add a card to the persistent deck, respecting DIY Gel
+export function addCardToPersistentDeck(state: { persistentDeck: Card[]; relics: Relic[] }, card: Card): Card[] {
+  const finalCard = applyDIYGel(state.relics, card)
+  return [...state.persistentDeck, finalCard]
 }
 
 // Factory functions for creating cards and relics
@@ -549,7 +674,8 @@ export function createRelic(name: string): Relic {
     id: crypto.randomUUID(),
     name: definition.name,
     description: definition.description,
-    hoverText: definition.hoverText
+    hoverText: definition.hoverText,
+    prerequisites: definition.prerequisites
   }
 }
 
@@ -571,9 +697,9 @@ export function getStarterCards(): Card[] {
     createCard('Tingle'),
     createCard('Tingle'),
     createCard('Tingle'),
-    // Two copies of Easiest
-    createCard('Easiest'),
-    createCard('Easiest'),
+    // Two copies of Scurry
+    createCard('Scurry'),
+    createCard('Scurry'),
     // One copy of Twirl
     createCard('Twirl')
   ]
@@ -742,6 +868,43 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         icon: '🤞',
         name: 'Grace',
         description: 'Prevents losing to one mine reveal this floor (adds Evidence to hand if triggered)'
+      }
+    case 'rival_mine_protection':
+      return {
+        id: baseId,
+        type: 'rival_mine_protection',
+        icon: '🪙',
+        name: 'Rival Mine Protection',
+        description: 'Rival can safely reveal mines (awards copper)',
+        count: 0 // Will be set based on level config
+      }
+    case 'rival_places_mines':
+      return {
+        id: baseId,
+        type: 'rival_places_mines',
+        icon: '💣',
+        name: 'Rival Mining Alert',
+        description: 'Rival places surface mines on your tiles after each turn!',
+        count: 0 // Will be set based on level config
+      }
+    case 'rival_ai_type':
+      return {
+        id: baseId,
+        type: 'rival_ai_type',
+        icon: '🤖',
+        name: 'AI Type',
+        description: 'Rival AI type indicator',
+        count: 0
+      }
+    case 'burger':
+      return {
+        id: baseId,
+        type: 'burger',
+        icon: '🍔',
+        name: 'Burger Boost',
+        description: 'Draw +1 card at the start of each turn',
+        enhanced,
+        count: 1
       }
     default:
       throw new Error(`Unknown status effect type: ${type}`)

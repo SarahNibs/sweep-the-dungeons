@@ -1,7 +1,7 @@
 import { ShopOption, GameState } from '../types'
 import { createCard, getRewardCardPool, getAllRelics, addCardToPersistentDeck } from './gameRepository'
 import { advanceToNextLevel } from './cardSystem'
-import { applyEstrogenEffect, applyProgesteroneEffect, applyBootsEffect, transformCardForBoots, applyCrystalEffect, applyBroomClosetEffect, applyNovelEffect, transformInstructionsIfNovel, applyCocktailEffect } from './relics'
+import { applyEstrogenEffect, applyProgesteroneEffect, applyBootsEffect, transformCardForBoots, applyCrystalEffect, applyBroomClosetEffect, applyNovelEffect, transformInstructionsIfNovel, applyCocktailEffect, applyDiscoBallEffect, applyBleachEffect } from './relics'
 
 export function createShopOptions(state: GameState): ShopOption[] {
   const options: ShopOption[] = []
@@ -210,73 +210,90 @@ export function purchaseShopItem(state: GameState, optionIndex: number): GameSta
           relics: [...newState.relics, option.relic]
         }
         
-        // Apply special relic effects for Estrogen, Progesterone, Boots, Crystal, Broom Closet, Novel, and Cocktail
+        // Apply special relic effects for Estrogen, Progesterone, Boots, Crystal, Broom Closet, Novel, Cocktail, and Disco Ball
+        // Set shop context before calling effect so closeRelicUpgradeDisplay knows to return to shop
+        const stateWithShopContext = {
+          ...newState,
+          relicUpgradeContext: 'shop' as const
+        }
+
         if (option.relic.name === 'Estrogen') {
-          const relicEffectState = applyEstrogenEffect(newState)
+          const relicEffectState = applyEstrogenEffect(stateWithShopContext)
           newState = {
             ...relicEffectState,
-            // Preserve shop context
-            gamePhase: 'shop_selection',
+            // Preserve shop-specific data (don't override gamePhase - let effect's phase stand)
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
             shopOptions: newState.shopOptions
           }
         } else if (option.relic.name === 'Progesterone') {
-          const relicEffectState = applyProgesteroneEffect(newState)
+          const relicEffectState = applyProgesteroneEffect(stateWithShopContext)
           newState = {
             ...relicEffectState,
-            // Preserve shop context
-            gamePhase: 'shop_selection',
+            // Preserve shop-specific data
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
             shopOptions: newState.shopOptions
           }
         } else if (option.relic.name === 'Boots') {
-          const relicEffectState = applyBootsEffect(newState)
+          const relicEffectState = applyBootsEffect(stateWithShopContext)
           newState = {
             ...relicEffectState,
-            // Preserve shop context
-            gamePhase: 'shop_selection',
+            // Preserve shop-specific data
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
             shopOptions: newState.shopOptions
           }
         } else if (option.relic.name === 'Crystal') {
-          const relicEffectState = applyCrystalEffect(newState)
+          const relicEffectState = applyCrystalEffect(stateWithShopContext)
           newState = {
             ...relicEffectState,
-            // Preserve shop context
-            gamePhase: 'shop_selection',
+            // Preserve shop-specific data
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
             shopOptions: newState.shopOptions
           }
         } else if (option.relic.name === 'Broom Closet') {
-          const relicEffectState = applyBroomClosetEffect(newState)
+          const relicEffectState = applyBroomClosetEffect(stateWithShopContext)
           newState = {
             ...relicEffectState,
-            // Preserve shop context
-            gamePhase: 'shop_selection',
+            // Preserve shop-specific data
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
             shopOptions: newState.shopOptions
           }
         } else if (option.relic.name === 'Novel') {
-          const relicEffectState = applyNovelEffect(newState)
+          const relicEffectState = applyNovelEffect(stateWithShopContext)
           newState = {
             ...relicEffectState,
-            // Preserve shop context
-            gamePhase: 'shop_selection',
+            // Preserve shop-specific data
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
             shopOptions: newState.shopOptions
           }
         } else if (option.relic.name === 'Cocktail') {
-          const relicEffectState = applyCocktailEffect(newState)
+          const relicEffectState = applyCocktailEffect(stateWithShopContext)
           newState = {
             ...relicEffectState,
-            // Preserve shop context
-            gamePhase: 'shop_selection',
+            // Preserve shop-specific data
+            copper: newState.copper,
+            purchasedShopItems: newState.purchasedShopItems,
+            shopOptions: newState.shopOptions
+          }
+        } else if (option.relic.name === 'Disco Ball') {
+          const relicEffectState = applyDiscoBallEffect(stateWithShopContext)
+          newState = {
+            ...relicEffectState,
+            // Preserve shop-specific data
+            copper: newState.copper,
+            purchasedShopItems: newState.purchasedShopItems,
+            shopOptions: newState.shopOptions
+          }
+        } else if (option.relic.name === 'Bleach') {
+          const relicEffectState = applyBleachEffect(stateWithShopContext)
+          newState = {
+            ...relicEffectState,
+            // Preserve shop-specific data
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
             shopOptions: newState.shopOptions

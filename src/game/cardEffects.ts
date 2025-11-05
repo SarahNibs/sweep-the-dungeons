@@ -28,6 +28,8 @@ import { executeFetchEffect } from './cards/fetch'
 import { executeBurgerEffect } from './cards/burger'
 import { executeTwirlEffect } from './cards/twirl'
 import { executeDonutEffect } from './cards/donut'
+import { executeIceCreamEffect } from './cards/iceCream'
+import { executeCarrotsEffect } from './cards/carrots'
 
 /**
  * Track player tile reveals and award copper every 5th reveal.
@@ -46,7 +48,7 @@ export function trackPlayerTileReveal(
   const newCount = state.playerTilesRevealedCount + 1
   const shouldAwardCopper = newCount % 5 === 0
 
-  const updatedState = {
+  let updatedState = {
     ...state,
     playerTilesRevealedCount: newCount,
     copper: shouldAwardCopper ? state.copper + 1 : state.copper
@@ -54,6 +56,16 @@ export function trackPlayerTileReveal(
 
   if (shouldAwardCopper) {
     console.log(`💰 PLAYER TILE REVEAL BONUS: Revealed ${newCount} player tiles total, awarded 1 copper!`)
+
+    // Check for Ice Cream status effect - grant +1 energy when copper awarded
+    const iceCreamEffect = updatedState.activeStatusEffects.find(e => e.type === 'ice_cream')
+    if (iceCreamEffect && iceCreamEffect.count && iceCreamEffect.count > 0) {
+      console.log(`🍦 ICE CREAM EFFECT - Granting +1 energy from copper gain!`)
+      updatedState = {
+        ...updatedState,
+        energy: updatedState.energy + 1
+      }
+    }
   }
 
   return updatedState
@@ -118,19 +130,13 @@ export function revealTileWithRelicEffects(
       stateAfterExplosion = updateNeighborAdjacencyInfo(stateAfterExplosion, position)
     }
 
-    // Check game status (only ends game if controllable player reveal without Underwire)
-    if (controllableReveal && revealer === 'player' && !state.underwireProtection?.active) {
-      // Game should end - player revealed surface mine without protection
-      console.log('💥 GAME OVER - Surface mine without protection')
-      const gameStatus = checkGameStatus(stateAfterExplosion)
-      return {
-        ...stateAfterExplosion,
-        gameStatus
-      }
+    // Check game status after surface mine explosion
+    // This handles both loss (if no protection) and win (if this was the last player tile)
+    const gameStatus = checkGameStatus(stateAfterExplosion)
+    return {
+      ...stateAfterExplosion,
+      gameStatus
     }
-
-    // For uncontrollable or rival reveals, just return the exploded state
-    return stateAfterExplosion
   }
 
   // Normal reveal flow if no surface mine
@@ -203,8 +209,9 @@ export function revealTileWithRelicEffects(
           underwireProtected: true // Reuse this flag since it serves the same purpose
         })
 
-        // Add Evidence card to hand
-        const evidenceCard = createCard('Evidence')
+        // Add 1 Evidence to discard and 1 to top of deck
+        const evidenceCard1 = createCard('Evidence')
+        const evidenceCard2 = createCard('Evidence')
 
         stateWithBoard = {
           ...stateWithBoard,
@@ -212,12 +219,13 @@ export function revealTileWithRelicEffects(
             ...newBoard,
             tiles: newTiles
           },
-          hand: [...stateWithBoard.hand, evidenceCard]
+          discard: [...stateWithBoard.discard, evidenceCard1],
+          deck: [...stateWithBoard.deck, evidenceCard2] // Push to end = top of deck for drawing
         }
 
         // Remove the Grace status effect
         stateWithBoard = removeStatusEffect(stateWithBoard, 'grace')
-        console.log('🤞 GRACE PROTECTION CONSUMED - Evidence added to hand')
+        console.log('🤞 GRACE PROTECTION CONSUMED - 1 Evidence added to discard, 1 to top of deck')
       } else {
         console.log('💥 MINE REVEALED WITHOUT PROTECTION - Game should end')
       }
@@ -656,7 +664,20 @@ export function checkGameStatus(state: GameState): GameStatusInfo {
   }
   
   // Check win conditions
+  // Favor relic: finish when 1 player tile remaining instead of 0
+  const hasFavor = state.relics.some(r => r.name === 'Favor')
+  const unrevealedPlayerTiles = totalPlayerTiles - playerTilesRevealed
+
   if (playerTilesRevealed === totalPlayerTiles) {
+    return {
+      status: 'player_won',
+      reason: 'all_player_tiles_revealed',
+      rivalTilesLeft: totalRivalTiles - rivalTilesRevealed
+    }
+  }
+
+  if (hasFavor && unrevealedPlayerTiles === 1) {
+    console.log('🤝 FAVOR: Finishing floor with 1 player tile remaining')
     return {
       status: 'player_won',
       reason: 'all_player_tiles_revealed',
@@ -741,6 +762,10 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
       return executeTwirlEffect(state, card)
     case 'donut':
       return executeDonutEffect(state, card?.enhanced || false)
+    case 'ice_cream':
+      return executeIceCreamEffect(state, card)
+    case 'carrots':
+      return executeCarrotsEffect(state, card)
     default:
       return state
   }
@@ -786,7 +811,7 @@ export function getTargetingInfo(cardName: string, enhanced?: boolean): { count:
     case 'Snip, Snip':
       return { count: 1, description: enhanced ? 'Click a tile to defuse mines and get mine adjacency info. Defusing grants 2 copper' : 'Click a tile to defuse mines. Defusing grants 2 copper' }
     case 'Fan':
-      return { count: 1, description: enhanced ? 'Click a tile (burst star area) - blow dirt, goblins, and mines to random adjacent tiles' : 'Click a tile - blow dirt, goblins, and mines to random adjacent tiles' }
+      return { count: 1, description: enhanced ? 'Click center of 3x3 area - blow dirt, goblins, and mines to random adjacent tiles' : 'Click center of star area - blow dirt, goblins, and mines to random adjacent tiles' }
     case 'Gaze ↑':
     case 'Gaze ↓':
     case 'Gaze ←':

@@ -10,7 +10,8 @@ export function executeSolidClueEffect(state: GameState, card?: Card): GameState
   let newState = {
     ...state,
     clueCounter: state.clueCounter + 1,
-    playerClueCounter: state.playerClueCounter + 1
+    playerClueCounter: state.playerClueCounter + 1,
+    instructionsPlayedThisFloor: new Set([...state.instructionsPlayedThisFloor, 'Imperious Instructions'])
   }
 
   // Collect all affected tile positions for enhanced annotation

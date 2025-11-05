@@ -295,7 +295,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     if (tile.revealed && tile.adjacencyCount !== null) {
       const getAdjacencyColor = () => {
         if (tile.revealedBy === 'player') {
-          return '#007bff'
+          return '#40c057'
         } else if (tile.revealedBy === 'rival') {
           return '#dc3545'
         }
@@ -821,14 +821,14 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                 width: '16px',
                 height: '16px',
                 backgroundColor: color,
-                color: 'white',
+                color: 'black',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '10px',
                 fontWeight: 'bold',
-                zIndex: 1010
+                zIndex: 1100
               }}
             >
               {value}
@@ -842,24 +842,25 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
             { top: '70%', left: '30%', label: 'R', name: 'Rival', value: rival, color: '#ef4444' }, // Red for rival
             { top: '70%', left: '70%', label: 'M', name: 'Mine', value: mine, color: '#000000' }  // Black for mine
           ]
-          
+
           positions.forEach((pos, index) => {
             if (pos.value !== undefined) {
               elements.push(
-                <Tooltip key={`adjacency-${index}`} text={`${pos.name}: ${pos.value}`} style={{ position: 'absolute', top: pos.top, left: pos.left, transform: 'translate(-50%, -50%)' }}>
+                <Tooltip key={`adjacency-${index}`} text={`${pos.name}: ${pos.value}`} style={{ position: 'absolute', top: pos.top, left: pos.left, transform: 'translate(-50%, -50%)', zIndex: 1100 }}>
                   <div
                     style={{
                       width: '12px',
                       height: '12px',
                       backgroundColor: pos.color,
                       color: 'white',
+                      border: '1px solid black',
                       borderRadius: '50%',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '8px',
                       fontWeight: 'bold',
-                      zIndex: 1010
+                      zIndex: 1100
                     }}
                   >
                     {pos.value}

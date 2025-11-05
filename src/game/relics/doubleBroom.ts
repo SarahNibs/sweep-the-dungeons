@@ -45,8 +45,8 @@ export function triggerDoubleBroomEffect(state: GameState, revealedPosition: { x
     return state
   }
 
-  // Select up to 2 random adjacent tiles (or 3 if Triple Broom is owned)
-  const numTiles = hasRelic(state, 'Triple Broom') ? 3 : 2
+  // Select up to 2 random adjacent tiles (or 3 if Triple Broom is owned, or 4 if Quadruple Broom is owned)
+  const numTiles = hasRelic(state, 'Quadruple Broom') ? 4 : hasRelic(state, 'Triple Broom') ? 3 : 2
   const shuffled = [...unrevealedAdjacent].sort(() => Math.random() - 0.5)
   const selectedTiles = shuffled.slice(0, Math.min(numTiles, shuffled.length))
 

@@ -1,6 +1,6 @@
 import { GameState, Position } from '../../types'
 import { getTile, positionToKey, removeSpecialTile, cleanGoblin, hasSpecialTile } from '../boardSystem'
-import { triggerMopEffect, hasRelic, triggerBleachEffect } from '../relics'
+import { triggerMopEffect, hasRelic } from '../relics'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
 
 export function executeScoutEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
@@ -39,7 +39,7 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
     newState = triggerMopEffect(newState, 1)
 
     // Spread clean to adjacent tiles (Bleach relic effect)
-    newState = triggerBleachEffect(newState, target)
+    
   }
 
   // Handle surface mine defusing
@@ -55,7 +55,7 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
       shouldDefuse = true
     }
     // Regular Spritz/Sweep on 2nd cleaning defuses
-    else if (currentTile.cleanedOnce) {
+    else if (currentTile.surfaceMineState?.cleanedOnce) {
       console.log('  - 2nd cleaning (Spritz/Sweep): defusing surface mine')
       shouldDefuse = true
     }
@@ -64,11 +64,11 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
       console.log('  - 1st cleaning + Mop: defusing surface mine')
       shouldDefuse = true
     }
-    // First cleaning without Mop marks as cleanedOnce but doesn't defuse
+    // First cleaning without Mop marks surface mine as cleanedOnce but doesn't defuse
     else {
-      console.log('  - 1st cleaning (no Mop): marking as cleanedOnce (not defusing yet)')
+      console.log('  - 1st cleaning (no Mop): marking surface mine as cleanedOnce (not defusing yet)')
       const newTiles = new Map(newState.board.tiles)
-      newTiles.set(key, { ...currentTile, cleanedOnce: true })
+      newTiles.set(key, { ...currentTile, surfaceMineState: { cleanedOnce: true } })
       newState = {
         ...newState,
         board: {
@@ -163,7 +163,7 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
           stateAfterAdjacentClean = triggerMopEffect(stateAfterAdjacentClean, 1)
 
           // Spread clean to adjacent tiles (Bleach relic effect)
-          stateAfterAdjacentClean = triggerBleachEffect(stateAfterAdjacentClean, randomAdjacent)
+          
         }
 
         // Handle surface mine defusing on adjacent tile (enhanced Spritz always defuses)

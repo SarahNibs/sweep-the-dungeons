@@ -74,13 +74,17 @@ function App() {
     debugGiveCard,
     toggleAnnotationButton,
     glassesNeedsTingleAnimation,
-    executeTingleWithAnimation
+    executeTingleWithAnimation,
+    espressoForcedPlay,
+    espressoSpecialCard,
+    executeTrystWithAnimation
   } = useGameStore()
 
   // Debug UI state
   const [showRelicDebug, setShowRelicDebug] = useState(false)
   const [showCardDebug, setShowCardDebug] = useState(false)
   const [cardUpgradeType, setCardUpgradeType] = useState<'normal' | 'cost-reduced' | 'enhanced'>('normal')
+  const [debugButtonsVisible, setDebugButtonsVisible] = useState(false)
 
   // Load all relics and cards dynamically for debug tools
   const allRelics = useMemo(() => getAllRelics(), [])
@@ -105,13 +109,58 @@ function App() {
     }
   }, [glassesNeedsTingleAnimation, executeTingleWithAnimation])
 
-  // Add keyboard shortcuts for toggling annotation buttons
+  // Check for Espresso special card handling
+  useEffect(() => {
+    if (espressoSpecialCard) {
+      console.log('☕ ESPRESSO: Handling special card:', espressoSpecialCard)
+
+      if (espressoSpecialCard.type === 'tingle') {
+        // Play Tingle with animation
+        playCard(espressoSpecialCard.cardId)
+        // Clear the flag
+        useGameStore.setState({ espressoSpecialCard: undefined })
+      } else if (espressoSpecialCard.type === 'tryst') {
+        // Play non-enhanced Tryst with animation
+        playCard(espressoSpecialCard.cardId)
+        // Clear the flag
+        useGameStore.setState({ espressoSpecialCard: undefined })
+      } else if (espressoSpecialCard.type === 'masking') {
+        // Play Masking card - this will enter masking state, player will select a card
+        playCard(espressoSpecialCard.cardId)
+        // Clear the flag
+        useGameStore.setState({ espressoSpecialCard: undefined })
+      } else if (espressoSpecialCard.type === 'targeting') {
+        // Play targeting card - this will enter targeting mode with espressoForcedPlay flag set
+        playCard(espressoSpecialCard.cardId)
+        // Clear the flag
+        useGameStore.setState({ espressoSpecialCard: undefined })
+      } else if (espressoSpecialCard.type === 'nap') {
+        // Play Nap card - this will enter nap state for selecting card from exhaust
+        playCard(espressoSpecialCard.cardId)
+        // Clear the flag
+        useGameStore.setState({ espressoSpecialCard: undefined })
+      }
+    }
+  }, [espressoSpecialCard, playCard, executeTingleWithAnimation, executeTrystWithAnimation])
+
+  // Add keyboard shortcuts for toggling annotation buttons and debug buttons
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Only handle keys when not in an input field and game is playing
+      // Only handle keys when not in an input field
       if (event.target instanceof HTMLInputElement ||
-          event.target instanceof HTMLTextAreaElement ||
-          gamePhase !== 'playing') {
+          event.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      // Handle 'd' key for debug button toggle (works in any phase)
+      if (event.key.toLowerCase() === 'd') {
+        setDebugButtonsVisible(prev => !prev)
+        event.preventDefault()
+        return
+      }
+
+      // Other shortcuts only work when game is playing
+      if (gamePhase !== 'playing') {
         return
       }
 
@@ -155,12 +204,13 @@ function App() {
       }}>
         <GameStats onResetGame={resetGame} gameStatus={gameStatus} />
         
-        <PromptWidget 
-          targetingInfo={getTargetingInfo()} 
+        <PromptWidget
+          targetingInfo={getTargetingInfo()}
           onCancel={cancelCardTargeting}
           gameStatus={gameStatus}
           currentLevel={currentLevelId}
           onAdvanceLevel={startCardSelection}
+          isEspressoForcedPlay={!!espressoForcedPlay}
         />
 
         {/* Board area with side strips */}
@@ -172,13 +222,15 @@ function App() {
         }}>
           {/* Left strip for copper, relics */}
           <div style={{
-            width: '80px',
             display: 'flex',
             flexDirection: 'column',
             gap: '10px',
-            marginTop: '20px' // Align with board grid (board has 20px internal padding)
+            marginTop: '20px',
+            maxHeight: '460px',
+            minWidth: '70px',
+            overflowY: 'auto'
           }}>
-            {/* Copper counter at top - using original styling */}
+            {/* Copper counter */}
             <Tooltip text={`Copper: ${copper}`} style={{ display: 'block', margin: '0 auto' }}>
               <div
                 style={{
@@ -218,8 +270,8 @@ function App() {
               </div>
             </Tooltip>
 
-            {/* Relics vertically */}
-            {relics.length > 0 && relics.map((relic, index) => (
+            {/* Relics - simple vertical list */}
+            {relics.map((relic, index) => (
               <Tooltip key={index} text={relic.hoverText} style={{ display: 'block', margin: '0 auto' }}>
                 <div
                   style={{
@@ -247,27 +299,26 @@ function App() {
           
           {/* Right strip for tile counts */}
           <div style={{
-            width: '80px',
             display: 'flex',
             flexDirection: 'column',
             gap: '10px',
-            alignItems: 'center',
-            marginTop: '20px' // Align with board grid (board has 20px internal padding)
+            marginTop: '20px',
+            maxHeight: '460px',
+            minWidth: '70px',
+            overflowY: 'auto'
           }}>
             {/* Tile counts vertically */}
-            <TileCountsVertical 
-              board={board} 
+            <TileCountsVertical
+              board={board}
               annotationButtons={annotationButtons}
               onToggleButton={toggleAnnotationButton}
             />
-            
-            {/* Status effects - bottom-aligned */}
-            <div style={{ marginTop: 'auto', marginBottom: '10px' }}>
-              <StatusEffects statusEffects={activeStatusEffects} />
-            </div>
+
+            {/* Status effects */}
+            <StatusEffects statusEffects={activeStatusEffects} />
             
             {/* Debug Buttons at bottom */}
-            {gameStatus.status === 'playing' && (
+            {gameStatus.status === 'playing' && debugButtonsVisible && (
               <>
                 <Tooltip text="Debug: Instantly win the current floor" style={{ display: 'block' }}>
                   <div
@@ -289,7 +340,7 @@ function App() {
                     ▶
                   </div>
                 </Tooltip>
-                
+
                 <Tooltip text="Debug: Give relic" style={{ display: 'block' }}>
                   <div
                     onClick={() => setShowRelicDebug(true)}

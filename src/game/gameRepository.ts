@@ -290,8 +290,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Target a tile. Any dirt, goblins, and surface mines are blown to a random adjacent unrevealed tile.',
-      enhanced: 'Target a tile and all tiles in manhattan distance 1. Any dirt, goblins, and surface mines are blown to a random adjacent unrevealed tile.'
+      base: 'Target a tile and all tiles in manhattan distance 1 (cross shape). Any dirt, goblins, and surface mines are blown to a random adjacent unrevealed tile.',
+      enhanced: 'Target a tile and all tiles in a 3x3 area. Any dirt, goblins, and surface mines are blown to a random adjacent unrevealed tile.'
     },
     icon: '🪭'
   },
@@ -396,6 +396,28 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     },
     icon: '🍩'
   },
+  'Ice Cream': {
+    name: 'Ice Cream',
+    cost: 2,
+    category: 'reward',
+    exhaust: true,
+    description: {
+      base: 'Gain +1 energy when revealing player tiles grants copper for 2 floors. Stacks if played again.',
+      enhanced: 'Gain +1 energy when revealing player tiles grants copper for 3 floors. Stacks if played again.'
+    },
+    icon: '🍦'
+  },
+  'Carrots': {
+    name: 'Carrots',
+    cost: 2,
+    category: 'reward',
+    exhaust: true,
+    description: {
+      base: 'Reveal +1 player tile at start of floor for 2 floors. Stacks if played again.',
+      enhanced: 'Reveal +1 player tile at start of floor for 3 floors. Stacks if played again.'
+    },
+    icon: '🥕'
+  },
 }
 
 // Centralized relic definitions
@@ -464,11 +486,11 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     icon: '👑'
   },
   'Intercepted Communications': {
-    name: 'Intercepted Communications',
-    description: 'intel from rival communications',
-    hoverText: 'Intercepted Communications: at the beginning of each floor, one of the rival\'s tiles is revealed at random, giving info about adjacent player tiles',
+    name: 'Mirrors',
+    description: 'reflect your rival\'s moves',
+    hoverText: 'Mirrors: at the beginning of each floor, one of the rival\'s tiles is revealed at random, giving info about adjacent player tiles',
     category: 'common',
-    icon: '📝'
+    icon: '🪞'
   },
   'Handbag': {
     name: 'Handbag',
@@ -535,8 +557,8 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   },
   'Bleach': {
     name: 'Bleach',
-    description: 'powerful cleaning agent spreads to adjacent tiles',
-    hoverText: 'Bleach: whenever you clean a tile, also clean the N/S/E/W adjacent tiles',
+    description: 'enhance all your Spritz and Sweep cards',
+    hoverText: 'Bleach: when gained, enhance all Spritz and Sweep cards in your deck',
     category: 'common',
     icon: '🧴'
   },
@@ -571,6 +593,14 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     icon: '3️⃣',
     prerequisites: ['Double Broom']
   },
+  'Quadruple Broom': {
+    name: 'Quadruple Broom',
+    description: 'brush maximum nearby tiles when cleaning',
+    hoverText: 'Quadruple Broom: revealing applies Brush effect to 4 random adjacent unrevealed tiles instead of 3',
+    category: 'rare',
+    icon: '💪',
+    prerequisites: ['Triple Broom']
+  },
   'Mated Pair': {
     name: 'Mated Pair',
     description: 'a second bunny companion to help you clean',
@@ -578,6 +608,14 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     category: 'uncommon',
     icon: '🍐',
     prerequisites: ['Dust Bunny']
+  },
+  'Baby Bunny': {
+    name: 'Baby Bunny',
+    description: 'yet another bunny companion to help you clean',
+    hoverText: 'Baby Bunny: reveal a third player tile at the start of each floor',
+    category: 'rare',
+    icon: '🍼',
+    prerequisites: ['Mated Pair']
   },
   'Pockets': {
     name: 'Pockets',
@@ -600,7 +638,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     description: 'crystal amplifies all tingles',
     hoverText: 'Geode: whenever you play a Tingle, draw a card (includes Tingles played by Glasses)',
     category: 'rare',
-    icon: '💎',
+    icon: '🔷',
     prerequisites: ['Crystal']
   },
   'Fanfic': {
@@ -610,6 +648,30 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     category: 'rare',
     icon: '📜',
     prerequisites: ['Novel']
+  },
+  'Favor': {
+    name: 'Favor',
+    description: 'someone owes you one',
+    hoverText: 'Favor: finish a floor when 1 player tile is remaining instead of when 0 player tiles are remaining',
+    category: 'rare',
+    icon: '🤝',
+    prerequisites: ['Tea', 'Cocktail']
+  },
+  'Disco Ball': {
+    name: 'Disco Ball',
+    description: 'party time with enhanced tingles',
+    hoverText: 'Disco Ball: add 2 doubly-upgraded Tingles to your deck (enhanced and energy-reduced)',
+    category: 'rare',
+    icon: '🪩',
+    prerequisites: ['Geode']
+  },
+  'Espresso': {
+    name: 'Espresso',
+    description: 'even more caffeine',
+    hoverText: 'Espresso: just before starting each turn, draw 1 final card and immediately play it (still costs energy)',
+    category: 'rare',
+    icon: '☕',
+    prerequisites: ['Caffeinated']
   }
 }
 
@@ -867,7 +929,7 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         type: 'grace',
         icon: '🤞',
         name: 'Grace',
-        description: 'Prevents losing to one mine reveal this floor (adds Evidence to hand if triggered)'
+        description: 'Prevents losing to one mine reveal this floor (adds Evidence to top of draw pile if triggered)'
       }
     case 'rival_mine_protection':
       return {

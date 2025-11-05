@@ -171,14 +171,16 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
       console.log(`🛡️ Consumed Underwire protection`)
     }
     if (hasGrace && totalProtections >= 2) {
-      // Remove grace status effect and add Evidence card
-      const evidenceCard = createCard('Evidence')
+      // Remove grace status effect and add 1 Evidence to discard, 1 to top of draw pile
+      const evidenceCard1 = createCard('Evidence')
+      const evidenceCard2 = createCard('Evidence')
       newState = {
         ...newState,
         activeStatusEffects: newState.activeStatusEffects.filter(e => e.type !== 'grace'),
-        hand: [...newState.hand, evidenceCard]
+        discard: [...newState.discard, evidenceCard1],
+        deck: [...newState.deck, evidenceCard2] // Push to end = top of deck for drawing
       }
-      console.log(`🛡️ Consumed Grace protection - Evidence added`)
+      console.log(`🛡️ Consumed Grace protection - 1 Evidence added to discard, 1 to top of draw pile`)
     }
 
     newState = { ...newState, board: boardState }
@@ -262,14 +264,16 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
     }
 
     if (protectionsUsed > 1 && hasGrace) {
-      // Remove grace status effect and add Evidence card
-      const evidenceCard = createCard('Evidence')
+      // Remove grace status effect and add 1 Evidence to discard, 1 to top of draw pile
+      const evidenceCard1 = createCard('Evidence')
+      const evidenceCard2 = createCard('Evidence')
       newState = {
         ...newState,
         activeStatusEffects: newState.activeStatusEffects.filter(e => e.type !== 'grace'),
-        hand: [...newState.hand, evidenceCard]
+        discard: [...newState.discard, evidenceCard1],
+        deck: [...newState.deck, evidenceCard2] // Push to end = top of deck for drawing
       }
-      console.log(`🛡️ Consumed Grace protection - Evidence added`)
+      console.log(`🛡️ Consumed Grace protection - 1 Evidence added to discard, 1 to top of draw pile`)
     }
   }
 

@@ -155,17 +155,25 @@ export function hasValidArgumentTargets(board: Board, center: Position): boolean
 
 /**
  * Check if Fan's area contains at least one unrevealed tile
- * Basic: single tile (must be unrevealed)
- * Enhanced: star pattern (5 tiles), at least one unrevealed
+ * Basic: cross pattern (5 tiles) - center + manhattan distance 1
+ * Enhanced: 3x3 area (9 tiles)
  */
 export function hasValidFanTargets(board: Board, center: Position, enhanced: boolean): boolean {
-  if (!enhanced) {
-    // Base Fan: single tile must be unrevealed
-    const tile = getTile(board, center)
-    return tile !== undefined && !tile.revealed
+  if (enhanced) {
+    // Enhanced Fan: 3x3 area
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const pos = { x: center.x + dx, y: center.y + dy }
+        const tile = getTile(board, pos)
+        if (tile && !tile.revealed) {
+          return true
+        }
+      }
+    }
+    return false
   }
 
-  // Enhanced Fan: star pattern (Manhattan distance 1) - same as Horse
+  // Base Fan: cross pattern (center + manhattan distance 1)
   const area: Position[] = [
     center,
     { x: center.x - 1, y: center.y },
@@ -239,9 +247,8 @@ export function canTargetTile(
   }
 
   if (cardName === 'Fan') {
-    // Fan targeting depends on whether it's enhanced
-    // Base: single unrevealed tile
-    // Enhanced: any position (including revealed/empty) as long as star area has unrevealed tiles
+    // Fan can target any position (including revealed/empty) as long as area has unrevealed tiles
+    // Base: cross pattern (5 tiles), Enhanced: 3x3 area (9 tiles)
     if (!hasValidFanTargets(board, position, cardEnhanced)) {
       return { isValid: false, reason: 'No unrevealed tiles in area' }
     }

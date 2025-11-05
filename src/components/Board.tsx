@@ -11,7 +11,7 @@ interface BoardProps {
 }
 
 export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
-  const { rivalAnimation, trystAnimation, selectedCardName, pendingCardEffect, hand, adjacencyPatternAnimation, clearAdjacencyPatternAnimation } = useGameStore()
+  const { rivalAnimation, trystAnimation, selectedCardName, selectedCardId, pendingCardEffect, hand, adjacencyPatternAnimation, clearAdjacencyPatternAnimation } = useGameStore()
   const [areaHoverCenter, setAreaHoverCenter] = useState<Position | null>(null)
 
   // Clear adjacency pattern animation after 1 second
@@ -24,16 +24,17 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
       return () => clearTimeout(timeout)
     }
   }, [adjacencyPatternAnimation, clearAdjacencyPatternAnimation])
-  
+
   const isBrushTargeting = selectedCardName === 'Brush' && pendingCardEffect?.type === 'brush'
   const isSweepTargeting = selectedCardName === 'Sweep' && pendingCardEffect?.type === 'sweep'
   const isCanaryTargeting = selectedCardName === 'Canary' && pendingCardEffect?.type === 'canary'
   const isArgumentTargeting = selectedCardName === 'Argument' && pendingCardEffect?.type === 'argument'
   const isHorseTargeting = selectedCardName === 'Horse' && pendingCardEffect?.type === 'horse'
-  const isAreaTargeting = isBrushTargeting || isSweepTargeting || isCanaryTargeting || isArgumentTargeting || isHorseTargeting
-  
-  // Find the current selected card to check if enhanced
-  const selectedCard = hand.find(card => card.name === selectedCardName)
+  const isFanTargeting = selectedCardName === 'Fan' && pendingCardEffect?.type === 'fan'
+  const isAreaTargeting = isBrushTargeting || isSweepTargeting || isCanaryTargeting || isArgumentTargeting || isHorseTargeting || isFanTargeting
+
+  // Find the current selected card to check if enhanced - use ID to find exact card, not name
+  const selectedCard = selectedCardId ? hand.find(card => card.id === selectedCardId) : hand.find(card => card.name === selectedCardName)
   
   // Get area pattern and size based on card type and enhancement
   const getAreaInfo = (cardName: string | null, isEnhanced: boolean = false): { size: number; pattern: 'square' | 'manhattan' } => {
@@ -42,6 +43,7 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
     if (cardName === 'Canary') return { size: isEnhanced ? 1 : 1, pattern: isEnhanced ? 'square' : 'manhattan' } // Enhanced: 3x3, Normal: star
     if (cardName === 'Argument') return { size: 1, pattern: 'square' } // Always 3x3 for Argument (range = 1)
     if (cardName === 'Horse') return { size: 1, pattern: 'manhattan' } // Manhattan distance 1 (cross shape)
+    if (cardName === 'Fan') return { size: isEnhanced ? 1 : 1, pattern: isEnhanced ? 'square' : 'manhattan' } // Enhanced: 3x3, Normal: star (same as Canary)
     return { size: 1, pattern: 'square' } // Default
   }
   
@@ -51,13 +53,15 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
   if (isAreaTargeting && areaHoverCenter) {
     console.log('Area targeting debug:', {
       selectedCardName,
-      selectedCard: selectedCard ? { name: selectedCard.name, enhanced: selectedCard.enhanced } : null,
+      selectedCardId,
+      selectedCard: selectedCard ? { id: selectedCard.id, name: selectedCard.name, enhanced: selectedCard.enhanced } : null,
       areaInfo,
       areaHoverCenter,
       isAreaTargeting,
       isBrushTargeting,
       isSweepTargeting,
-      isCanaryTargeting
+      isCanaryTargeting,
+      isFanTargeting
     })
   }
   
@@ -173,14 +177,14 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
       margin: '20px 0',
       width: '100%' // Ensure full width
     }}>
-      <div 
+      <div
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${board.width}, 60px)`,
           gridTemplateRows: `repeat(${board.height}, 60px)`,
           gap: '4px',
           padding: '20px',
-          backgroundColor: '#f8f9fa',
+          backgroundColor: '#c8ccd4',
           borderRadius: '8px',
           border: '2px solid #dee2e6'
         }}

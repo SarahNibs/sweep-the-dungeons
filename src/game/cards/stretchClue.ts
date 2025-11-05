@@ -6,10 +6,11 @@ export function executeStretchClueEffect(state: GameState, card?: Card): GameSta
   const enhanced = card?.enhanced || false
   const result = generatePlayerStretchClue(state, state.clueCounter + 1, state.playerClueCounter + 1, enhanced)
   
-  let newState = { 
-    ...state, 
+  let newState = {
+    ...state,
     clueCounter: state.clueCounter + 1,
-    playerClueCounter: state.playerClueCounter + 1
+    playerClueCounter: state.playerClueCounter + 1,
+    instructionsPlayedThisFloor: new Set([...state.instructionsPlayedThisFloor, 'Vague Instructions'])
   }
   
   // Use the clueResultPairs to properly match each ClueResult to its target position

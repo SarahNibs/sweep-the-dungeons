@@ -271,6 +271,15 @@ export class TargetingController {
     const shouldEndTurn = this.checkShouldEndTurn(currentState, effectState, effect)
 
     if (shouldEndTurn) {
+      // Clear espressoForcedPlay flag if it was set
+      if (currentState.espressoForcedPlay) {
+        console.log('☕ ESPRESSO: Card played and turn ending, clearing forced play flag')
+        finalState = {
+          ...finalState,
+          espressoForcedPlay: undefined
+        }
+      }
+
       const discardedState = discardHand(finalState)
       this.setState(discardedState)
       this.startRivalTurn(discardedState.board)
@@ -283,6 +292,15 @@ export class TargetingController {
     console.log('  - Final state hand size:', finalState.hand.length)
     console.log('  - Final state deck size:', finalState.deck.length)
     console.log('  - Final state activeStatusEffects:', finalState.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
+
+    // Clear espressoForcedPlay flag if it was set
+    if (currentState.espressoForcedPlay) {
+      console.log('☕ ESPRESSO: Card successfully played, clearing forced play flag')
+      finalState = {
+        ...finalState,
+        espressoForcedPlay: undefined
+      }
+    }
 
     this.setState(finalState)
   }
@@ -344,11 +362,53 @@ export class TargetingController {
    */
   cancelCardTargeting(): void {
     const currentState = this.getState()
-    this.setState({
-      ...currentState,
-      pendingCardEffect: null,
-      selectedCardName: null,
-      selectedCardId: null
-    })
+
+    // Check if this is an Espresso forced play
+    if (currentState.espressoForcedPlay) {
+      console.log('☕ ESPRESSO: Canceling forced play - deducting energy and discarding card')
+
+      const { cardId, energyCost, shouldExhaust } = currentState.espressoForcedPlay
+
+      // Find the card
+      const card = currentState.hand.find(c => c.id === cardId)
+      if (!card) {
+        console.error('☕ ESPRESSO: Card not found in hand during cancel')
+        this.setState({
+          ...currentState,
+          pendingCardEffect: null,
+          selectedCardName: null,
+          selectedCardId: null,
+          espressoForcedPlay: undefined
+        })
+        return
+      }
+
+      // Remove card from hand
+      const newHand = currentState.hand.filter(c => c.id !== cardId)
+
+      // Deduct energy and discard/exhaust the card
+      const newState: GameState = {
+        ...currentState,
+        hand: newHand,
+        energy: currentState.energy - energyCost,
+        discard: shouldExhaust ? currentState.discard : [...currentState.discard, card],
+        exhaust: shouldExhaust ? [...currentState.exhaust, card] : currentState.exhaust,
+        pendingCardEffect: null,
+        selectedCardName: null,
+        selectedCardId: null,
+        espressoForcedPlay: undefined
+      }
+
+      console.log(`☕ ESPRESSO: Canceled - deducted ${energyCost} energy, ${shouldExhaust ? 'exhausted' : 'discarded'} ${card.name}`)
+      this.setState(newState)
+    } else {
+      // Normal cancel - just clear targeting state
+      this.setState({
+        ...currentState,
+        pendingCardEffect: null,
+        selectedCardName: null,
+        selectedCardId: null
+      })
+    }
   }
 }

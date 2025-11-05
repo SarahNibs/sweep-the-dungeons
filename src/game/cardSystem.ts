@@ -1,10 +1,50 @@
-import { Card, GameState } from '../types'
-import { createBoard, revealTileWithResult, getNeighbors, getTile } from './boardSystem'
+import { Card, GameState, StatusEffect } from '../types'
+import { createBoard, revealTileWithResult } from './boardSystem'
 import { executeCardEffect, requiresTargeting } from './cardEffects'
 import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
-import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerMatedPairEffect, triggerBusyCanaryEffect, triggerInterceptedNoteEffect, triggerHyperfocusEffect, prepareGlassesEffect, hasRelic } from './relics'
+import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerMatedPairEffect, triggerBabyBunnyEffect, triggerBusyCanaryEffect, triggerInterceptedNoteEffect, triggerHyperfocusEffect, prepareGlassesEffect, hasRelic } from './relics'
 import { AIController } from './ai/AIController'
 import { decrementBurgerStacks } from './cards/burger'
+import { decrementIceCreamStacks } from './cards/iceCream'
+import { decrementCarrotsStacks } from './cards/carrots'
+import { revealTileWithRelicEffects } from './cardEffects'
+
+/**
+ * Maps card names to their effect types for non-targeting cards
+ */
+function getCardEffectType(cardName: string): string {
+  switch (cardName) {
+    case 'Imperious Instructions':
+      return 'solid_clue'
+    case 'Vague Instructions':
+      return 'stretch_clue'
+    case 'Sarcastic Instructions':
+      return 'sarcastic_orders'
+    case 'Energized':
+      return 'energized'
+    case 'Options':
+      return 'options'
+    case 'Ramble':
+      return 'ramble'
+    case 'Underwire':
+      return 'underwire'
+    case 'Monster':
+      return 'monster'
+    case 'Tryst':
+      return 'tryst'
+    case 'Burger':
+      return 'burger'
+    case 'Ice Cream':
+      return 'ice_cream'
+    case 'Carrots':
+      return 'carrots'
+    case 'Twirl':
+      return 'twirl'
+    default:
+      // Fallback for unknown cards
+      return cardName.toLowerCase().replace(/[^a-z_]/g, '_')
+  }
+}
 
 import { createCard as createCardFromRepository, getRewardCardPool, getStarterCards, removeStatusEffect, addStatusEffect, addCardToPersistentDeck } from './gameRepository'
 
@@ -346,6 +386,12 @@ export function selectCardForMasking(state: GameState, targetCardId: string): Ga
     case 'Burger':
       newState = { ...newState, ...executeCardEffect(newState, { type: 'burger' }, targetCard) }
       break
+    case 'Ice Cream':
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'ice_cream' }, targetCard) }
+      break
+    case 'Carrots':
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'carrots' }, targetCard) }
+      break
     case 'Twirl':
       newState = { ...newState, ...executeCardEffect(newState, { type: 'twirl' }, targetCard) }
       break
@@ -626,6 +672,12 @@ export function playCard(state: GameState, cardId: string): GameState {
     case 'Burger':
       newState = executeCardEffect(state, { type: 'burger' }, card)
       break
+    case 'Ice Cream':
+      newState = executeCardEffect(state, { type: 'ice_cream' }, card)
+      break
+    case 'Carrots':
+      newState = executeCardEffect(state, { type: 'carrots' }, card)
+      break
     case 'Twirl':
       newState = executeCardEffect(state, { type: 'twirl' }, card)
       break
@@ -674,6 +726,139 @@ export function discardHand(state: GameState): GameState {
   }
 }
 
+/**
+ * Trigger Espresso relic effect: draw 1 card and immediately play it
+ * For targeting cards, enters forced targeting mode
+ * For special cards (Tingle, Masking, non-enhanced Tryst), leaves in hand for manual play
+ */
+function triggerEspressoEffect(state: GameState): GameState {
+  console.log('☕ ESPRESSO: Drawing and immediately playing a card')
+  let finalState = drawCards(state, 1)
+
+  // Get the last card drawn (the one that was just added to hand)
+  if (finalState.hand.length > 0) {
+    const drawnCard = finalState.hand[finalState.hand.length - 1]
+    console.log(`☕ ESPRESSO: Auto-playing ${drawnCard.name}`)
+
+    // Calculate effective cost
+    const baseCost = drawnCard.cost
+    const energyBonus = drawnCard.energyReduced ? 1 : 0
+    const effectiveCost = Math.max(0, baseCost - energyBonus)
+
+    // Check if we have enough energy
+    if (finalState.energy >= effectiveCost) {
+      // Cards that require special handling (animation or card selection)
+      if (drawnCard.name === 'Tingle') {
+        console.log(`☕ ESPRESSO: Tingle requires animation - setting up special handling`)
+        return {
+          ...finalState,
+          espressoSpecialCard: {
+            cardId: drawnCard.id,
+            cardName: drawnCard.name,
+            type: 'tingle',
+            enhanced: drawnCard.enhanced || false
+          }
+        }
+      }
+
+      if (drawnCard.name === 'Masking') {
+        console.log(`☕ ESPRESSO: Masking requires card selection - setting up special handling`)
+        return {
+          ...finalState,
+          espressoSpecialCard: {
+            cardId: drawnCard.id,
+            cardName: drawnCard.name,
+            type: 'masking',
+            enhanced: drawnCard.enhanced || false
+          }
+        }
+      }
+
+      if (drawnCard.name === 'Nap') {
+        console.log(`☕ ESPRESSO: Nap requires card selection from exhaust - setting up special handling`)
+        return {
+          ...finalState,
+          espressoSpecialCard: {
+            cardId: drawnCard.id,
+            cardName: drawnCard.name,
+            type: 'nap',
+            enhanced: drawnCard.enhanced || false
+          }
+        }
+      }
+
+      if (drawnCard.name === 'Tryst' && !drawnCard.enhanced) {
+        console.log(`☕ ESPRESSO: Non-enhanced Tryst requires animation - setting up special handling`)
+        return {
+          ...finalState,
+          espressoSpecialCard: {
+            cardId: drawnCard.id,
+            cardName: drawnCard.name,
+            type: 'tryst',
+            enhanced: false
+          }
+        }
+      }
+
+      // Check if card requires targeting
+      const needsTargeting = requiresTargeting(drawnCard.name, drawnCard.enhanced)
+
+      if (needsTargeting) {
+        // For targeting cards, set up special handling to play with forced targeting
+        console.log(`☕ ESPRESSO: ${drawnCard.name} requires targeting - setting up forced targeting mode`)
+        return {
+          ...finalState,
+          espressoSpecialCard: {
+            cardId: drawnCard.id,
+            cardName: drawnCard.name,
+            type: 'targeting',
+            enhanced: drawnCard.enhanced || false
+          },
+          espressoForcedPlay: {
+            cardId: drawnCard.id,
+            energyCost: effectiveCost,
+            shouldExhaust: drawnCard.exhaust || false
+          }
+        }
+      } else {
+        // For non-targeting cards, play immediately
+        // Remove card from hand
+        const newHand = finalState.hand.filter(c => c.id !== drawnCard.id)
+
+        // Execute card effect using proper effect type mapping
+        const cardEffect = { type: getCardEffectType(drawnCard.name) } as any
+        finalState = executeCardEffect(finalState, cardEffect, drawnCard)
+
+        // Deduct energy and update hand
+        finalState = {
+          ...finalState,
+          hand: newHand,
+          energy: finalState.energy - effectiveCost
+        }
+
+        // Handle exhaust
+        if (drawnCard.exhaust) {
+          finalState = {
+            ...finalState,
+            exhaust: [...finalState.exhaust, drawnCard]
+          }
+        } else {
+          finalState = {
+            ...finalState,
+            discard: [...finalState.discard, drawnCard]
+          }
+        }
+
+        console.log(`☕ ESPRESSO: Played ${drawnCard.name}, cost ${effectiveCost} energy`)
+      }
+    } else {
+      console.log(`☕ ESPRESSO: Not enough energy to play ${drawnCard.name} (need ${effectiveCost}, have ${finalState.energy})`)
+    }
+  }
+
+  return finalState
+}
+
 export function startNewTurn(state: GameState): GameState {
   console.log('🔄 START NEW TURN DEBUG')
   console.log('  - Current queued card draws:', state.queuedCardDraws)
@@ -705,8 +890,8 @@ export function startNewTurn(state: GameState): GameState {
   
   // Remove ramble status effect at start of new turn
   const stateWithoutRamble = removeStatusEffect(drawnState, 'ramble_active')
-  
-  return {
+
+  let finalState = {
     ...stateWithoutRamble,
     energy: stateWithoutRamble.maxEnergy,
     rambleActive: false, // Clear ramble effect at start of new turn
@@ -720,6 +905,17 @@ export function startNewTurn(state: GameState): GameState {
     queuedCardDraws: 0, // Clear queued card draws
     glassesNeedsTingleAnimation: hasGlasses // Set flag if Glasses relic is active
   }
+
+  // Trigger Espresso effect if present (draw and immediately play a card)
+  if (hasRelic(state, 'Espresso')) {
+    const espressoState = triggerEspressoEffect(finalState)
+    return {
+      ...finalState,
+      ...espressoState
+    }
+  }
+
+  return finalState
 }
 
 export function createInitialState(
@@ -798,6 +994,7 @@ export function createInitialState(
     clueCounter: 0,
     playerClueCounter: 0,
     rivalClueCounter: 0,
+    instructionsPlayedThisFloor: new Set(),
     currentLevelId: levelId,
     gamePhase: 'playing',
     relics: startingRelics,
@@ -809,6 +1006,8 @@ export function createInitialState(
     rivalAnimation: null,
     trystAnimation: null,
     adjacencyPatternAnimation: null,
+    pulsingStatusEffectIds: [],
+    seenRivalAITypes: new Set<string>(),
     rambleActive: false,
     ramblePriorityBoosts: [],
     copper,
@@ -866,6 +1065,23 @@ export function createInitialState(
 
   // Trigger Mated Pair effect if present (reveals second player tile)
   finalState = triggerMatedPairEffect(finalState)
+
+  // Trigger Baby Bunny effect if present (reveals third player tile)
+  finalState = triggerBabyBunnyEffect(finalState)
+
+  // Trigger Carrots effect if present (reveals player tiles based on stacks)
+  const carrotsEffect = finalState.activeStatusEffects.find(e => e.type === 'carrots')
+  if (carrotsEffect && carrotsEffect.count) {
+    console.log(`🥕 CARROTS EFFECT - Revealing +1 player tile at floor start`)
+    const unrevealedPlayerTiles = Array.from(finalState.board.tiles.values()).filter(
+      tile => tile.owner === 'player' && !tile.revealed && !tile.specialTiles.includes('extraDirty')
+    )
+
+    if (unrevealedPlayerTiles.length > 0) {
+      const randomTile = unrevealedPlayerTiles[Math.floor(Math.random() * unrevealedPlayerTiles.length)]
+      finalState = revealTileWithRelicEffects(finalState, randomTile.position, 'player', false)
+    }
+  }
 
   // Trigger temporary bunny buffs if present
   finalState = triggerTemporaryBunnyBuffs(finalState)
@@ -948,104 +1164,53 @@ export function createInitialState(
     }
   }
 
-  // Set up adjacency pattern animation
-  // Green for standard adjacency, red for non-standard
+  // Mark status effects that should pulse at floor start
+  // 1. 'rival_never_mines' - always pulse
+  // 2. non-standard adjacency rule - always pulse
+  // 3. non-default rival AI - pulse only first time it appears
+  const statusEffectsToPulse: string[] = []
+
+  // Check for rival never mines effect
+  const rivalNeverMinesEffect = finalState.activeStatusEffects.find(e => e.type === 'rival_never_mines')
+  if (rivalNeverMinesEffect) {
+    statusEffectsToPulse.push(rivalNeverMinesEffect.id)
+  }
+
+  // Check for non-standard adjacency rule
   const adjacencyRule = finalState.board.adjacencyRule || 'standard'
-
-  // Find the best diagonal position for adjacency animation
-  // Check two diagonals:
-  // 1. Main diagonal: [0,0], [1,1], [2,2], etc.
-  // 2. Next diagonal: [1,0], [2,1], [3,2], etc.
-  // Count non-empty adjacent tiles and use the position with most adjacencies
-  let bestPosition: import('../types').Position = { x: 0, y: 0 }
-  let bestAdjacencyCount = -1
-
-  // Check main diagonal [0,0], [1,1], [2,2], etc.
-  const maxMainDiagonalIndex = Math.min(finalState.board.width, finalState.board.height)
-  for (let i = 0; i < maxMainDiagonalIndex; i++) {
-    const diagonalPos = { x: i, y: i }
-    const diagonalTile = getTile(finalState.board, diagonalPos)
-
-    // Only consider non-empty tiles
-    if (!diagonalTile || diagonalTile.owner === 'empty') {
-      continue
-    }
-
-    // Count non-empty adjacent tiles with weighting
-    // Tiles within standard 3x3 count as 1, non-standard adjacencies count as 2.5
-    const neighbors = getNeighbors(finalState.board, diagonalPos)
-    let nonEmptyAdjacentCount = 0
-    neighbors.forEach(neighborPos => {
-      const neighborTile = getTile(finalState.board, neighborPos)
-      if (neighborTile && neighborTile.owner !== 'empty') {
-        // Check if this neighbor is within standard 3x3 adjacency
-        const dx = Math.abs(neighborPos.x - diagonalPos.x)
-        const dy = Math.abs(neighborPos.y - diagonalPos.y)
-        const isStandard3x3 = dx <= 1 && dy <= 1
-        // Weight non-standard adjacencies as 2.5 to emphasize them
-        nonEmptyAdjacentCount += isStandard3x3 ? 1 : 2.5
-      }
-    })
-
-    // Update best position if this one has strictly more non-empty adjacencies (by weight)
-    if (nonEmptyAdjacentCount > bestAdjacencyCount) {
-      bestPosition = diagonalPos
-      bestAdjacencyCount = nonEmptyAdjacentCount
+  if (adjacencyRule !== 'standard') {
+    const adjacencyEffect = finalState.activeStatusEffects.find(e => e.type === 'manhattan_adjacency')
+    if (adjacencyEffect) {
+      statusEffectsToPulse.push(adjacencyEffect.id)
     }
   }
 
-  // Check next diagonal [1,0], [2,1], [3,2], etc.
-  const maxNextDiagonalIndex = Math.min(finalState.board.width - 1, finalState.board.height)
-  for (let i = 0; i < maxNextDiagonalIndex; i++) {
-    const diagonalPos = { x: i + 1, y: i }
-    const diagonalTile = getTile(finalState.board, diagonalPos)
-
-    // Only consider non-empty tiles
-    if (!diagonalTile || diagonalTile.owner === 'empty') {
-      continue
-    }
-
-    // Count non-empty adjacent tiles with weighting
-    // Tiles within standard 3x3 count as 1, non-standard adjacencies count as 2.5
-    const neighbors = getNeighbors(finalState.board, diagonalPos)
-    let nonEmptyAdjacentCount = 0
-    neighbors.forEach(neighborPos => {
-      const neighborTile = getTile(finalState.board, neighborPos)
-      if (neighborTile && neighborTile.owner !== 'empty') {
-        // Check if this neighbor is within standard 3x3 adjacency
-        const dx = Math.abs(neighborPos.x - diagonalPos.x)
-        const dy = Math.abs(neighborPos.y - diagonalPos.y)
-        const isStandard3x3 = dx <= 1 && dy <= 1
-        // Weight non-standard adjacencies as 2.5 to emphasize them
-        nonEmptyAdjacentCount += isStandard3x3 ? 1 : 2.5
+  // Check for non-default rival AI (only first floor it appears)
+  const rivalAIEffect = finalState.activeStatusEffects.find(e =>
+    e.type === 'rival_ai_type' && e.name !== 'NoGuess Rival'
+  )
+  if (rivalAIEffect) {
+    // Check if this AI type has been seen before by looking for a flag in state
+    // We'll use a new field: seenRivalAITypes (Set of AI names that have been pulsed)
+    const seenAITypes = finalState.seenRivalAITypes || new Set<string>()
+    if (!seenAITypes.has(rivalAIEffect.name)) {
+      statusEffectsToPulse.push(rivalAIEffect.id)
+      // Mark this AI type as seen
+      finalState = {
+        ...finalState,
+        seenRivalAITypes: new Set([...seenAITypes, rivalAIEffect.name])
       }
-    })
-
-    // Update best position if this one has strictly more non-empty adjacencies (by weight)
-    if (nonEmptyAdjacentCount > bestAdjacencyCount) {
-      bestPosition = diagonalPos
-      bestAdjacencyCount = nonEmptyAdjacentCount
     }
   }
-
-  const centerPosition = bestPosition
-
-  // Get all tiles adjacent to the center using the board's adjacency rules
-  const neighbors = getNeighbors(finalState.board, centerPosition)
-
-  // Highlighted tiles = center tile + all neighbors
-  const highlightedTiles: import('../types').Position[] = [
-    centerPosition,
-    ...neighbors
-  ]
 
   finalState = {
     ...finalState,
-    adjacencyPatternAnimation: {
-      isActive: true,
-      highlightedTiles,
-      color: adjacencyRule === 'standard' ? 'green' : 'red'
-    }
+    pulsingStatusEffectIds: statusEffectsToPulse
+  }
+
+  // Trigger Espresso effect if present (draw and immediately play a card)
+  if (startingRelics.some(relic => relic.name === 'Espresso')) {
+    finalState = triggerEspressoEffect(finalState)
   }
 
   return finalState
@@ -1113,10 +1278,21 @@ export function advanceToNextLevel(state: GameState): GameState {
   }
 
   // Decrement Burger stacks when advancing to next floor
-  const stateWithDecrementedBurger = decrementBurgerStacks(state)
+  let stateWithDecrementedEffects = decrementBurgerStacks(state)
 
-  // Extract Burger effect to pass to createInitialState so turn 1 benefits from it
-  const burgerEffect = stateWithDecrementedBurger.activeStatusEffects.find(e => e.type === 'burger')
+  // Decrement Ice Cream stacks when advancing to next floor
+  stateWithDecrementedEffects = decrementIceCreamStacks(stateWithDecrementedEffects)
+
+  // Decrement Carrots stacks when advancing to next floor
+  stateWithDecrementedEffects = decrementCarrotsStacks(stateWithDecrementedEffects)
+
+  // Extract status effects to pass to createInitialState so turn 1 benefits from them
+  const burgerEffect = stateWithDecrementedEffects.activeStatusEffects.find(e => e.type === 'burger')
+  const iceCreamEffect = stateWithDecrementedEffects.activeStatusEffects.find(e => e.type === 'ice_cream')
+  const carrotsEffect = stateWithDecrementedEffects.activeStatusEffects.find(e => e.type === 'carrots')
+
+  // Collect all persistent status effects
+  const persistentEffects = [burgerEffect, iceCreamEffect, carrotsEffect].filter((e): e is StatusEffect => e !== undefined)
 
   const newLevelState = createInitialState(
     nextLevelId,
@@ -1128,7 +1304,7 @@ export function advanceToNextLevel(state: GameState): GameState {
     state.useDefaultAnnotations,
     state.enabledOwnerPossibilities,
     state.currentOwnerPossibilityIndex,
-    burgerEffect ? [burgerEffect] : undefined,
+    persistentEffects.length > 0 ? persistentEffects : undefined,
     state.shopVisitCount, // Preserve shop visit count across levels
     state.playerTilesRevealedCount // Preserve player tile reveal counter across levels
   )

@@ -1,6 +1,6 @@
 import { GameState, Position } from '../../types'
 import { removeSpecialTile, cleanGoblin, hasSpecialTile } from '../boardSystem'
-import { triggerMopEffect, hasRelic, triggerBleachEffect } from '../relics'
+import { triggerMopEffect, hasRelic } from '../relics'
 
 export function executeSweepEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
   let currentBoard = state.board
@@ -58,11 +58,6 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
     board: currentBoard
   }
 
-  // Trigger Bleach effect for each cleaned position
-  for (const pos of cleanedPositions) {
-    finalState = triggerBleachEffect(finalState, pos)
-  }
-
   // Third pass: handle surface mines based on cleaning state
   let copperFromDefusing = 0
   let surfaceMinesDefused = 0
@@ -86,14 +81,14 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
           shouldDefuse = true
         }
         // Second cleaning (already cleaned once by Spritz or Sweep): defuse
-        else if (currentTile.cleanedOnce) {
+        else if (currentTile.surfaceMineState?.cleanedOnce) {
           console.log(`💣 SWEEP (2nd cleaning): Defusing surface mine at (${x}, ${y})`)
           shouldDefuse = true
         }
-        // First cleaning without Mop: mark as cleanedOnce
+        // First cleaning without Mop: mark surface mine as cleanedOnce
         else {
           console.log(`💣 SWEEP (1st cleaning): Marking surface mine at (${x}, ${y}) as cleanedOnce`)
-          currentTile = { ...currentTile, cleanedOnce: true }
+          currentTile = { ...currentTile, surfaceMineState: { cleanedOnce: true } }
           newTiles.set(key, currentTile)
           finalState = {
             ...finalState,

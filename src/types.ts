@@ -39,6 +39,8 @@ export type CardEffect =
   | { type: 'burger' }
   | { type: 'twirl' }
   | { type: 'donut' }
+  | { type: 'ice_cream' }
+  | { type: 'carrots' }
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
@@ -85,7 +87,8 @@ export interface Tile {
   specialTiles: Array<'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine'> // Can have multiple special properties
   underwireProtected?: boolean // True if this mine was protected by Underwire
   rivalMineProtected?: boolean // True if this mine was protected by rival mine protection
-  cleanedOnce?: boolean // True if this tile has been cleaned once by Spritz or Sweep (second cleaning defuses surface mines)
+  cleanedOnce?: boolean // True if this tile has been cleaned once by Spritz or Sweep (used for non-surface-mine cleaning)
+  surfaceMineState?: { cleanedOnce: boolean } // State carried by the surface mine itself (moves with the mine)
 }
 
 export interface Board {
@@ -158,6 +161,7 @@ export interface GameState {
   clueCounter: number // Counter for clue order (1st, 2nd, 3rd...)
   playerClueCounter: number // Counter for player clue rows
   rivalClueCounter: number // Counter for rival clue rows
+  instructionsPlayedThisFloor: Set<string> // Names of Instructions cards played this floor (for enhanced Instructions energy refund)
   currentLevelId: string
   gamePhase: 'playing' | 'card_selection' | 'viewing_pile' | 'upgrade_selection' | 'relic_selection' | 'shop_selection' | 'relic_upgrade_display'
   pileViewingType?: PileType
@@ -198,6 +202,9 @@ export interface GameState {
     highlightedTiles: Position[]
     color: 'green' | 'red'
   } | null
+  // Status effect pulsing (for highlighting certain effects at floor start)
+  pulsingStatusEffectIds: string[] // IDs of status effects that should pulse
+  seenRivalAITypes: Set<string> // Set of rival AI types that have been pulsed (first floor only)
   rambleActive: boolean // True if Ramble was played this turn
   ramblePriorityBoosts: number[] // Array of max boost values from Rambles played this turn (e.g., [2, 4] for basic + enhanced)
   // Currency and shop system
@@ -241,6 +248,21 @@ export interface GameState {
   // Card processing guard (prevents race conditions from rapid clicking)
   isProcessingCard: boolean // True while a card is being played/animated
 
+  // Espresso forced play (when Espresso draws a targeting card, we force the play)
+  espressoForcedPlay?: {
+    cardId: string
+    energyCost: number
+    shouldExhaust: boolean
+  }
+
+  // Espresso special card (when Espresso draws a card needing special handling)
+  espressoSpecialCard?: {
+    cardId: string
+    cardName: string
+    type: 'tingle' | 'masking' | 'tryst' | 'nap' | 'targeting'
+    enhanced: boolean
+  }
+
   // Queued card draws (for Mop effect when cleaning by revealing dirty tiles)
   queuedCardDraws: number // Number of cards to draw at start of next turn
 
@@ -250,8 +272,8 @@ export interface GameState {
   // Rival mine protection (special behavior)
   rivalMineProtectionCount: number // Number of remaining protected mine reveals
 
-  // Debug relic addition flag (prevents level advancement when adding relics via debug menu)
-  debugRelicAddition?: boolean // True when relic was added via debug menu
+  // Relic upgrade context (tracks where the relic upgrade came from)
+  relicUpgradeContext?: 'debug' | 'reward' | 'shop' // Context for how we entered relic upgrade display
 
   // Masking card state (for selecting which card to play with Masking)
   maskingState: {
@@ -295,7 +317,7 @@ export interface ShopOption {
 
 export interface StatusEffect {
   id: string
-  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines' | 'rival_ai_type' | 'rival_mine_protection' | 'grace' | 'burger' | 'rival_places_mines'
+  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines' | 'rival_ai_type' | 'rival_mine_protection' | 'grace' | 'burger' | 'ice_cream' | 'carrots' | 'rival_places_mines'
   icon: string
   name: string
   description: string

@@ -85,7 +85,7 @@ export class ReasoningAI implements RivalAI {
 
         // DEBUG: Print detailed priority breakdown for all tiles
         console.log(`\n  📊 DETAILED PRIORITY BREAKDOWN (all ${priorities.length} tiles):`)
-        console.log('  ' + '='.repeat(80))
+        console.log('  ' + '='.repeat(90))
         for (const tp of priorities) {
           const pos = `(${tp.tile.position.x},${tp.tile.position.y})`
           const owner = tp.tile.owner.padEnd(7)
@@ -97,7 +97,7 @@ export class ReasoningAI implements RivalAI {
 
           console.log(`  ${pos.padEnd(8)} [${owner}] Total: ${total} = Base: ${base} + Rival: ${rival} - Mine: ${mine} + NoClue: ${noClue}`)
         }
-        console.log('  ' + '='.repeat(80))
+        console.log('  ' + '='.repeat(90))
 
         // Phase 6: Select highest priority tile (filter surface mines and mines if needed)
         const selectablePriorities = priorities.filter(tp => {

@@ -7,9 +7,10 @@ interface PromptWidgetProps {
   gameStatus: GameStatusInfo
   currentLevel: string
   onAdvanceLevel?: () => void
+  isEspressoForcedPlay?: boolean
 }
 
-export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel, onAdvanceLevel }: PromptWidgetProps) {
+export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel, onAdvanceLevel, isEspressoForcedPlay }: PromptWidgetProps) {
   const levelConfig = getLevelConfig(currentLevel)
   const levelNumber = levelConfig?.levelNumber || currentLevel
   
@@ -73,15 +74,15 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel
           style={{
             padding: '8px 16px',
             fontSize: '14px',
-            backgroundColor: '#ffc107',
-            color: 'black',
+            backgroundColor: isEspressoForcedPlay ? '#e74c3c' : '#ffc107',
+            color: isEspressoForcedPlay ? 'white' : 'black',
             border: 'none',
             borderRadius: '4px',
             cursor: 'pointer',
             fontWeight: 'bold'
           }}
         >
-          Cancel
+          {isEspressoForcedPlay ? 'Skip (costs energy)' : 'Cancel'}
         </button>
       )}
       

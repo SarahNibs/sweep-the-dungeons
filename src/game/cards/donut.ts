@@ -1,5 +1,5 @@
 import { GameState, Position } from '../../types'
-import { positionToKey, addSpecialTile } from '../boardSystem'
+import { positionToKey, addSpecialTile, getNeighbors, getTile } from '../boardSystem'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
 
 function getUnrevealedPlayerTiles(state: GameState): { position: Position; tile: import('../../types').Tile }[] {
@@ -56,6 +56,53 @@ export function executeDonutEffect(state: GameState, enhanced: boolean = false):
     // Annotate the tile as player
     const playerOwnerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player'])
     currentState = addOwnerSubsetAnnotation(currentState, position, playerOwnerSubset)
+
+    // Add player adjacency info
+    const neighborPositions = getNeighbors(currentState.board, position)
+    let playerCount = 0
+
+    for (const neighborPos of neighborPositions) {
+      const neighborTile = getTile(currentState.board, neighborPos)
+      if (neighborTile && neighborTile.owner === 'player') {
+        playerCount++
+      }
+    }
+
+    const adjacencyInfo = { player: playerCount }
+
+    // Get the current tile with updated annotations
+    const tileWithAnnotations = getTile(currentState.board, position)
+    if (tileWithAnnotations) {
+      // Remove any existing adjacency info annotation
+      const existingAnnotations = tileWithAnnotations.annotations.filter(a => a.type !== 'adjacency_info')
+
+      // Add the new adjacency info annotation
+      const newAnnotations = [
+        ...existingAnnotations,
+        {
+          type: 'adjacency_info' as const,
+          adjacencyInfo
+        }
+      ]
+
+      // Update the tile with the new annotation
+      const newTiles = new Map(currentState.board.tiles)
+      const key = positionToKey(position)
+      newTiles.set(key, {
+        ...tileWithAnnotations,
+        annotations: newAnnotations
+      })
+
+      currentState = {
+        ...currentState,
+        board: {
+          ...currentState.board,
+          tiles: newTiles
+        }
+      }
+
+      console.log(`  - Added player adjacency info: ${playerCount} adjacent player tiles`)
+    }
   }
 
   return currentState

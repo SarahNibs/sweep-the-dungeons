@@ -2,6 +2,24 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## CRITICAL: Understanding "For Example"
+
+When the user says "for example, X" they are providing an **illustrative example to explain a concept**, NOT a specification to implement exactly X.
+
+Examples:
+- "for example, 20 pixels between items" means "maintain consistent spacing" - NOT "make everything exactly 20 pixels"
+- "for example, use a vertical scrollbar" means "this is one possible approach" - NOT "implement exactly this"
+
+**DO NOT implement the exact example given.** Understand the underlying concept being explained.
+
+## CRITICAL: UI Layout Limitations
+
+Claude Code cannot visualize screens or see the rendered output. Therefore:
+- **AVOID complex CSS layouts** (flexbox wrapping, grid systems, responsive designs)
+- **KEEP IT SIMPLE**: Use basic vertical/horizontal layouts with scrollbars when needed
+- When the user asks for UI improvements, ask for clarification rather than guessing at complex solutions
+- If uncertain about visual layout, implement the simplest possible solution
+
 ## ⚠️ CRITICAL: NO REQUIRE() - ES MODULES ONLY ⚠️
 
 **This is a Vite + TypeScript project. NEVER use `require()` - it will cause runtime errors.**

@@ -1,94 +1,54 @@
-import { GameState, Position } from '../../types'
-import { getTile, removeSpecialTile, positionToKey, hasSpecialTile } from '../boardSystem'
-import { hasRelic } from './relicUtils'
-import { triggerMopEffect } from './mop'
+import { GameState, Card } from '../../types'
 
 /**
- * Bleach relic: whenever you clean a tile, also clean the N/S/E/W adjacent tiles
- * This function should be called after cleaning a tile to trigger the spreading effect
+ * Bleach relic: when gained, apply enhance-upgrade to all Spritz and Sweep cards (that aren't already enhanced)
  */
-export function triggerBleachEffect(state: GameState, cleanedPosition: Position): GameState {
-  if (!hasRelic(state, 'Bleach')) {
-    return state
+export function applyBleachEffect(state: GameState): GameState {
+  console.log('🧴 BLEACH EFFECT: Enhancing all non-enhanced Spritz and Sweep cards')
+
+  // Find all Spritz and Sweep cards in persistent deck that aren't already enhanced
+  const targetCards = state.persistentDeck.filter(card =>
+    (card.name === 'Spritz' || card.name === 'Sweep') && !card.enhanced
+  )
+  const otherCards = state.persistentDeck.filter(card =>
+    !(card.name === 'Spritz' || card.name === 'Sweep') || card.enhanced
+  )
+
+  console.log(`  - Found ${targetCards.length} Spritz/Sweep cards to enhance`)
+
+  // Enhance the target cards
+  const enhancedCards: Card[] = targetCards.map(card => ({
+    ...card,
+    enhanced: true
+  }))
+
+  const newDeck = [...otherCards, ...enhancedCards]
+
+  // Create upgrade results showing the transformations
+  const relicUpgradeResults = targetCards.map(card => ({
+    before: card,
+    after: { ...card, enhanced: true }
+  }))
+
+  // If no cards to enhance, show example
+  if (relicUpgradeResults.length === 0) {
+    const exampleSpritz: Card = {
+      id: 'example-spritz',
+      name: 'Spritz',
+      cost: 1,
+      energyReduced: false,
+      enhanced: false
+    }
+    relicUpgradeResults.push({
+      before: exampleSpritz,
+      after: { ...exampleSpritz, enhanced: true }
+    })
   }
 
-  console.log(`🧴 BLEACH EFFECT: Spreading clean from (${cleanedPosition.x}, ${cleanedPosition.y})`)
-
-  // Cardinal directions (N, S, E, W)
-  const adjacentPositions: Position[] = [
-    { x: cleanedPosition.x, y: cleanedPosition.y - 1 }, // North
-    { x: cleanedPosition.x, y: cleanedPosition.y + 1 }, // South
-    { x: cleanedPosition.x - 1, y: cleanedPosition.y }, // West
-    { x: cleanedPosition.x + 1, y: cleanedPosition.y }  // East
-  ]
-
-  let currentBoard = state.board
-  let additionalCleanCount = 0
-
-  for (const pos of adjacentPositions) {
-    const tile = getTile(currentBoard, pos)
-
-    // Clean dirt if present
-    if (tile && hasSpecialTile(tile, 'extraDirty')) {
-      console.log(`  - Cleaning adjacent dirt at (${pos.x}, ${pos.y})`)
-      const key = positionToKey(pos)
-      const newTiles = new Map(currentBoard.tiles)
-      const cleanedTile = removeSpecialTile(tile, 'extraDirty')
-      newTiles.set(key, cleanedTile)
-
-      currentBoard = {
-        ...currentBoard,
-        tiles: newTiles
-      }
-
-      additionalCleanCount++
-    }
-
-    // Also clean goblins if present
-    const updatedTile = getTile(currentBoard, pos)
-    if (updatedTile && hasSpecialTile(updatedTile, 'goblin')) {
-      console.log(`  - Cleaning adjacent goblin at (${pos.x}, ${pos.y})`)
-      const key = positionToKey(pos)
-      const newTiles = new Map(currentBoard.tiles)
-      const cleanedTile = removeSpecialTile(updatedTile, 'goblin')
-      newTiles.set(key, cleanedTile)
-
-      currentBoard = {
-        ...currentBoard,
-        tiles: newTiles
-      }
-
-      additionalCleanCount++
-    }
-
-    // Also defuse surface mines if present
-    const finalTile = getTile(currentBoard, pos)
-    if (finalTile && hasSpecialTile(finalTile, 'surfaceMine') && !finalTile.cleanedOnce) {
-      console.log(`  - Defusing adjacent surface mine at (${pos.x}, ${pos.y})`)
-      const key = positionToKey(pos)
-      const newTiles = new Map(currentBoard.tiles)
-      const defusedTile = { ...finalTile, cleanedOnce: true }
-      newTiles.set(key, defusedTile)
-
-      currentBoard = {
-        ...currentBoard,
-        tiles: newTiles
-      }
-
-      additionalCleanCount++
-    }
-  }
-
-  let finalState = {
+  return {
     ...state,
-    board: currentBoard
+    persistentDeck: newDeck,
+    gamePhase: 'relic_upgrade_display',
+    relicUpgradeResults
   }
-
-  // Trigger Mop effect for additional tiles cleaned
-  if (additionalCleanCount > 0) {
-    console.log(`  - Triggering Mop effect for ${additionalCleanCount} additional cleaned tiles`)
-    finalState = triggerMopEffect(finalState, additionalCleanCount)
-  }
-
-  return finalState
 }

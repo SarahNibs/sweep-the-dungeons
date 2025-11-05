@@ -262,6 +262,103 @@ function generateMethod1(state: GameState): Method1Result {
     }
   }
 
+  // === REDISTRIBUTE ONE PIP TO ADJACENT NON-PLAYER TILE ===
+  // Find non-player tiles adjacent to candidate tiles
+  const adjacentNonPlayerTiles: Tile[] = []
+  const candidateSet = new Set(selectedTiles.map(t => `${t.position.x},${t.position.y}`))
+
+  for (const candidateTile of selectedTiles) {
+    const neighbors = getNeighbors(state.board, candidateTile.position)
+    for (const neighborPos of neighbors) {
+      const neighbor = getTile(state.board, neighborPos)
+      if (neighbor && !neighbor.revealed && neighbor.owner !== 'player' && neighbor.owner !== 'empty') {
+        const posKey = `${neighborPos.x},${neighborPos.y}`
+        // Skip if it's another candidate tile
+        if (candidateSet.has(posKey)) continue
+
+        // Check if already in our list
+        if (!adjacentNonPlayerTiles.some(t => `${t.position.x},${t.position.y}` === posKey)) {
+          adjacentNonPlayerTiles.push(neighbor)
+        }
+      }
+    }
+  }
+
+  console.log(`Found ${adjacentNonPlayerTiles.length} adjacent non-player tiles`)
+  console.log(`Adjacent tiles:`, adjacentNonPlayerTiles.map(t => {
+    const posKey = `${t.position.x},${t.position.y}`
+    const pipCount = redPipCounts.get(posKey) || 0
+    return `(${t.position.x},${t.position.y},${t.owner}): ${pipCount} pips`
+  }))
+
+  if (adjacentNonPlayerTiles.length > 0 && redPipCounts.size > 0) {
+    // Find the minimum non-zero pip count, or 0 if all are 0
+    const nonZeroCounts = adjacentNonPlayerTiles
+      .map(t => redPipCounts.get(`${t.position.x},${t.position.y}`) || 0)
+      .filter(c => c > 0)
+    const minNonZero = nonZeroCounts.length > 0 ? Math.min(...nonZeroCounts) : 0
+
+    // Filter to tiles with the minimum non-zero count (or 0 if no tiles have pips)
+    const candidates = adjacentNonPlayerTiles.filter(t => {
+      const pipCount = redPipCounts.get(`${t.position.x},${t.position.y}`) || 0
+      return minNonZero > 0 ? pipCount === minNonZero : pipCount === 0
+    })
+
+    console.log(`Candidates with least non-zero pips (${minNonZero}):`, candidates.map(t =>
+      `(${t.position.x},${t.position.y},${t.owner})`
+    ))
+
+    // Sort by priority: rival > neutral, then random
+    candidates.sort((a, b) => {
+      if (a.owner === 'rival' && b.owner !== 'rival') return -1
+      if (a.owner !== 'rival' && b.owner === 'rival') return 1
+      return Math.random() - 0.5
+    })
+
+    if (candidates.length > 0) {
+      const chosenTile = candidates[0]
+      const chosenPosKey = `${chosenTile.position.x},${chosenTile.position.y}`
+
+      // Find a tile to steal a pip from (pick one with highest pip count)
+      const tilesWithPips = Array.from(redPipCounts.entries())
+        .filter(([_, count]) => count > 0)
+        .sort((a, b) => b[1] - a[1])
+
+      if (tilesWithPips.length > 0) {
+        const [sourcePosKey, sourceCount] = tilesWithPips[0]
+
+        const chosenCurrentPips = redPipCounts.get(chosenPosKey) || 0
+        console.log(`Moving 1 pip from ${sourcePosKey} (${sourceCount} pips) to ${chosenPosKey} (${chosenCurrentPips} pips)`)
+
+        // Update pip counts
+        redPipCounts.set(sourcePosKey, sourceCount - 1)
+        redPipCounts.set(chosenPosKey, (redPipCounts.get(chosenPosKey) || 0) + 1)
+
+        // Remove source tile if it now has 0 pips
+        if (sourceCount - 1 === 0) {
+          redPipCounts.delete(sourcePosKey)
+          const sourceIndex = redTargets.findIndex(t =>
+            `${t.position.x},${t.position.y}` === sourcePosKey
+          )
+          if (sourceIndex !== -1) {
+            redTargets.splice(sourceIndex, 1)
+            redTargetPositions.delete(sourcePosKey)
+            console.log(`Removed ${sourcePosKey} from red targets (0 pips remaining)`)
+          }
+        }
+
+        // Add chosen tile to red targets if not already there
+        if (!redTargetPositions.has(chosenPosKey)) {
+          redTargets.push(chosenTile)
+          redTargetPositions.add(chosenPosKey)
+          console.log(`Added ${chosenPosKey} to red targets`)
+        }
+      }
+    }
+  }
+
+  console.log(`Final red pip counts after redistribution:`, Object.fromEntries(redPipCounts))
+
   // === GENERATE GREEN PIPS USING BAG SYSTEM ===
 
   // Exclude: candidate tiles and tiles getting red pips
@@ -578,14 +675,15 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
   let newState = {
     ...state,
     clueCounter: state.clueCounter + 1,
-    playerClueCounter: state.playerClueCounter + 1
+    playerClueCounter: state.playerClueCounter + 1,
+    instructionsPlayedThisFloor: new Set([...state.instructionsPlayedThisFloor, 'Sarcastic Instructions'])
   }
 
-  // Gain energy if enhanced and any other Instructions card has been played
+  // Gain energy if enhanced and any other Instructions card has been played this floor
   if (enhanced) {
-    const instructionsCards = ['Imperious Instructions', 'Vague Instructions']
-    const hasPlayedOtherInstructions = [...newState.discard, ...newState.exhaust].some(
-      card => instructionsCards.includes(card.name)
+    const instructionsCards = ['Imperious Instructions', 'Vague Instructions', 'Sarcastic Instructions']
+    const hasPlayedOtherInstructions = instructionsCards.some(
+      cardName => state.instructionsPlayedThisFloor.has(cardName)
     )
 
     if (hasPlayedOtherInstructions) {
@@ -595,7 +693,7 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
       }
       console.log(`Enhanced: Gained 1 energy (new total: ${newState.energy})`)
     } else {
-      console.log(`Enhanced: No other Instructions cards played this level, no energy gain`)
+      console.log(`Enhanced: No other Instructions cards played this floor, no energy gain`)
     }
   }
 

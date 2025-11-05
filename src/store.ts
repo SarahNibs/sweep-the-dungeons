@@ -345,9 +345,11 @@ export const useGameStore = create<GameStore>((set, get) => {
   getTargetingInfo: () => {
     const currentState = get()
     if (!currentState.pendingCardEffect || !currentState.selectedCardName) return null
-    
-    // Find the card to check if it's enhanced
-    const card = currentState.hand.find(c => c.name === currentState.selectedCardName)
+
+    // Find the card to check if it's enhanced - use ID to find the exact card being played
+    const card = currentState.selectedCardId
+      ? currentState.hand.find(c => c.id === currentState.selectedCardId)
+      : currentState.hand.find(c => c.name === currentState.selectedCardName)
     const info = getTargetingInfo(currentState.selectedCardName, card?.enhanced)
     if (!info) return null
     

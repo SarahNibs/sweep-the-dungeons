@@ -4,8 +4,8 @@ import { updateNeighborAdjacencyInfo } from '../cardEffects'
 
 /**
  * Fan card effect: blows dirt, goblins, and surface mines to adjacent unrevealed tiles
- * Base: single tile
- * Enhanced: burst star area (manhattan distance 1)
+ * Base: small cross shape (center + manhattan distance 1)
+ * Enhanced: 3x3 area
  */
 export function executeFanEffect(state: GameState, target: Position, enhanced: boolean = false): GameState {
   console.log(`🪭 FAN EFFECT - Target: (${target.x}, ${target.y}), Enhanced: ${enhanced}`)
@@ -13,7 +13,18 @@ export function executeFanEffect(state: GameState, target: Position, enhanced: b
   const tilesToFan: Position[] = []
 
   if (enhanced) {
-    // Enhanced: burst star area (center + manhattan distance 1)
+    // Enhanced: 3x3 area
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const pos: Position = { x: target.x + dx, y: target.y + dy }
+        const tile = getTile(state.board, pos)
+        if (tile) {
+          tilesToFan.push(pos)
+        }
+      }
+    }
+  } else {
+    // Base: small cross shape (center + manhattan distance 1)
     tilesToFan.push(target)
     const offsets = [
       { dx: 0, dy: -1 }, // up
@@ -28,9 +39,6 @@ export function executeFanEffect(state: GameState, target: Position, enhanced: b
         tilesToFan.push(pos)
       }
     }
-  } else {
-    // Base: single tile
-    tilesToFan.push(target)
   }
 
   // PHASE 1: Collect all blowing operations (snapshot the current state to avoid double-processing)
@@ -94,6 +102,9 @@ export function executeFanEffect(state: GameState, target: Position, enhanced: b
     )
     const newDestSpecialTiles = [...destTile.specialTiles]
 
+    // Check if surface mine being moved has cleanedOnce state
+    const mineState = op.hasMine ? sourceTile.surfaceMineState : undefined
+
     // Transfer the special tiles
     if (op.hasDirt) newDestSpecialTiles.push('extraDirty')
     if (op.hasGoblin) newDestSpecialTiles.push('goblin')
@@ -120,10 +131,11 @@ export function executeFanEffect(state: GameState, target: Position, enhanced: b
         specialTiles: explodedSpecialTiles
       })
 
-      // Update source tile
+      // Update source tile - clear surfaceMineState if mine was moved away
       newTiles.set(positionToKey(op.sourcePos), {
         ...sourceTile,
-        specialTiles: newSourceSpecialTiles
+        specialTiles: newSourceSpecialTiles,
+        surfaceMineState: op.hasMine ? undefined : sourceTile.surfaceMineState
       })
 
       currentState = {
@@ -140,14 +152,18 @@ export function executeFanEffect(state: GameState, target: Position, enhanced: b
       }
     } else {
       // No explosion - just move the special tiles
+      // Update source tile - clear surfaceMineState if mine was moved away
       newTiles.set(positionToKey(op.sourcePos), {
         ...sourceTile,
-        specialTiles: newSourceSpecialTiles
+        specialTiles: newSourceSpecialTiles,
+        surfaceMineState: op.hasMine ? undefined : sourceTile.surfaceMineState
       })
 
+      // Update destination tile - transfer surfaceMineState if mine was moved
       newTiles.set(positionToKey(op.destPos), {
         ...destTile,
-        specialTiles: newDestSpecialTiles
+        specialTiles: newDestSpecialTiles,
+        surfaceMineState: op.hasMine ? mineState : destTile.surfaceMineState
       })
 
       currentState = {

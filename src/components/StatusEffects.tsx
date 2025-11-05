@@ -1,29 +1,73 @@
 import { StatusEffect } from '../types'
 import { Tooltip } from './Tooltip'
+import { useGameStore } from '../store'
+import { useEffect, useState } from 'react'
 
 interface StatusEffectsProps {
   statusEffects: StatusEffect[]
 }
 
 export function StatusEffects({ statusEffects }: StatusEffectsProps) {
+  const { pulsingStatusEffectIds } = useGameStore()
+  const [isPulsing, setIsPulsing] = useState(true)
+
   // Filter out default NoGuess AI status effect - only show non-default AI types
   const visibleEffects = statusEffects.filter(effect =>
     !(effect.type === 'rival_ai_type' && effect.name === 'NoGuess Rival')
   )
 
+  // Stop pulsing after 2 seconds
+  useEffect(() => {
+    if (pulsingStatusEffectIds && pulsingStatusEffectIds.length > 0) {
+      setIsPulsing(true)
+      const timeout = setTimeout(() => {
+        setIsPulsing(false)
+        // Clear the pulsing IDs from store
+        useGameStore.setState({ pulsingStatusEffectIds: [] })
+      }, 2000)
+      return () => clearTimeout(timeout)
+    }
+  }, [pulsingStatusEffectIds])
+
   if (visibleEffects.length === 0) {
     return null
   }
 
+  // Add CSS for pulse animation
+  useEffect(() => {
+    if (!document.getElementById('status-effect-pulse-animation')) {
+      const style = document.createElement('style')
+      style.id = 'status-effect-pulse-animation'
+      style.textContent = `
+        @keyframes statusEffectPulse {
+          0% {
+            background-color: rgba(225, 112, 85, 0.1);
+            transform: scale(1);
+          }
+          50% {
+            background-color: rgba(225, 112, 85, 0.6);
+            transform: scale(1.1);
+          }
+          100% {
+            background-color: rgba(225, 112, 85, 0.1);
+            transform: scale(1);
+          }
+        }
+      `
+      document.head.appendChild(style)
+    }
+  }, [])
+
   return (
     <div style={{
       display: 'flex',
-      flexDirection: 'column-reverse', // Bottom-up ordering
-      gap: '6px',
-      alignItems: 'center'
+      flexDirection: 'column',
+      gap: '6px'
     }}>
-      {visibleEffects.map((effect) => (
-        <Tooltip key={effect.id} text={`${effect.name}: ${effect.description}`} style={{ display: 'inline-block' }}>
+      {visibleEffects.map((effect) => {
+        const shouldPulse = isPulsing && pulsingStatusEffectIds.includes(effect.id)
+        return (
+        <Tooltip key={effect.id} text={`${effect.name}: ${effect.description}`} style={{ display: 'block', margin: '0 auto' }}>
           <div
             style={{
               width: '42px',
@@ -36,7 +80,9 @@ export function StatusEffects({ statusEffects }: StatusEffectsProps) {
               fontSize: '20px',
               backgroundColor: 'rgba(225, 112, 85, 0.1)',
               cursor: 'pointer',
-              position: 'relative'
+              position: 'relative',
+              animation: shouldPulse ? 'statusEffectPulse 1s ease-in-out 2' : 'none',
+              margin: '0 auto'
             }}
           >
           {effect.icon}
@@ -85,7 +131,8 @@ export function StatusEffects({ statusEffects }: StatusEffectsProps) {
           )}
         </div>
         </Tooltip>
-      ))}
+        )
+      })}
     </div>
   )
 }

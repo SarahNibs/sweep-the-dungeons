@@ -345,7 +345,7 @@ export function purchaseShopItem(state: GameState, optionIndex: number): GameSta
       newState = {
         ...newState,
         persistentDeck: updatedDeck,
-        gamePhase: 'equipment_upgrade_display',
+        modalStack: [...newState.modalStack, 'equipment_upgrade_display'], // Push modal to stack
         equipmentUpgradeResults: [{ before: cardToEnhance, after: enhancedCard }]
       }
       break

@@ -165,6 +165,7 @@ export interface GameState {
   instructionsPlayedThisFloor: Set<string> // Names of Instructions cards played this floor (for enhanced Instructions energy refund)
   currentLevelId: string
   gamePhase: 'playing' | 'card_selection' | 'viewing_pile' | 'upgrade_selection' | 'equipment_selection' | 'shop_selection' | 'equipment_upgrade_display'
+  modalStack: Array<'equipment_upgrade_display' | 'viewing_pile'> // Stack of modal/overlay screens - top of stack is currently displayed
   pileViewingType?: PileType
   cardSelectionOptions?: Card[] // Three cards to choose from when advancing level
   upgradeOptions?: UpgradeOption[] // Three upgrade options to choose from

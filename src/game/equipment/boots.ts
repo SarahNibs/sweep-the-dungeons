@@ -51,7 +51,7 @@ export function transformCardForBoots(state: GameState, cardId: string): GameSta
   return {
     ...state,
     persistentDeck: [...newPersistentDeck, upgradedCard],
-    gamePhase: 'equipment_upgrade_display',
+    modalStack: [...state.modalStack, 'equipment_upgrade_display'], // Push modal to stack
     equipmentUpgradeResults: [{ before: originalCard, after: upgradedCard }],
     waitingForCardRemoval: false,
     bootsTransformMode: false,

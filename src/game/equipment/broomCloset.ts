@@ -32,7 +32,7 @@ export function applyBroomClosetEffect(state: GameState): GameState {
   return {
     ...state,
     persistentDeck: newDeck,
-    gamePhase: 'equipment_upgrade_display',
+    modalStack: [...state.modalStack, 'equipment_upgrade_display'], // Push modal to stack
     equipmentUpgradeResults
   }
 }

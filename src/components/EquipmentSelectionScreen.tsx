@@ -147,7 +147,7 @@ export function EquipmentSelectionScreen({
         margin: '0 0 20px 0',
         textAlign: 'center'
       }}>
-        Choose a Equipment
+        Choose Equipment
       </h2>
 
       {/* View Deck button */}

@@ -9,7 +9,7 @@ Click on your cards to play them for energy. Click on tiles to reveal them.
 If they're yours (green), get info about how many adjacent tiles are yours
 and continue your turn. Otherwise your turn ends. Reveal a mine and you lose.
 Right-click tiles to mark off the ones that aren't yours so you don't forget.
-Finish 21 floors to win.
+Finish 21 floors to win. Click and hold the title banner for a new game.
 
 ## The Floor
 A floor is a few dozen tiles, many of which you need to clean (reveal).

@@ -34,6 +34,7 @@ function App() {
     gameStatus,
     currentLevelId,
     gamePhase,
+    modalStack,
     cardSelectionOptions,
     upgradeOptions,
     equipmentOptions,
@@ -79,6 +80,9 @@ function App() {
     espressoSpecialCard,
     executeTrystWithAnimation
   } = useGameStore()
+
+  // Determine current screen: check modal stack first, then fall back to gamePhase
+  const currentScreen = modalStack.length > 0 ? modalStack[modalStack.length - 1] : gamePhase
 
   // Debug UI state
   const [showEquipmentDebug, setShowEquipmentDebug] = useState(false)
@@ -402,7 +406,7 @@ function App() {
       </div>
 
       {/* Card Selection Screen */}
-      {gamePhase === 'card_selection' && cardSelectionOptions && (
+      {currentScreen === 'card_selection' && cardSelectionOptions && (
         <CardSelectionScreen
           cards={cardSelectionOptions}
           onCardSelect={selectNewCard}
@@ -412,7 +416,7 @@ function App() {
       )}
 
       {/* Upgrade Selection Screen */}
-      {gamePhase === 'upgrade_selection' && upgradeOptions && (
+      {currentScreen === 'upgrade_selection' && upgradeOptions && (
         <UpgradeSelectionScreen
           upgradeOptions={upgradeOptions}
           onUpgradeSelect={selectUpgrade}
@@ -424,7 +428,7 @@ function App() {
       )}
 
       {/* Equipment Selection Screen */}
-      {gamePhase === 'equipment_selection' && equipmentOptions && (
+      {currentScreen === 'equipment_selection' && equipmentOptions && (
         <EquipmentSelectionScreen
           equipmentOptions={equipmentOptions}
           onEquipmentSelect={selectEquipment}
@@ -436,7 +440,7 @@ function App() {
       )}
 
       {/* Equipment Upgrade Display */}
-      {gamePhase === 'equipment_upgrade_display' && equipmentUpgradeResults && (
+      {currentScreen === 'equipment_upgrade_display' && equipmentUpgradeResults && (
         <div 
           style={{
             position: 'fixed',
@@ -569,7 +573,7 @@ function App() {
       )}
 
       {/* Shop Selection Screen */}
-      {gamePhase === 'shop_selection' && shopOptions && (
+      {currentScreen === 'shop_selection' && shopOptions && (
         <ShopSelectionScreen
           shopOptions={shopOptions}
           onPurchase={purchaseShopItem}
@@ -584,7 +588,7 @@ function App() {
       )}
 
       {/* Pile Viewing Screen */}
-      {gamePhase === 'viewing_pile' && pileViewingType && (
+      {currentScreen === 'viewing_pile' && pileViewingType && (
         <PileViewingScreen
           pileType={pileViewingType}
           cards={pileViewingType === 'deck' ? deck : pileViewingType === 'discard' ? discard : exhaust}

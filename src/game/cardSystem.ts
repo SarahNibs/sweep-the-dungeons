@@ -997,6 +997,7 @@ export function createInitialState(
     instructionsPlayedThisFloor: new Set(),
     currentLevelId: levelId,
     gamePhase: 'playing',
+    modalStack: [], // No modals/overlays initially
     equipment: startingEquipment,
     equipmentOptions: undefined,
     isFirstTurn: true,

@@ -123,34 +123,36 @@ export class DebugController {
       console.log(`🎁 DEBUG: Giving equipment "${equipmentName}"`, equipment)
 
       // Add the equipment to the collection first, and mark as debug addition
+      // Keep the current gamePhase ('playing') so the modal will overlay it correctly
       let newState = {
         ...currentState,
         equipment: [...currentState.equipment, equipment],
-        equipmentUpgradeContext: 'debug' as const // Mark as debug context to prevent level advancement
+        equipmentUpgradeContext: 'debug' as const // Mark as debug context
       }
 
       // Apply special equipment effects for equipment that modify the deck
+      // These will push the equipment_upgrade_display modal on top of 'playing' phase
       import('../equipment').then(({ applyEstrogenEffect, applyProgesteroneEffect, applyBootsEffect, applyCrystalEffect, applyBroomClosetEffect, applyNovelEffect, applyCocktailEffect, applyDiscoBallEffect, applyBleachEffect }) => {
         let effectState: any = newState
 
         if (equipment.name === 'Estrogen') {
-          effectState = { ...applyEstrogenEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+          effectState = applyEstrogenEffect(newState)
         } else if (equipment.name === 'Progesterone') {
-          effectState = { ...applyProgesteroneEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+          effectState = applyProgesteroneEffect(newState)
         } else if (equipment.name === 'Boots') {
-          effectState = { ...applyBootsEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+          effectState = applyBootsEffect(newState)
         } else if (equipment.name === 'Crystal') {
-          effectState = { ...applyCrystalEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+          effectState = applyCrystalEffect(newState)
         } else if (equipment.name === 'Broom Closet') {
-          effectState = { ...applyBroomClosetEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+          effectState = applyBroomClosetEffect(newState)
         } else if (equipment.name === 'Novel') {
-          effectState = { ...applyNovelEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+          effectState = applyNovelEffect(newState)
         } else if (equipment.name === 'Cocktail') {
-          effectState = { ...applyCocktailEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+          effectState = applyCocktailEffect(newState)
         } else if (equipment.name === 'Disco Ball') {
-          effectState = { ...applyDiscoBallEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+          effectState = applyDiscoBallEffect(newState)
         } else if (equipment.name === 'Bleach') {
-          effectState = { ...applyBleachEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+          effectState = applyBleachEffect(newState)
         } else {
           effectState = newState
         }

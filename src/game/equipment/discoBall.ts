@@ -17,7 +17,7 @@ export function applyDiscoBallEffect(state: GameState): GameState {
   return {
     ...state,
     persistentDeck: [...state.persistentDeck, tingle1, tingle2],
-    gamePhase: 'equipment_upgrade_display',
+    modalStack: [...state.modalStack, 'equipment_upgrade_display'], // Push modal to stack
     equipmentUpgradeResults: [
       { before: dummyBefore, after: tingle1 },
       { before: dummyBefore, after: tingle2 }

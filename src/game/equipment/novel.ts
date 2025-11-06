@@ -42,7 +42,7 @@ export function applyNovelEffect(state: GameState): GameState {
   return {
     ...state,
     persistentDeck: newDeck,
-    gamePhase: 'equipment_upgrade_display',
+    modalStack: [...state.modalStack, 'equipment_upgrade_display'], // Push modal to stack
     equipmentUpgradeResults: equipmentUpgradeResults.length > 0 ? equipmentUpgradeResults : [
       // If no Instructions to replace, show what would happen with Imperious Instructions as example
       { before: createCard('Imperious Instructions', {}), after: sarcasticAfter }

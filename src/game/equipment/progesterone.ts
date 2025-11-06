@@ -37,7 +37,7 @@ export function applyProgesteroneEffect(state: GameState): GameState {
   return {
     ...state,
     persistentDeck: newPersistentDeck,
-    gamePhase: 'equipment_upgrade_display',
+    modalStack: [...state.modalStack, 'equipment_upgrade_display'], // Push modal to stack
     equipmentUpgradeResults: upgradeResults
   }
 }

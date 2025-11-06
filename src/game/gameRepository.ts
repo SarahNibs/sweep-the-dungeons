@@ -574,7 +574,7 @@ export const EQUIPMENT_DEFINITIONS: Record<string, EquipmentDefinition> = {
   'Broom Closet': {
     name: 'Broom Closet',
     description: 'put away your spray bottle and break out the brooms',
-    hoverText: 'Broom Closet: remove all Spritz cards from your deck and add 3 Broom cards (regular, energy-upgraded, one enhance-upgraded)',
+    hoverText: 'Broom Closet: remove all Spritz cards from your deck and add 3 Broom cards (regular, energy-upgraded, and enhance-upgraded)',
     category: 'rare',
     icon: '🚪'
   },

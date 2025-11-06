@@ -422,10 +422,17 @@ export function shouldRevealEndTurn(state: GameState, tile: Tile): boolean {
     return false // Player tile, never ends turn
   }
 
-  // Check for Frilly Dress effect: any neutral reveal on first turn
+  // Check for Frilly Dress effect: neutral reveals on first turn with 4-neutral limit
   const hasFrillyDress = state.equipment.some(r => r.name === 'Frilly Dress')
   if (hasFrillyDress && state.isFirstTurn && tile.owner === 'neutral') {
-    return false // Frilly Dress prevents turn ending on neutral reveals during first turn
+    // Tea equipment removes the 4 neutral limit
+    const hasTea = state.equipment.some(r => r.name === 'Tea')
+    const withinLimit = hasTea || state.neutralsRevealedThisTurn < 4
+
+    if (withinLimit) {
+      return false // Frilly Dress prevents turn ending (still within 4-neutral limit)
+    }
+    // If we've already revealed 4+ neutrals, turn should end
   }
 
   // Otherwise, turn should end

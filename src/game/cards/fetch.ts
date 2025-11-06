@@ -295,15 +295,41 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
   newState = { ...newState, gameStatus }
 
   // If majority owner is not player, set flag to end turn (like neutral/rival/mine reveals)
-  // Exception: neutral with Frilly Dress on first turn doesn't end turn
+  // Exception: neutral with Frilly Dress on first turn with 4-neutral limit
   if (majorityOwner !== 'player') {
     const hasFrillyDress = newState.equipment.some(r => r.name === 'Frilly Dress')
-    const shouldNotEndTurn = hasFrillyDress && newState.isFirstTurn && majorityOwner === 'neutral'
 
-    if (!shouldNotEndTurn) {
+    // If we revealed neutrals, update the counter and check limit
+    if (majorityOwner === 'neutral' && hasFrillyDress && newState.isFirstTurn) {
+      // Count how many neutrals were actually revealed (not just checked)
+      const neutralsRevealed = tilesToReveal.filter(pos => {
+        const tile = getTile(newState.board, pos)
+        return tile && tile.revealed && tile.owner === 'neutral'
+      }).length
+
+      // Update the counter
+      const newNeutralsCount = newState.neutralsRevealedThisTurn + neutralsRevealed
+      newState = {
+        ...newState,
+        neutralsRevealedThisTurn: newNeutralsCount
+      }
+
+      // Check if we're still within the limit (Tea removes the limit)
+      const hasTea = newState.equipment.some(r => r.name === 'Tea')
+      const withinLimit = hasTea || newNeutralsCount <= 4
+
+      if (!withinLimit) {
+        console.log(`🎾 Revealed ${neutralsRevealed} neutral tiles (total: ${newNeutralsCount}) - exceeded 4-neutral limit, turn should end`)
+        newState = {
+          ...newState,
+          fetchRevealedNonPlayer: true
+        }
+      } else {
+        console.log(`🎾 Revealed ${neutralsRevealed} neutral tiles (total: ${newNeutralsCount}) - within 4-neutral limit, turn continues`)
+      }
+    } else {
+      // Non-neutral or no Frilly Dress - always end turn
       console.log(`🎾 Revealed ${majorityOwner} tiles - turn should end`)
-      // Set a flag that will be checked by the card system to end the turn
-      // We use the same mechanism as Horse
       newState = {
         ...newState,
         fetchRevealedNonPlayer: true

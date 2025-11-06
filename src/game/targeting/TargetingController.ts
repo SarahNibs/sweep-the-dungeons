@@ -336,12 +336,14 @@ export class TargetingController {
     // We still need to check Frilly Dress which is now handled in the centralized check
     if (effect.type === 'horse' && effectState.horseRevealedNonPlayer) {
       // Check if Frilly Dress would prevent turn ending
-      // This happens when revealing neutrals (up to 6) on first turn
+      // Frilly Dress allows revealing neutrals on first turn, but limited to 4 (unless Tea removes the limit)
       const hasFrillyDress = effectState.equipment.some(r => r.name === 'Frilly Dress')
-      const frillyDressPrevents = hasFrillyDress && effectState.isFirstTurn && effectState.neutralsRevealedThisTurn < 6
+      const hasTea = effectState.equipment.some(r => r.name === 'Tea')
+      const withinLimit = hasTea || effectState.neutralsRevealedThisTurn < 4
+      const frillyDressPrevents = hasFrillyDress && effectState.isFirstTurn && withinLimit
 
       if (!frillyDressPrevents) {
-        console.log('🐴 HORSE ENDING TURN - Revealed non-player tiles')
+        console.log('🐴 HORSE ENDING TURN - Revealed non-player tiles (neutralsRevealedThisTurn:', effectState.neutralsRevealedThisTurn, ')')
         return true
       }
     }

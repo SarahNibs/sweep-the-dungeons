@@ -44,7 +44,13 @@ You have many cards which will help you determine which tiles are yours
 to clean! Click on a card to play it; many will ask you to further click
 on a target tile, or target area of tiles. Each costs some amount of energy
 to play, usually 1. To start your turn you'll draw 5 cards and get 3 energy
-with which to play some of them.
+with which to play some of them. One specific type of card is an "Instruction"
+card; you start with Imperious Instructions. Playing these cards will provide
+information about which tiles are yours to clean by displaying pips on tiles,
+but far from perfect information. The more pips, the more likely it is that
+tile is yours to clean. Imperious Instructions distributes 10 pips amongst
+tiles, and most of the time two tiles will receive the majority of those pips
+and will be yours to clean. Most of the time.
 
 ## The Turn
 Draw 5 cards, then play cards and click on tiles! When you click on a tile,

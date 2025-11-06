@@ -822,6 +822,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                 height: '16px',
                 backgroundColor: color,
                 color: 'black',
+                border: '1px solid black',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',

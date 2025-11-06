@@ -1127,18 +1127,20 @@ export function createInitialState(
 
   // Add rival places mines status effect if special behavior is active
   if (levelConfig?.specialBehaviors.rivalPlacesMines && levelConfig.specialBehaviors.rivalPlacesMines > 0) {
-    const rivalMiningStatusEffect = {
-      id: crypto.randomUUID(),
-      type: 'rival_places_mines' as const,
-      icon: '💣',
-      name: 'Rival Mining Alert',
-      description: `Rival places ${levelConfig.specialBehaviors.rivalPlacesMines} surface mine${levelConfig.specialBehaviors.rivalPlacesMines > 1 ? 's' : ''} on your tiles after each turn!`,
-      count: levelConfig.specialBehaviors.rivalPlacesMines
-    }
-
+    const mineCount = levelConfig.specialBehaviors.rivalPlacesMines
+    const baseEffect = addStatusEffect(finalState, 'rival_places_mines')
+    // Update the effect with the specific count and detailed description
     finalState = {
-      ...finalState,
-      activeStatusEffects: [...finalState.activeStatusEffects, rivalMiningStatusEffect]
+      ...baseEffect,
+      activeStatusEffects: baseEffect.activeStatusEffects.map(e =>
+        e.type === 'rival_places_mines'
+          ? {
+              ...e,
+              count: mineCount,
+              description: `Rival places ${mineCount} surface mine${mineCount > 1 ? 's' : ''} on your tiles after each turn!`
+            }
+          : e
+      )
     }
   }
 
@@ -1146,16 +1148,19 @@ export function createInitialState(
   finalState = addStatusEffect(finalState, 'grace')
 
   // Add AI type status effect by getting AI info from controller
+  // Only show for non-default AI (skip noguess)
   if (levelConfig) {
     const currentAI = AIController.getCurrentAI(finalState)
 
-    // Create a custom status effect for this AI type using centralized metadata
+    // Only add status effect if not default noguess AI
     const aiTypeKey = getAITypeKeyFromName(currentAI.name)
-    const aiStatusEffect = createAIStatusEffect(aiTypeKey)
+    if (aiTypeKey !== 'noguess') {
+      const aiStatusEffect = createAIStatusEffect(aiTypeKey)
 
-    finalState = {
-      ...finalState,
-      activeStatusEffects: [...finalState.activeStatusEffects, aiStatusEffect]
+      finalState = {
+        ...finalState,
+        activeStatusEffects: [...finalState.activeStatusEffects, aiStatusEffect]
+      }
     }
   }
 

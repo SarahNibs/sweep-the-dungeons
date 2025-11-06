@@ -2,7 +2,7 @@ import { GameState, Card } from '../../types'
 import { createCard } from '../gameRepository'
 
 /**
- * Novel relic: when gained, replace all Instructions-like cards with doubly-upgraded Sarcastic Instructions
+ * Novel equipment: when gained, replace all Instructions-like cards with doubly-upgraded Sarcastic Instructions
  * (Imperious Instructions, Vague Instructions, Sarcastic Instructions)
  * Also transforms future Instructions additions
  */
@@ -34,7 +34,7 @@ export function applyNovelEffect(state: GameState): GameState {
   const sarcasticAfter = createCard('Sarcastic Instructions', { energyReduced: true, enhanced: true })
 
   // Show one transformation for each card replaced, using the actual card type as "before"
-  const relicUpgradeResults = instructionsLikeCards.map(card => ({
+  const equipmentUpgradeResults = instructionsLikeCards.map(card => ({
     before: card,
     after: sarcasticAfter
   }))
@@ -42,8 +42,8 @@ export function applyNovelEffect(state: GameState): GameState {
   return {
     ...state,
     persistentDeck: newDeck,
-    gamePhase: 'relic_upgrade_display',
-    relicUpgradeResults: relicUpgradeResults.length > 0 ? relicUpgradeResults : [
+    gamePhase: 'equipment_upgrade_display',
+    equipmentUpgradeResults: equipmentUpgradeResults.length > 0 ? equipmentUpgradeResults : [
       // If no Instructions to replace, show what would happen with Imperious Instructions as example
       { before: createCard('Imperious Instructions', {}), after: sarcasticAfter }
     ]
@@ -51,7 +51,7 @@ export function applyNovelEffect(state: GameState): GameState {
 }
 
 /**
- * Utility function to transform Instructions-like cards when Novel relic is owned
+ * Utility function to transform Instructions-like cards when Novel equipment is owned
  * Call this when adding cards to the deck
  */
 export function transformInstructionsIfNovel(card: Card, hasNovel: boolean): Card {

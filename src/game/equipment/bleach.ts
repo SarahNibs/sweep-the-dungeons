@@ -1,7 +1,7 @@
 import { GameState, Card } from '../../types'
 
 /**
- * Bleach relic: when gained, apply enhance-upgrade to all Spritz and Sweep cards (that aren't already enhanced)
+ * Bleach equipment: when gained, apply enhance-upgrade to all Spritz and Sweep cards (that aren't already enhanced)
  */
 export function applyBleachEffect(state: GameState): GameState {
   console.log('🧴 BLEACH EFFECT: Enhancing all non-enhanced Spritz and Sweep cards')
@@ -25,13 +25,13 @@ export function applyBleachEffect(state: GameState): GameState {
   const newDeck = [...otherCards, ...enhancedCards]
 
   // Create upgrade results showing the transformations
-  const relicUpgradeResults = targetCards.map(card => ({
+  const equipmentUpgradeResults = targetCards.map(card => ({
     before: card,
     after: { ...card, enhanced: true }
   }))
 
   // If no cards to enhance, show example
-  if (relicUpgradeResults.length === 0) {
+  if (equipmentUpgradeResults.length === 0) {
     const exampleSpritz: Card = {
       id: 'example-spritz',
       name: 'Spritz',
@@ -39,7 +39,7 @@ export function applyBleachEffect(state: GameState): GameState {
       energyReduced: false,
       enhanced: false
     }
-    relicUpgradeResults.push({
+    equipmentUpgradeResults.push({
       before: exampleSpritz,
       after: { ...exampleSpritz, enhanced: true }
     })
@@ -48,7 +48,7 @@ export function applyBleachEffect(state: GameState): GameState {
   return {
     ...state,
     persistentDeck: newDeck,
-    gamePhase: 'relic_upgrade_display',
-    relicUpgradeResults
+    gamePhase: 'equipment_upgrade_display',
+    equipmentUpgradeResults
   }
 }

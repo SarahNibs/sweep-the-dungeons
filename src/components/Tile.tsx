@@ -194,7 +194,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     const playerAnnotation = tile.annotations.find(a => a.type === 'player_owner_possibility')
     if (!playerAnnotation?.playerOwnerPossibility) return null
 
-    // Find card/relic result annotations (owner_subset)
+    // Find card/equipment result annotations (owner_subset)
     const cardAnnotations = tile.annotations.filter(a => a.type === 'owner_subset')
     
     let result = new Set(playerAnnotation.playerOwnerPossibility)

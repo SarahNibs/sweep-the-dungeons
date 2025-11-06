@@ -1,6 +1,6 @@
 import { GameState, Position, Tile } from '../../types'
 import { getTile } from '../boardSystem'
-import { revealTileWithRelicEffects, addOwnerSubsetAnnotation } from '../cardEffects'
+import { revealTileWithEquipmentEffects, addOwnerSubsetAnnotation } from '../cardEffects'
 
 export function executeQuantumEffect(state: GameState, targets: Position[]): GameState {
   // Get all valid tiles
@@ -36,7 +36,7 @@ export function executeQuantumEffect(state: GameState, targets: Position[]): Gam
   
   // Reveal the chosen tile (controllable - player chose to play Easiest)
   // BUG FIX: Changed from false to true so mines properly end turn/game and use protection
-  const stateAfterReveal = revealTileWithRelicEffects(state, chosenTile.pos, 'player', true)
+  const stateAfterReveal = revealTileWithEquipmentEffects(state, chosenTile.pos, 'player', true)
 
   // Check if the chosen tile was actually revealed or just cleaned (dirty tile case)
   const chosenTileAfterReveal = getTile(stateAfterReveal.board, chosenTile.pos)

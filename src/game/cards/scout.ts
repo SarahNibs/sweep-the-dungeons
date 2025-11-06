@@ -1,6 +1,6 @@
 import { GameState, Position } from '../../types'
 import { getTile, positionToKey, removeSpecialTile, cleanGoblin, hasSpecialTile } from '../boardSystem'
-import { triggerMopEffect, hasRelic } from '../relics'
+import { triggerMopEffect, hasEquipment } from '../equipment'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
 
 export function executeScoutEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
@@ -35,10 +35,10 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
       }
     }
 
-    // Draw card immediately for cleaning dirt (Mop relic effect)
+    // Draw card immediately for cleaning dirt (Mop equipment effect)
     newState = triggerMopEffect(newState, 1)
 
-    // Spread clean to adjacent tiles (Bleach relic effect)
+    // Spread clean to adjacent tiles (Bleach equipment effect)
     
   }
 
@@ -60,7 +60,7 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
       shouldDefuse = true
     }
     // Any cleaning with Mop defuses (including 1st regular Spritz)
-    else if (hasRelic(newState, 'Mop')) {
+    else if (hasEquipment(newState, 'Mop')) {
       console.log('  - 1st cleaning + Mop: defusing surface mine')
       shouldDefuse = true
     }
@@ -95,7 +95,7 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
 
       console.log('  - Surface mine defused! +3 copper')
 
-      // Trigger Mop effect if player has Mop relic (defusing counts as cleaning)
+      // Trigger Mop effect if player has Mop equipment (defusing counts as cleaning)
       newState = triggerMopEffect(newState, 1)
     }
   }
@@ -159,10 +159,10 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
             }
           }
 
-          // Draw card immediately for cleaning dirt (Mop relic effect)
+          // Draw card immediately for cleaning dirt (Mop equipment effect)
           stateAfterAdjacentClean = triggerMopEffect(stateAfterAdjacentClean, 1)
 
-          // Spread clean to adjacent tiles (Bleach relic effect)
+          // Spread clean to adjacent tiles (Bleach equipment effect)
           
         }
 
@@ -186,7 +186,7 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
 
           console.log('  - Adjacent surface mine defused! +3 copper')
 
-          // Trigger Mop effect if player has Mop relic (defusing counts as cleaning)
+          // Trigger Mop effect if player has Mop equipment (defusing counts as cleaning)
           stateAfterAdjacentClean = triggerMopEffect(stateAfterAdjacentClean, 1)
         }
 

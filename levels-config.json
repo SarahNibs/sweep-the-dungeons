@@ -5,7 +5,7 @@
       "levelId": "intro",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": false,
         "shopReward": false,
         "winTheGame": false,
@@ -34,7 +34,7 @@
       "levelId": "firstMine",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": true,
         "shopReward": false,
         "winTheGame": false,
@@ -61,7 +61,7 @@
       "levelId": "firstDirty",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": true,
+        "equipmentReward": true,
         "upgradeReward": false,
         "shopReward": false,
         "winTheGame": false,
@@ -94,7 +94,7 @@
       "levelId": "firstHoles",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": true,
         "shopReward": false,
         "winTheGame": false,
@@ -125,13 +125,13 @@
       "levelId": "L4a",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": true,
+        "equipmentReward": true,
         "upgradeReward": false,
         "shopReward": false,
         "winTheGame": false,
         "nextLevel": ["L5"]
       },
-      "description": "One fourth level variant is just like level 3 but has fully 5 mines and 2 dirty tiles but rewards a relic.",
+      "description": "One fourth level variant is just like level 3 but has fully 5 mines and 2 dirty tiles but rewards equipment.",
       "dimensions": {
         "columns": 6,
         "rows": 6
@@ -158,7 +158,7 @@
       "levelId": "L4b",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": true,
         "shopReward": false,
         "winTheGame": false,
@@ -192,7 +192,7 @@
       "levelId": "L5",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": false,
         "shopReward": true,
         "winTheGame": false,
@@ -225,7 +225,7 @@
       "levelId": "L5",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": false,
         "shopReward": true,
         "winTheGame": false,
@@ -258,7 +258,7 @@
       "levelId": "L6",
       "uponFinish": {
         "cardReward": false,
-        "relicReward": true,
+        "equipmentReward": true,
         "upgradeReward": false,
         "shopReward": false,
         "winTheGame": false,
@@ -298,7 +298,7 @@
       "levelId": "L7",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": false,
         "shopReward": false,
         "winTheGame": false,
@@ -333,7 +333,7 @@
       "levelId": "L8",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": true,
         "shopReward": false,
         "winTheGame": false,
@@ -374,7 +374,7 @@
       "levelId": "L9",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": true,
         "shopReward": false,
         "winTheGame": false,
@@ -419,7 +419,7 @@
       "levelId": "L10",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": false,
         "shopReward": true,
         "winTheGame": false,
@@ -464,7 +464,7 @@
       "levelId": "L11",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": true,
+        "equipmentReward": true,
         "upgradeReward": false,
         "shopReward": false,
         "winTheGame": false,
@@ -511,7 +511,7 @@
       "levelId": "L12",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": false,
         "shopReward": false,
         "winTheGame": false,
@@ -553,7 +553,7 @@
       "levelId": "L13",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": true,
         "shopReward": false,
         "winTheGame": false,
@@ -592,7 +592,7 @@
       "levelId": "L14",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": true,
+        "equipmentReward": true,
         "upgradeReward": false,
         "shopReward": false,
         "winTheGame": false,
@@ -645,7 +645,7 @@
       "levelId": "L15",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": false,
         "shopReward": true,
         "winTheGame": false,
@@ -702,7 +702,7 @@
       "levelId": "L16",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": true,
+        "equipmentReward": true,
         "upgradeReward": false,
         "shopReward": false,
         "winTheGame": false,
@@ -755,7 +755,7 @@
       "levelId": "L17",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": false,
         "shopReward": false,
         "winTheGame": false,
@@ -796,7 +796,7 @@
       "levelId": "L18",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": true,
         "shopReward": false,
         "winTheGame": false,
@@ -842,7 +842,7 @@
       "levelId": "L19",
       "uponFinish": {
         "cardReward": true,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": true,
         "shopReward": false,
         "winTheGame": false,
@@ -889,7 +889,7 @@
       "levelId": "L20",
       "uponFinish": {
         "cardReward": false,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": false,
         "shopReward": true,
         "winTheGame": false,
@@ -936,7 +936,7 @@
       "levelId": "L21",
       "uponFinish": {
         "cardReward": false,
-        "relicReward": false,
+        "equipmentReward": false,
         "upgradeReward": false,
         "shopReward": false,
         "winTheGame": true,

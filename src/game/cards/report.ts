@@ -94,7 +94,7 @@ export function executeTingleEffect(state: GameState, targetPosition: Position, 
   // For enhanced Tingle, also add player adjacency information
   if (!isEnhanced) {
     // Geode effect: Draw a card when Tingle is played
-    if (stateWithOwnerAnnotation.relics.some(r => r.name === 'Geode')) {
+    if (stateWithOwnerAnnotation.equipment.some(r => r.name === 'Geode')) {
       stateWithOwnerAnnotation = drawCards(stateWithOwnerAnnotation, 1)
     }
     return stateWithOwnerAnnotation
@@ -145,7 +145,7 @@ export function executeTingleEffect(state: GameState, targetPosition: Position, 
   }
 
   // Geode effect: Draw a card when Tingle is played
-  if (finalState.relics.some(r => r.name === 'Geode')) {
+  if (finalState.equipment.some(r => r.name === 'Geode')) {
     finalState = drawCards(finalState, 1)
   }
 

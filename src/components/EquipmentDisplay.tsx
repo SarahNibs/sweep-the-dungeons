@@ -1,13 +1,13 @@
-import { Relic } from '../types'
-import { getRelicIcon } from '../game/gameRepository'
+import { Equipment } from '../types'
+import { getEquipmentIcon } from '../game/gameRepository'
 import { Tooltip } from './Tooltip'
 
-interface RelicDisplayProps {
-  relics: Relic[]
+interface EquipmentDisplayProps {
+  equipment: Equipment[]
 }
 
-export function RelicDisplay({ relics }: RelicDisplayProps) {
-  if (relics.length === 0) {
+export function EquipmentDisplay({ equipment }: EquipmentDisplayProps) {
+  if (equipment.length === 0) {
     return null
   }
 
@@ -24,11 +24,11 @@ export function RelicDisplay({ relics }: RelicDisplayProps) {
         color: '#74b9ff',
         marginRight: '5px'
       }}>
-        Relics:
+        Equipment:
       </div>
 
-      {relics.map((relic, index) => (
-        <Tooltip key={index} text={relic.hoverText} style={{ display: 'inline-block' }}>
+      {equipment.map((equipment, index) => (
+        <Tooltip key={index} text={equipment.hoverText} style={{ display: 'inline-block' }}>
           <div
             style={{
               width: '40px',
@@ -43,7 +43,7 @@ export function RelicDisplay({ relics }: RelicDisplayProps) {
               cursor: 'pointer'
             }}
           >
-            {getRelicIcon(relic.name)}
+            {getEquipmentIcon(equipment.name)}
           </div>
         </Tooltip>
       ))}

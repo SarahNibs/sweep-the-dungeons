@@ -7,7 +7,7 @@ import { revealTileWithResult, spawnGoblinsFromLairs, placeRivalSurfaceMines, ge
 import { checkGameStatus, trackPlayerTileReveal } from '../cardEffects'
 import { startNewTurn } from '../cardSystem'
 import { isTestMode } from '../utils/testMode'
-import { checkChokerEffect } from '../relics'
+import { checkChokerEffect } from '../equipment'
 
 /**
  * Helper function to update state and award copper if game was just won

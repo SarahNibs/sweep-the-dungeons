@@ -95,71 +95,71 @@ export class DebugController {
   }
 
   /**
-   * Give player a specific relic (with special effects)
+   * Give player a specific equipment (with special effects)
    */
-  debugGiveRelic(relicName: string): void {
-    console.log(`🎯 DEBUG: debugGiveRelic called with "${relicName}"`)
+  debugGiveEquipment(equipmentName: string): void {
+    console.log(`🎯 DEBUG: debugGiveEquipment called with "${equipmentName}"`)
     const currentState = this.getState()
-    console.log('Current relics:', currentState.relics.map(r => r.name))
+    console.log('Current equipment:', currentState.equipment.map(r => r.name))
 
     // Import dynamically to avoid require issues
-    import('../gameRepository').then(({ getAllRelics }) => {
-      const allRelics = getAllRelics()
-      console.log('All available relics:', allRelics.map((r: any) => r.name))
+    import('../gameRepository').then(({ getAllEquipment }) => {
+      const allEquipment = getAllEquipment()
+      console.log('All available equipment:', allEquipment.map((r: any) => r.name))
 
-      const relic = allRelics.find((r: any) => r.name === relicName)
+      const equipment = allEquipment.find((r: any) => r.name === equipmentName)
 
-      if (!relic) {
-        console.warn(`❌ Relic "${relicName}" not found in getAllRelics()`)
+      if (!equipment) {
+        console.warn(`❌ Equipment "${equipmentName}" not found in getAllEquipment()`)
         return
       }
 
-      // Check if already has this relic
-      if (currentState.relics.some(r => r.name === relicName)) {
-        console.warn(`❌ Already has relic "${relicName}"`)
+      // Check if already has this equipment
+      if (currentState.equipment.some(r => r.name === equipmentName)) {
+        console.warn(`❌ Already has equipment "${equipmentName}"`)
         return
       }
 
-      console.log(`🎁 DEBUG: Giving relic "${relicName}"`, relic)
+      console.log(`🎁 DEBUG: Giving equipment "${equipmentName}"`, equipment)
 
-      // Add the relic to the collection first, and mark as debug addition
+      // Add the equipment to the collection first, and mark as debug addition
       let newState = {
         ...currentState,
-        relics: [...currentState.relics, relic],
-        relicUpgradeContext: 'debug' as const // Mark as debug context to prevent level advancement
+        equipment: [...currentState.equipment, equipment],
+        equipmentUpgradeContext: 'debug' as const // Mark as debug context to prevent level advancement
       }
 
-      // Apply special relic effects for relics that modify the deck
-      import('../relics').then(({ applyEstrogenEffect, applyProgesteroneEffect, applyBootsEffect, applyCrystalEffect, applyBroomClosetEffect, applyNovelEffect, applyCocktailEffect, applyDiscoBallEffect, applyBleachEffect }) => {
+      // Apply special equipment effects for equipment that modify the deck
+      import('../equipment').then(({ applyEstrogenEffect, applyProgesteroneEffect, applyBootsEffect, applyCrystalEffect, applyBroomClosetEffect, applyNovelEffect, applyCocktailEffect, applyDiscoBallEffect, applyBleachEffect }) => {
         let effectState: any = newState
 
-        if (relic.name === 'Estrogen') {
-          effectState = { ...applyEstrogenEffect(newState), relicUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
-        } else if (relic.name === 'Progesterone') {
-          effectState = { ...applyProgesteroneEffect(newState), relicUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
-        } else if (relic.name === 'Boots') {
-          effectState = { ...applyBootsEffect(newState), relicUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
-        } else if (relic.name === 'Crystal') {
-          effectState = { ...applyCrystalEffect(newState), relicUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
-        } else if (relic.name === 'Broom Closet') {
-          effectState = { ...applyBroomClosetEffect(newState), relicUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
-        } else if (relic.name === 'Novel') {
-          effectState = { ...applyNovelEffect(newState), relicUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
-        } else if (relic.name === 'Cocktail') {
-          effectState = { ...applyCocktailEffect(newState), relicUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
-        } else if (relic.name === 'Disco Ball') {
-          effectState = { ...applyDiscoBallEffect(newState), relicUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
-        } else if (relic.name === 'Bleach') {
-          effectState = { ...applyBleachEffect(newState), relicUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+        if (equipment.name === 'Estrogen') {
+          effectState = { ...applyEstrogenEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+        } else if (equipment.name === 'Progesterone') {
+          effectState = { ...applyProgesteroneEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+        } else if (equipment.name === 'Boots') {
+          effectState = { ...applyBootsEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+        } else if (equipment.name === 'Crystal') {
+          effectState = { ...applyCrystalEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+        } else if (equipment.name === 'Broom Closet') {
+          effectState = { ...applyBroomClosetEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+        } else if (equipment.name === 'Novel') {
+          effectState = { ...applyNovelEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+        } else if (equipment.name === 'Cocktail') {
+          effectState = { ...applyCocktailEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+        } else if (equipment.name === 'Disco Ball') {
+          effectState = { ...applyDiscoBallEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
+        } else if (equipment.name === 'Bleach') {
+          effectState = { ...applyBleachEffect(newState), equipmentUpgradeContext: 'debug' as const, gamePhase: currentState.gamePhase }
         } else {
           effectState = newState
         }
 
-        console.log('New relics after update:', effectState.relics.map((r: any) => r.name))
+        console.log('New equipment after update:', effectState.equipment.map((r: any) => r.name))
         this.setState(effectState)
-        console.log('✅ debugGiveRelic completed')
+        console.log('✅ debugGiveEquipment completed')
       }).catch(err => {
-        console.error('Failed to import relic effects:', err)
+        console.error('Failed to import equipment effects:', err)
       })
     }).catch(err => {
       console.error('Failed to import gameRepository:', err)
@@ -228,7 +228,7 @@ export class DebugController {
   }
 
   /**
-   * Skip to a specific level (preserving deck/relics/copper)
+   * Skip to a specific level (preserving deck/equipment/copper)
    */
   debugSkipToLevel(levelId: string): void {
     console.log(`🎯 DEBUG: debugSkipToLevel called with "${levelId}"`)
@@ -246,13 +246,13 @@ export class DebugController {
         console.log(`✅ Skipping to level: ${levelId}`)
         const currentState = this.getState()
 
-        // Create a new initial state for this level, preserving deck/relics/copper
+        // Create a new initial state for this level, preserving deck/equipment/copper
         const newState = createInitialState(levelId)
 
         this.setState({
           ...newState,
           persistentDeck: currentState.persistentDeck,
-          relics: currentState.relics,
+          equipment: currentState.equipment,
           copper: currentState.copper
         })
 

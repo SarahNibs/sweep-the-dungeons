@@ -1,6 +1,6 @@
 import { LevelConfig } from '../types'
 import levelsConfig from '../../levels-config.json'
-import { hasRelic } from './relics'
+import { hasEquipment } from './equipment'
 
 interface LevelsConfig {
   levels: LevelConfig[]
@@ -97,9 +97,9 @@ export function shouldShowUpgradeReward(levelId: string): boolean {
   return level?.uponFinish.upgradeReward || false
 }
 
-export function shouldShowRelicReward(levelId: string): boolean {
+export function shouldShowEquipmentReward(levelId: string): boolean {
   const level = getLevelConfig(levelId)
-  return level?.uponFinish.relicReward || false
+  return level?.uponFinish.equipmentReward || false
 }
 
 export function shouldShowShopReward(levelId: string): boolean {
@@ -119,16 +119,16 @@ export function calculateCopperReward(state: import('../types').GameState): numb
   )
 
   let copperReward = unrevealedRivalTiles.length // 1 copper per unrevealed rival tile
-  const hasTiara = hasRelic(state, 'Tiara')
+  const hasTiara = hasEquipment(state, 'Tiara')
 
-  // Tiara relic: double copper rewards
+  // Tiara equipment: double copper rewards
   if (hasTiara) {
     copperReward *= 2
   }
 
   console.log(`💰 COPPER REWARD CALCULATION:`)
   console.log(`   - Unrevealed rival tiles: ${unrevealedRivalTiles.length}`)
-  console.log(`   - Has Tiara relic: ${hasTiara}`)
+  console.log(`   - Has Tiara equipment: ${hasTiara}`)
   console.log(`   - Base copper: ${unrevealedRivalTiles.length}`)
   console.log(`   - Final copper reward: ${copperReward}`)
   console.log(`   - Current copper before reward: ${state.copper}`)

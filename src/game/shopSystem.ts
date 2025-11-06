@@ -1,7 +1,7 @@
 import { ShopOption, GameState } from '../types'
-import { createCard, getRewardCardPool, getAllRelics, addCardToPersistentDeck } from './gameRepository'
+import { createCard, getRewardCardPool, getAllEquipment, addCardToPersistentDeck } from './gameRepository'
 import { advanceToNextLevel } from './cardSystem'
-import { applyEstrogenEffect, applyProgesteroneEffect, applyBootsEffect, transformCardForBoots, applyCrystalEffect, applyBroomClosetEffect, applyNovelEffect, transformInstructionsIfNovel, applyCocktailEffect, applyDiscoBallEffect, applyBleachEffect } from './relics'
+import { applyEstrogenEffect, applyProgesteroneEffect, applyBootsEffect, transformCardForBoots, applyCrystalEffect, applyBroomClosetEffect, applyNovelEffect, transformInstructionsIfNovel, applyCocktailEffect, applyDiscoBallEffect, applyBleachEffect } from './equipment'
 
 export function createShopOptions(state: GameState): ShopOption[] {
   const options: ShopOption[] = []
@@ -75,20 +75,20 @@ export function createShopOptions(state: GameState): ShopOption[] {
     description: `Add enhanced ${enhancedCard.name} to your deck`
   })
 
-  // 2x random relics you don't already own (20 coppers for first slot, 24 for second)
-  const allRelics = getAllRelics()
+  // 2x random equipment you don't already own (20 coppers for first slot, 24 for second)
+  const allEquipment = getAllEquipment()
 
-  // Filter out relics player already owns or doesn't have prerequisites for
-  const availableRelics = allRelics.filter(relic => {
-    // Already own this relic
-    if (state.relics.some(ownedRelic => ownedRelic.name === relic.name)) {
+  // Filter out equipment player already owns or doesn't have prerequisites for
+  const availableEquipment = allEquipment.filter(equipment => {
+    // Already own this equipment
+    if (state.equipment.some(ownedEquipment => ownedEquipment.name === equipment.name)) {
       return false
     }
 
-    // Check prerequisites - relic must have all prerequisite relics owned
-    if (relic.prerequisites && relic.prerequisites.length > 0) {
-      const hasAllPrerequisites = relic.prerequisites.every(prereqName =>
-        state.relics.some(ownedRelic => ownedRelic.name === prereqName)
+    // Check prerequisites - equipment must have all prerequisite equipment owned
+    if (equipment.prerequisites && equipment.prerequisites.length > 0) {
+      const hasAllPrerequisites = equipment.prerequisites.every(prereqName =>
+        state.equipment.some(ownedEquipment => ownedEquipment.name === prereqName)
       )
       if (!hasAllPrerequisites) {
         return false
@@ -99,21 +99,21 @@ export function createShopOptions(state: GameState): ShopOption[] {
   })
 
   // Shuffle using Fisher-Yates algorithm (proper random shuffle)
-  const shuffledRelics = [...availableRelics]
-  for (let i = shuffledRelics.length - 1; i > 0; i--) {
+  const shuffledEquipment = [...availableEquipment]
+  for (let i = shuffledEquipment.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-    ;[shuffledRelics[i], shuffledRelics[j]] = [shuffledRelics[j], shuffledRelics[i]]
+    ;[shuffledEquipment[i], shuffledEquipment[j]] = [shuffledEquipment[j], shuffledEquipment[i]]
   }
-  const selectedRelics = shuffledRelics.slice(0, Math.min(2, availableRelics.length))
+  const selectedEquipment = shuffledEquipment.slice(0, Math.min(2, availableEquipment.length))
 
-  selectedRelics.forEach((relic, index) => {
+  selectedEquipment.forEach((equipment, index) => {
     const baseCost = index === 0 ? 20 : 24 // First slot: 20, second slot: 24
     options.push({
-      type: 'add_relic',
+      type: 'add_equipment',
       cost: scaleCost(baseCost),
-      relic,
-      displayName: relic.name,
-      description: relic.description
+      equipment,
+      displayName: equipment.name,
+      description: equipment.description
     })
   })
 
@@ -190,8 +190,8 @@ export function purchaseShopItem(state: GameState, optionIndex: number): GameSta
     case 'add_energy_card':
     case 'add_enhanced_card':
       if (option.card) {
-        // Check if Novel relic is owned and transform Instructions if needed
-        const hasNovel = newState.relics.some(r => r.name === 'Novel')
+        // Check if Novel equipment is owned and transform Instructions if needed
+        const hasNovel = newState.equipment.some(r => r.name === 'Novel')
         const finalCard = transformInstructionsIfNovel(option.card, hasNovel)
 
         // Use helper function that respects DIY Gel
@@ -202,97 +202,97 @@ export function purchaseShopItem(state: GameState, optionIndex: number): GameSta
       }
       break
       
-    case 'add_relic':
-      if (option.relic) {
-        // Add the relic to the collection first
+    case 'add_equipment':
+      if (option.equipment) {
+        // Add the equipment to the collection first
         newState = {
           ...newState,
-          relics: [...newState.relics, option.relic]
+          equipment: [...newState.equipment, option.equipment]
         }
         
-        // Apply special relic effects for Estrogen, Progesterone, Boots, Crystal, Broom Closet, Novel, Cocktail, and Disco Ball
-        // Set shop context before calling effect so closeRelicUpgradeDisplay knows to return to shop
+        // Apply special equipment effects for Estrogen, Progesterone, Boots, Crystal, Broom Closet, Novel, Cocktail, and Disco Ball
+        // Set shop context before calling effect so closeEquipmentUpgradeDisplay knows to return to shop
         const stateWithShopContext = {
           ...newState,
-          relicUpgradeContext: 'shop' as const
+          equipmentUpgradeContext: 'shop' as const
         }
 
-        if (option.relic.name === 'Estrogen') {
-          const relicEffectState = applyEstrogenEffect(stateWithShopContext)
+        if (option.equipment.name === 'Estrogen') {
+          const equipmentEffectState = applyEstrogenEffect(stateWithShopContext)
           newState = {
-            ...relicEffectState,
+            ...equipmentEffectState,
             // Preserve shop-specific data (don't override gamePhase - let effect's phase stand)
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
             shopOptions: newState.shopOptions
           }
-        } else if (option.relic.name === 'Progesterone') {
-          const relicEffectState = applyProgesteroneEffect(stateWithShopContext)
+        } else if (option.equipment.name === 'Progesterone') {
+          const equipmentEffectState = applyProgesteroneEffect(stateWithShopContext)
           newState = {
-            ...relicEffectState,
+            ...equipmentEffectState,
             // Preserve shop-specific data
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
             shopOptions: newState.shopOptions
           }
-        } else if (option.relic.name === 'Boots') {
-          const relicEffectState = applyBootsEffect(stateWithShopContext)
+        } else if (option.equipment.name === 'Boots') {
+          const equipmentEffectState = applyBootsEffect(stateWithShopContext)
           newState = {
-            ...relicEffectState,
+            ...equipmentEffectState,
             // Preserve shop-specific data
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
             shopOptions: newState.shopOptions
           }
-        } else if (option.relic.name === 'Crystal') {
-          const relicEffectState = applyCrystalEffect(stateWithShopContext)
+        } else if (option.equipment.name === 'Crystal') {
+          const equipmentEffectState = applyCrystalEffect(stateWithShopContext)
           newState = {
-            ...relicEffectState,
+            ...equipmentEffectState,
             // Preserve shop-specific data
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
             shopOptions: newState.shopOptions
           }
-        } else if (option.relic.name === 'Broom Closet') {
-          const relicEffectState = applyBroomClosetEffect(stateWithShopContext)
+        } else if (option.equipment.name === 'Broom Closet') {
+          const equipmentEffectState = applyBroomClosetEffect(stateWithShopContext)
           newState = {
-            ...relicEffectState,
+            ...equipmentEffectState,
             // Preserve shop-specific data
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
             shopOptions: newState.shopOptions
           }
-        } else if (option.relic.name === 'Novel') {
-          const relicEffectState = applyNovelEffect(stateWithShopContext)
+        } else if (option.equipment.name === 'Novel') {
+          const equipmentEffectState = applyNovelEffect(stateWithShopContext)
           newState = {
-            ...relicEffectState,
+            ...equipmentEffectState,
             // Preserve shop-specific data
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
             shopOptions: newState.shopOptions
           }
-        } else if (option.relic.name === 'Cocktail') {
-          const relicEffectState = applyCocktailEffect(stateWithShopContext)
+        } else if (option.equipment.name === 'Cocktail') {
+          const equipmentEffectState = applyCocktailEffect(stateWithShopContext)
           newState = {
-            ...relicEffectState,
+            ...equipmentEffectState,
             // Preserve shop-specific data
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
             shopOptions: newState.shopOptions
           }
-        } else if (option.relic.name === 'Disco Ball') {
-          const relicEffectState = applyDiscoBallEffect(stateWithShopContext)
+        } else if (option.equipment.name === 'Disco Ball') {
+          const equipmentEffectState = applyDiscoBallEffect(stateWithShopContext)
           newState = {
-            ...relicEffectState,
+            ...equipmentEffectState,
             // Preserve shop-specific data
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
             shopOptions: newState.shopOptions
           }
-        } else if (option.relic.name === 'Bleach') {
-          const relicEffectState = applyBleachEffect(stateWithShopContext)
+        } else if (option.equipment.name === 'Bleach') {
+          const equipmentEffectState = applyBleachEffect(stateWithShopContext)
           newState = {
-            ...relicEffectState,
+            ...equipmentEffectState,
             // Preserve shop-specific data
             copper: newState.copper,
             purchasedShopItems: newState.purchasedShopItems,
@@ -345,8 +345,8 @@ export function purchaseShopItem(state: GameState, optionIndex: number): GameSta
       newState = {
         ...newState,
         persistentDeck: updatedDeck,
-        gamePhase: 'relic_upgrade_display',
-        relicUpgradeResults: [{ before: cardToEnhance, after: enhancedCard }]
+        gamePhase: 'equipment_upgrade_display',
+        equipmentUpgradeResults: [{ before: cardToEnhance, after: enhancedCard }]
       }
       break
   }

@@ -297,7 +297,7 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
   // If majority owner is not player, set flag to end turn (like neutral/rival/mine reveals)
   // Exception: neutral with Frilly Dress on first turn doesn't end turn
   if (majorityOwner !== 'player') {
-    const hasFrillyDress = newState.relics.some(r => r.name === 'Frilly Dress')
+    const hasFrillyDress = newState.equipment.some(r => r.name === 'Frilly Dress')
     const shouldNotEndTurn = hasFrillyDress && newState.isFirstTurn && majorityOwner === 'neutral'
 
     if (!shouldNotEndTurn) {

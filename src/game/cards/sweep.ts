@@ -1,6 +1,6 @@
 import { GameState, Position } from '../../types'
 import { removeSpecialTile, cleanGoblin, hasSpecialTile } from '../boardSystem'
-import { triggerMopEffect, hasRelic } from '../relics'
+import { triggerMopEffect, hasEquipment } from '../equipment'
 
 export function executeSweepEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
   let currentBoard = state.board
@@ -61,7 +61,7 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
   // Third pass: handle surface mines based on cleaning state
   let copperFromDefusing = 0
   let surfaceMinesDefused = 0
-  const hasMop = hasRelic(finalState, 'Mop')
+  const hasMop = hasEquipment(finalState, 'Mop')
 
   for (let dx = -range; dx <= range; dx++) {
     for (let dy = -range; dy <= range; dy++) {

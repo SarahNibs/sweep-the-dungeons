@@ -1,6 +1,6 @@
 import { GameState } from '../../types'
 import { getNeighbors } from '../boardSystem'
-import { hasRelic } from './relicUtils'
+import { hasEquipment } from './equipmentUtils'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
 
 function applySingleOwnerExclusion(state: GameState, position: { x: number, y: number }): GameState {
@@ -28,7 +28,7 @@ function applySingleOwnerExclusion(state: GameState, position: { x: number, y: n
 }
 
 export function triggerDoubleBroomEffect(state: GameState, revealedPosition: { x: number, y: number }): GameState {
-  if (!hasRelic(state, 'Double Broom')) {
+  if (!hasEquipment(state, 'Double Broom')) {
     return state
   }
 
@@ -46,7 +46,7 @@ export function triggerDoubleBroomEffect(state: GameState, revealedPosition: { x
   }
 
   // Select up to 2 random adjacent tiles (or 3 if Triple Broom is owned, or 4 if Quadruple Broom is owned)
-  const numTiles = hasRelic(state, 'Quadruple Broom') ? 4 : hasRelic(state, 'Triple Broom') ? 3 : 2
+  const numTiles = hasEquipment(state, 'Quadruple Broom') ? 4 : hasEquipment(state, 'Triple Broom') ? 3 : 2
   const shuffled = [...unrevealedAdjacent].sort(() => Math.random() - 0.5)
   const selectedTiles = shuffled.slice(0, Math.min(numTiles, shuffled.length))
 

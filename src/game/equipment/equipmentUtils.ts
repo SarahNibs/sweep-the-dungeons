@@ -1,7 +1,7 @@
 import { GameState, Card } from '../../types'
 
-export function hasRelic(state: GameState, relicName: string): boolean {
-  return state.relics.some(relic => relic.name === relicName)
+export function hasEquipment(state: GameState, equipmentName: string): boolean {
+  return state.equipment.some(equipment => equipment.name === equipmentName)
 }
 
 export function getEligibleCardsForUpgrade(cards: Card[], upgradeType: 'cost_reduction' | 'enhance_effect'): Card[] {

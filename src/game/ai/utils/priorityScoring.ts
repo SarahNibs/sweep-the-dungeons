@@ -41,7 +41,7 @@ export function calculateTilePriority(
 }
 
 /**
- * Apply random boost to priority based on Ramble effects, Eyeshadow relic, and Mascara relic
+ * Apply random boost to priority based on Ramble effects, Eyeshadow equipment, and Mascara equipment
  */
 export function applyRandomBoost(
   basePriority: number,
@@ -59,12 +59,12 @@ export function applyRandomBoost(
     randomBoost = Math.random() * 0.01 // Small random tiebreaker
   }
 
-  // Apply Eyeshadow boost if relic is present (permanent half-Ramble: random [0-1.2])
+  // Apply Eyeshadow boost if equipment is present (permanent half-Ramble: random [0-1.2])
   if (hasEyeshadow) {
     randomBoost += Math.random() * 1.2
   }
 
-  // Apply Mascara boost if relic is present (additional random [0-0.5])
+  // Apply Mascara boost if equipment is present (additional random [0-0.5])
   if (hasMascara) {
     randomBoost += Math.random() * 0.5
   }
@@ -84,14 +84,14 @@ export function calculateTilePriorities(
 
   if (unrevealedTiles.length === 0) return []
 
-  // Check if player has Eyeshadow and Mascara relics
-  const hasEyeshadow = state.relics.some(relic => relic.name === 'Eyeshadow')
-  const hasMascara = state.relics.some(relic => relic.name === 'Mascara')
+  // Check if player has Eyeshadow and Mascara equipment
+  const hasEyeshadow = state.equipment.some(equipment => equipment.name === 'Eyeshadow')
+  const hasMascara = state.equipment.some(equipment => equipment.name === 'Mascara')
 
   // Calculate priorities using only player clues and hidden rival clues
   // Add ramble priority boost if active (each tile gets sum of separate random draws per boost), otherwise small random tiebreaker
-  // Add Eyeshadow boost if relic present (permanent half-Ramble effect)
-  // Add Mascara boost if relic present (additional random [0-0.5])
+  // Add Eyeshadow boost if equipment present (permanent half-Ramble effect)
+  // Add Mascara boost if equipment present (additional random [0-0.5])
   const tilesWithPriority = unrevealedTiles.map(tile => {
     const basePriority = calculateTilePriority(tile, hiddenRivalCluesPairs)
     const finalPriority = applyRandomBoost(basePriority, state.ramblePriorityBoosts, hasEyeshadow, hasMascara)

@@ -1,9 +1,9 @@
 import { GameState } from '../../types'
-import { hasRelic } from './relicUtils'
+import { hasEquipment } from './equipmentUtils'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
 
 export function triggerBusyCanaryEffect(state: GameState): GameState {
-  if (!hasRelic(state, 'Busy Canary')) {
+  if (!hasEquipment(state, 'Busy Canary')) {
     return state
   }
 

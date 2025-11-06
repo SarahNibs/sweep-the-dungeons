@@ -1,12 +1,12 @@
 import { useGameStore } from './store'
-import { getCardIcon, getAllRelics, getRelicIcon as getRelicIconFromRepo } from './game/gameRepository'
+import { getCardIcon, getAllEquipment, getEquipmentIcon as getEquipmentIconFromRepo } from './game/gameRepository'
 import { GameStats } from './components/GameStats'
 import { Hand } from './components/Hand'
 import { Board } from './components/Board'
 import { PromptWidget } from './components/PromptWidget'
 import { CardSelectionScreen } from './components/CardSelectionScreen'
 import { UpgradeSelectionScreen } from './components/UpgradeSelectionScreen'
-import { RelicSelectionScreen } from './components/RelicSelectionScreen'
+import { EquipmentSelectionScreen } from './components/EquipmentSelectionScreen'
 import { ShopSelectionScreen } from './components/ShopSelectionScreen'
 import { PileViewingScreen } from './components/PileViewingScreen'
 import { TileCountsVertical } from './components/TileCountsVertical'
@@ -36,9 +36,9 @@ function App() {
     gamePhase,
     cardSelectionOptions,
     upgradeOptions,
-    relicOptions,
-    relics,
-    relicUpgradeResults,
+    equipmentOptions,
+    equipment,
+    equipmentUpgradeResults,
     shopOptions,
     purchasedShopItems,
     pileViewingType,
@@ -60,8 +60,8 @@ function App() {
     selectCardForRemoval,
     waitingForCardRemoval,
     bootsTransformMode,
-    selectRelic,
-    closeRelicUpgradeDisplay,
+    selectEquipment,
+    closeEquipmentUpgradeDisplay,
     purchaseShopItem,
     removeSelectedCard,
     exitShop,
@@ -70,7 +70,7 @@ function App() {
     closePileView,
     selectCardForNap,
     debugWinLevel,
-    debugGiveRelic,
+    debugGiveEquipment,
     debugGiveCard,
     toggleAnnotationButton,
     glassesNeedsTingleAnimation,
@@ -81,13 +81,13 @@ function App() {
   } = useGameStore()
 
   // Debug UI state
-  const [showRelicDebug, setShowRelicDebug] = useState(false)
+  const [showEquipmentDebug, setShowEquipmentDebug] = useState(false)
   const [showCardDebug, setShowCardDebug] = useState(false)
   const [cardUpgradeType, setCardUpgradeType] = useState<'normal' | 'cost-reduced' | 'enhanced'>('normal')
   const [debugButtonsVisible, setDebugButtonsVisible] = useState(false)
 
-  // Load all relics and cards dynamically for debug tools
-  const allRelics = useMemo(() => getAllRelics(), [])
+  // Load all equipment and cards dynamically for debug tools
+  const allEquipment = useMemo(() => getAllEquipment(), [])
   const [allCardNames, setAllCardNames] = useState<string[]>([])
 
   useEffect(() => {
@@ -99,7 +99,7 @@ function App() {
     (window as any).useGameStore = useGameStore
   }, [])
 
-  // Check for Glasses relic Tingle animation on turn start
+  // Check for Glasses equipment Tingle animation on turn start
   useEffect(() => {
     if (glassesNeedsTingleAnimation) {
       const state = useGameStore.getState()
@@ -220,7 +220,7 @@ function App() {
           alignItems: 'flex-start',
           margin: '20px 0'
         }}>
-          {/* Left strip for copper, relics */}
+          {/* Left strip for copper, equipment */}
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -270,9 +270,9 @@ function App() {
               </div>
             </Tooltip>
 
-            {/* Relics - simple vertical list */}
-            {relics.map((relic, index) => (
-              <Tooltip key={index} text={relic.hoverText} style={{ display: 'block', margin: '0 auto' }}>
+            {/* Equipment - simple vertical list */}
+            {equipment.map((equipmentItem, index) => (
+              <Tooltip key={index} text={equipmentItem.hoverText} style={{ display: 'block', margin: '0 auto' }}>
                 <div
                   style={{
                     width: '50px',
@@ -288,7 +288,7 @@ function App() {
                     margin: '0 auto'
                   }}
                 >
-                  {getRelicIconFromRepo(relic.name)}
+                  {getEquipmentIconFromRepo(equipmentItem.name)}
                 </div>
               </Tooltip>
             ))}
@@ -341,9 +341,9 @@ function App() {
                   </div>
                 </Tooltip>
 
-                <Tooltip text="Debug: Give relic" style={{ display: 'block' }}>
+                <Tooltip text="Debug: Give equipment" style={{ display: 'block' }}>
                   <div
-                    onClick={() => setShowRelicDebug(true)}
+                    onClick={() => setShowEquipmentDebug(true)}
                     style={{
                       width: '30px',
                       height: '30px',
@@ -423,11 +423,11 @@ function App() {
         />
       )}
 
-      {/* Relic Selection Screen */}
-      {gamePhase === 'relic_selection' && relicOptions && (
-        <RelicSelectionScreen
-          relicOptions={relicOptions}
-          onRelicSelect={selectRelic}
+      {/* Equipment Selection Screen */}
+      {gamePhase === 'equipment_selection' && equipmentOptions && (
+        <EquipmentSelectionScreen
+          equipmentOptions={equipmentOptions}
+          onEquipmentSelect={selectEquipment}
           currentDeck={getAllCardsInCollection()}
           waitingForCardRemoval={waitingForCardRemoval}
           bootsTransformMode={bootsTransformMode}
@@ -435,8 +435,8 @@ function App() {
         />
       )}
 
-      {/* Relic Upgrade Display */}
-      {gamePhase === 'relic_upgrade_display' && relicUpgradeResults && (
+      {/* Equipment Upgrade Display */}
+      {gamePhase === 'equipment_upgrade_display' && equipmentUpgradeResults && (
         <div 
           style={{
             position: 'fixed',
@@ -474,7 +474,7 @@ function App() {
             </h2>
             
             <div style={{ marginBottom: '20px' }}>
-              {relicUpgradeResults.map((result, index) => (
+              {equipmentUpgradeResults.map((result, index) => (
                 <div key={index} style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -549,7 +549,7 @@ function App() {
             </div>
             
             <button
-              onClick={closeRelicUpgradeDisplay}
+              onClick={closeEquipmentUpgradeDisplay}
               style={{
                 width: '100%',
                 padding: '12px',
@@ -594,8 +594,8 @@ function App() {
         />
       )}
 
-      {/* Debug Relic Selection Overlay */}
-      {showRelicDebug && (
+      {/* Debug Equipment Selection Overlay */}
+      {showEquipmentDebug && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -616,21 +616,21 @@ function App() {
             maxHeight: '80vh',
             overflow: 'auto'
           }}>
-            <h3 style={{ margin: '0 0 15px 0', textAlign: 'center' }}>Debug: Give Relic</h3>
+            <h3 style={{ margin: '0 0 15px 0', textAlign: 'center' }}>Debug: Give Equipment</h3>
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
               gap: '10px',
               marginBottom: '15px'
             }}>
-              {allRelics.map(relic => (
+              {allEquipment.map(equipmentItem => (
                 <button
-                  key={relic.name}
+                  key={equipmentItem.name}
                   onClick={() => {
-                    console.log(`🖱️ UI: Clicking relic button for "${relic.name}"`)
-                    debugGiveRelic(relic.name)
-                    setShowRelicDebug(false)
-                    console.log(`🖱️ UI: Relic button click completed`)
+                    console.log(`🖱️ UI: Clicking equipment button for "${equipmentItem.name}"`)
+                    debugGiveEquipment(equipmentItem.name)
+                    setShowEquipmentDebug(false)
+                    console.log(`🖱️ UI: Equipment button click completed`)
                   }}
                   style={{
                     padding: '10px',
@@ -641,12 +641,12 @@ function App() {
                     fontSize: '14px'
                   }}
                 >
-                  {getRelicIconFromRepo(relic.name)} {relic.name}
+                  {getEquipmentIconFromRepo(equipmentItem.name)} {equipmentItem.name}
                 </button>
               ))}
             </div>
             <button
-              onClick={() => setShowRelicDebug(false)}
+              onClick={() => setShowEquipmentDebug(false)}
               style={{
                 width: '100%',
                 padding: '10px',

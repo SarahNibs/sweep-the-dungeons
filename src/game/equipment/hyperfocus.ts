@@ -1,9 +1,9 @@
 import { GameState } from '../../types'
 import { createCard, getRewardCardPool } from '../gameRepository'
-import { hasRelic } from './relicUtils'
+import { hasEquipment } from './equipmentUtils'
 
 export function triggerHyperfocusEffect(state: GameState): GameState {
-  if (!hasRelic(state, 'Hyperfocus')) {
+  if (!hasEquipment(state, 'Hyperfocus')) {
     return state
   }
 

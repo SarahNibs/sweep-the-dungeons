@@ -1,5 +1,5 @@
 import { GameState, Position, Tile } from '../../types'
-import { getUnrevealedTilesByOwner, revealTileWithRelicEffects } from '../cardEffects'
+import { getUnrevealedTilesByOwner, revealTileWithEquipmentEffects } from '../cardEffects'
 import { executeTingleEffect } from '../cards/report'
 import { selectTrystTiles } from '../cards/tryst'
 import { queueCardDrawsFromDirtCleaning } from '../cardSystem'
@@ -176,7 +176,7 @@ export class AnimationController {
       // In tests, execute immediately without animation
       let effectState = state
       for (const { tile, revealer } of reveals) {
-        effectState = revealTileWithRelicEffects(effectState, tile.position, revealer)
+        effectState = revealTileWithEquipmentEffects(effectState, tile.position, revealer)
       }
       this.setState(effectState)
       return
@@ -239,7 +239,7 @@ export class AnimationController {
         }
       }
 
-      // Queue card draws for cleaning dirt by revealing (Mop relic effect)
+      // Queue card draws for cleaning dirt by revealing (Mop equipment effect)
       const updatedState = queueCardDrawsFromDirtCleaning(currentStateForReveal, 1)
       currentStateForReveal = {
         ...currentStateForReveal,
@@ -248,7 +248,7 @@ export class AnimationController {
     }
 
     // Reveal the current tile
-    let newState = revealTileWithRelicEffects(currentStateForReveal, currentReveal.tile.position, currentReveal.revealer)
+    let newState = revealTileWithEquipmentEffects(currentStateForReveal, currentReveal.tile.position, currentReveal.revealer)
 
     // Update animation state for next reveal
     const nextIndex = currentRevealIndex + 1

@@ -414,7 +414,7 @@ export function shouldEndPlayerTurn(tile: Tile): boolean {
 
 /**
  * Centralized function to determine if revealing a tile should end the player's turn
- * Takes into account all game state including relics like Frilly Dress
+ * Takes into account all game state including equipment like Frilly Dress
  */
 export function shouldRevealEndTurn(state: GameState, tile: Tile): boolean {
   // Check if tile would normally end turn
@@ -423,7 +423,7 @@ export function shouldRevealEndTurn(state: GameState, tile: Tile): boolean {
   }
 
   // Check for Frilly Dress effect: any neutral reveal on first turn
-  const hasFrillyDress = state.relics.some(r => r.name === 'Frilly Dress')
+  const hasFrillyDress = state.equipment.some(r => r.name === 'Frilly Dress')
   if (hasFrillyDress && state.isFirstTurn && tile.owner === 'neutral') {
     return false // Frilly Dress prevents turn ending on neutral reveals during first turn
   }

@@ -1,7 +1,7 @@
 import { GameState, Position } from '../../types'
 import { getTile } from '../boardSystem'
 import { addStatusEffect } from '../gameRepository'
-import { revealTileWithRelicEffects } from '../cardEffects'
+import { revealTileWithEquipmentEffects } from '../cardEffects'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
 
 export function executeHorseEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
@@ -70,7 +70,7 @@ export function executeHorseEffect(state: GameState, target: Position, card?: im
         }
       } else {
         // For non-dirty tiles, reveal normally (uncontrollable - automatic area reveal)
-        newState = revealTileWithRelicEffects(newState, pos, 'player', false)
+        newState = revealTileWithEquipmentEffects(newState, pos, 'player', false)
 
         // Check if the tile was actually revealed (it might not be if there was a goblin)
         const tileAfterReveal = getTile(newState.board, pos)

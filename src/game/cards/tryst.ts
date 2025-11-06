@@ -1,5 +1,5 @@
 import { GameState, Position, Tile } from '../../types'
-import { revealTileWithRelicEffects, getUnrevealedTilesByOwner } from '../cardEffects'
+import { revealTileWithEquipmentEffects, getUnrevealedTilesByOwner } from '../cardEffects'
 
 function manhattanDistance(pos1: Position, pos2: Position): number {
   return Math.abs(pos1.x - pos2.x) + Math.abs(pos1.y - pos2.y)
@@ -74,7 +74,7 @@ export function executeTrystEffect(state: GameState, target?: Position, card?: i
 
   for (const { tile, revealer } of reveals) {
     console.log(`💑 TRYST - Revealing ${tile.owner} tile at (${tile.position.x}, ${tile.position.y}) with revealer='${revealer}'`)
-    currentState = revealTileWithRelicEffects(currentState, tile.position, revealer, false)
+    currentState = revealTileWithEquipmentEffects(currentState, tile.position, revealer, false)
 
     const revealedTile = currentState.board.tiles.get(`${tile.position.x},${tile.position.y}`)
     console.log(`💑 TRYST - After reveal: adjacencyCount=${revealedTile?.adjacencyCount}`)

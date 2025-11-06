@@ -2,12 +2,12 @@ import { Card, GameState, StatusEffect } from '../types'
 import { createBoard, revealTileWithResult } from './boardSystem'
 import { executeCardEffect, requiresTargeting } from './cardEffects'
 import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
-import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerMatedPairEffect, triggerBabyBunnyEffect, triggerBusyCanaryEffect, triggerInterceptedNoteEffect, triggerHyperfocusEffect, prepareGlassesEffect, hasRelic } from './relics'
+import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerMatedPairEffect, triggerBabyBunnyEffect, triggerBusyCanaryEffect, triggerInterceptedNoteEffect, triggerHyperfocusEffect, prepareGlassesEffect, hasEquipment } from './equipment'
 import { AIController } from './ai/AIController'
 import { decrementBurgerStacks } from './cards/burger'
 import { decrementIceCreamStacks } from './cards/iceCream'
 import { decrementCarrotsStacks } from './cards/carrots'
-import { revealTileWithRelicEffects } from './cardEffects'
+import { revealTileWithEquipmentEffects } from './cardEffects'
 
 /**
  * Maps card names to their effect types for non-targeting cards
@@ -693,7 +693,7 @@ export function playCard(state: GameState, cardId: string): GameState {
   const newDiscard = shouldExhaust ? newState.discard : [...newState.discard, card]
   const newExhaust = shouldExhaust ? [...newState.exhaust, card] : newState.exhaust
 
-  // Apply relic-based effects after playing the card
+  // Apply equipment-based effects after playing the card
   let finalState = {
     ...newState,
     hand: newHand,
@@ -703,7 +703,7 @@ export function playCard(state: GameState, cardId: string): GameState {
   }
 
   // Fanfic effect: Draw a card and lose 1 copper when playing Sarcastic Instructions
-  if (card.name === 'Sarcastic Instructions' && finalState.relics.some(r => r.name === 'Fanfic')) {
+  if (card.name === 'Sarcastic Instructions' && finalState.equipment.some(r => r.name === 'Fanfic')) {
     const stateAfterDraw = drawCards(finalState, 1)
     finalState = {
       ...stateAfterDraw,
@@ -727,7 +727,7 @@ export function discardHand(state: GameState): GameState {
 }
 
 /**
- * Trigger Espresso relic effect: draw 1 card and immediately play it
+ * Trigger Espresso equipment effect: draw 1 card and immediately play it
  * For targeting cards, enters forced targeting mode
  * For special cards (Tingle, Masking, non-enhanced Tryst), leaves in hand for manual play
  */
@@ -862,21 +862,21 @@ function triggerEspressoEffect(state: GameState): GameState {
 export function startNewTurn(state: GameState): GameState {
   console.log('🔄 START NEW TURN DEBUG')
   console.log('  - Current queued card draws:', state.queuedCardDraws)
-  console.log('  - Has Caffeinated relic:', hasRelic(state, 'Caffeinated'))
+  console.log('  - Has Caffeinated equipment:', hasEquipment(state, 'Caffeinated'))
 
   let currentState = state
   let hasGlasses = false
 
-  // Prepare Glasses relic effect (add Tingle to discard, animation will be triggered by store)
-  if (hasRelic(currentState, 'Glasses')) {
+  // Prepare Glasses equipment effect (add Tingle to discard, animation will be triggered by store)
+  if (hasEquipment(currentState, 'Glasses')) {
     hasGlasses = true
     currentState = prepareGlassesEffect(currentState)
   }
 
   const discardedState = discardHand(currentState)
 
-  // Draw regular 5 cards (or 4 with Caffeinated relic) plus any queued card draws plus burger bonus
-  const baseCardDraw = hasRelic(state, 'Caffeinated') ? 4 : 5
+  // Draw regular 5 cards (or 4 with Caffeinated equipment) plus any queued card draws plus burger bonus
+  const baseCardDraw = hasEquipment(state, 'Caffeinated') ? 4 : 5
   const burgerEffect = state.activeStatusEffects.find(e => e.type === 'burger')
   const burgerBonus = burgerEffect ? 1 : 0 // Always +1 if Burger effect is active, regardless of stack count
   const totalCardsToDraw = baseCardDraw + state.queuedCardDraws + burgerBonus
@@ -903,11 +903,11 @@ export function startNewTurn(state: GameState): GameState {
     fetchRevealedNonPlayer: false, // Reset fetch turn ending tracking
     shouldExhaustLastCard: false, // Reset dynamic exhaust tracking
     queuedCardDraws: 0, // Clear queued card draws
-    glassesNeedsTingleAnimation: hasGlasses // Set flag if Glasses relic is active
+    glassesNeedsTingleAnimation: hasGlasses // Set flag if Glasses equipment is active
   }
 
   // Trigger Espresso effect if present (draw and immediately play a card)
-  if (hasRelic(state, 'Espresso')) {
+  if (hasEquipment(state, 'Espresso')) {
     const espressoState = triggerEspressoEffect(finalState)
     return {
       ...finalState,
@@ -921,7 +921,7 @@ export function startNewTurn(state: GameState): GameState {
 export function createInitialState(
   levelId: string = 'intro',
   persistentDeck?: Card[],
-  relics?: import('../types').Relic[],
+  equipment?: import('../types').Equipment[],
   copper: number = 0,
   temporaryBunnyBuffs: number = 0,
   playerAnnotationMode?: 'slash' | 'big_checkmark' | 'small_checkmark',
@@ -933,7 +933,7 @@ export function createInitialState(
   playerTilesRevealedCount: number = 0
 ): GameState {
   const startingPersistentDeck = persistentDeck || createStartingDeck()
-  const startingRelics = relics || []
+  const startingEquipment = equipment || []
   const deck = shuffleDeck([...startingPersistentDeck]) // Copy and shuffle persistent deck for in-play use
   const levelConfig = getLevelConfigFromSystem(levelId)
   
@@ -972,8 +972,8 @@ export function createInitialState(
     }
   }
   
-  // Determine max energy based on relics
-  const maxEnergy = startingRelics.some(relic => relic.name === 'Caffeinated') ? 4 : 3
+  // Determine max energy based on equipment
+  const maxEnergy = startingEquipment.some(equipment => equipment.name === 'Caffeinated') ? 4 : 3
   
   const initialState: GameState = {
     persistentDeck: startingPersistentDeck,
@@ -997,8 +997,8 @@ export function createInitialState(
     instructionsPlayedThisFloor: new Set(),
     currentLevelId: levelId,
     gamePhase: 'playing',
-    relics: startingRelics,
-    relicOptions: undefined,
+    equipment: startingEquipment,
+    equipmentOptions: undefined,
     isFirstTurn: true,
     neutralsRevealedThisTurn: 0,
     rivalHiddenClues: [],
@@ -1041,19 +1041,19 @@ export function createInitialState(
     napState: null
   }
   
-  // Draw initial cards (4 with Caffeinated relic, 5 without) plus Burger bonus
-  const initialCardDraw = startingRelics.some(relic => relic.name === 'Caffeinated') ? 4 : 5
+  // Draw initial cards (4 with Caffeinated equipment, 5 without) plus Burger bonus
+  const initialCardDraw = startingEquipment.some(equipment => equipment.name === 'Caffeinated') ? 4 : 5
   const burgerEffect = preservedStatusEffects?.find(e => e.type === 'burger')
   const burgerBonus = burgerEffect ? 1 : 0
   let finalState = drawCards(initialState, initialCardDraw + burgerBonus)
 
   // Trigger Handbag effect if present (draw 2 additional cards on first turn)
-  if (startingRelics.some(relic => relic.name === 'Handbag')) {
+  if (startingEquipment.some(equipment => equipment.name === 'Handbag')) {
     finalState = drawCards(finalState, 2)
   }
 
   // Trigger Pockets effect if present (draw 1 additional card on first turn)
-  if (startingRelics.some(relic => relic.name === 'Pockets')) {
+  if (startingEquipment.some(equipment => equipment.name === 'Pockets')) {
     finalState = drawCards(finalState, 1)
   }
 
@@ -1079,7 +1079,7 @@ export function createInitialState(
 
     if (unrevealedPlayerTiles.length > 0) {
       const randomTile = unrevealedPlayerTiles[Math.floor(Math.random() * unrevealedPlayerTiles.length)]
-      finalState = revealTileWithRelicEffects(finalState, randomTile.position, 'player', false)
+      finalState = revealTileWithEquipmentEffects(finalState, randomTile.position, 'player', false)
     }
   }
 
@@ -1093,7 +1093,7 @@ export function createInitialState(
   finalState = triggerInterceptedNoteEffect(finalState)
 
   // Trigger Glasses effect if present (prepare Tingle for turn 1)
-  if (startingRelics.some(relic => relic.name === 'Glasses')) {
+  if (startingEquipment.some(equipment => equipment.name === 'Glasses')) {
     finalState = prepareGlassesEffect(finalState)
     finalState = { ...finalState, glassesNeedsTingleAnimation: true }
   }
@@ -1209,7 +1209,7 @@ export function createInitialState(
   }
 
   // Trigger Espresso effect if present (draw and immediately play a card)
-  if (startingRelics.some(relic => relic.name === 'Espresso')) {
+  if (startingEquipment.some(equipment => equipment.name === 'Espresso')) {
     finalState = triggerEspressoEffect(finalState)
   }
 
@@ -1297,7 +1297,7 @@ export function advanceToNextLevel(state: GameState): GameState {
   const newLevelState = createInitialState(
     nextLevelId,
     state.persistentDeck,
-    state.relics,
+    state.equipment,
     copperAfterPenalty,
     state.temporaryBunnyBuffs,
     state.playerAnnotationMode,
@@ -1340,15 +1340,15 @@ export function getAllCardsInCollection(state: GameState): Card[] {
   return [...state.persistentDeck]
 }
 
-// Queue card draws for dirt cleaning when revealing dirty tiles (for Mop relic)
+// Queue card draws for dirt cleaning when revealing dirty tiles (for Mop equipment)
 export function queueCardDrawsFromDirtCleaning(state: GameState, tilesCleanedCount: number): GameState {
   console.log('🧽 QUEUE CARD DRAWS DEBUG')
-  console.log('  - Has Mop relic:', hasRelic(state, 'Mop'))
+  console.log('  - Has Mop equipment:', hasEquipment(state, 'Mop'))
   console.log('  - Tiles cleaned count:', tilesCleanedCount)
   console.log('  - Current queued draws:', state.queuedCardDraws)
   
-  if (!hasRelic(state, 'Mop') || tilesCleanedCount <= 0) {
-    console.log('  - Not queueing cards (no relic or no tiles cleaned)')
+  if (!hasEquipment(state, 'Mop') || tilesCleanedCount <= 0) {
+    console.log('  - Not queueing cards (no equipment or no tiles cleaned)')
     return state
   }
   

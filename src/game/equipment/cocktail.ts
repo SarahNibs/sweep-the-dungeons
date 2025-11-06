@@ -2,7 +2,7 @@ import { GameState } from '../../types'
 import { createCard, getRewardCardPool, applyDIYGel } from '../gameRepository'
 
 /**
- * Cocktail relic: when gained, remove all Scurry cards and add 2 random energy-upgraded cards
+ * Cocktail equipment: when gained, remove all Scurry cards and add 2 random energy-upgraded cards
  */
 export function applyCocktailEffect(state: GameState): GameState {
   console.log('🍸 COCKTAIL EFFECT: Removing all Scurry, adding 2 random energy-upgraded cards')
@@ -20,8 +20,8 @@ export function applyCocktailEffect(state: GameState): GameState {
   const card2 = createCard(shuffled[1 % shuffled.length].name, { energyReduced: true })
 
   // Apply DIY Gel if owned
-  const randomCard1 = applyDIYGel(state.relics, card1)
-  const randomCard2 = applyDIYGel(state.relics, card2)
+  const randomCard1 = applyDIYGel(state.equipment, card1)
+  const randomCard2 = applyDIYGel(state.equipment, card2)
 
   console.log(`  - Adding ${randomCard1.name} and ${randomCard2.name}`)
 
@@ -29,7 +29,7 @@ export function applyCocktailEffect(state: GameState): GameState {
 
   // Create upgrade results showing the transformations (use Scurry as "before" state)
   const scurryBefore = createCard('Scurry', {})
-  const relicUpgradeResults = [
+  const equipmentUpgradeResults = [
     { before: scurryBefore, after: randomCard1 },
     { before: scurryBefore, after: randomCard2 }
   ]
@@ -37,7 +37,7 @@ export function applyCocktailEffect(state: GameState): GameState {
   return {
     ...state,
     persistentDeck: newDeck,
-    gamePhase: 'relic_upgrade_display',
-    relicUpgradeResults
+    gamePhase: 'equipment_upgrade_display',
+    equipmentUpgradeResults
   }
 }

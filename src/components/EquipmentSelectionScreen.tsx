@@ -1,30 +1,30 @@
 import { useState } from 'react'
-import { RelicOption, Relic, Card as CardType } from '../types'
-import { getRelicIcon } from '../game/gameRepository'
+import { EquipmentOption, Equipment, Card as CardType } from '../types'
+import { getEquipmentIcon } from '../game/gameRepository'
 import { PileViewingScreen } from './PileViewingScreen'
 import { Tooltip } from './Tooltip'
 import { Card } from './Card'
 
-interface RelicSelectionScreenProps {
-  relicOptions: RelicOption[]
-  onRelicSelect: (relic: Relic) => void
+interface EquipmentSelectionScreenProps {
+  equipmentOptions: EquipmentOption[]
+  onEquipmentSelect: (equipment: Equipment) => void
   currentDeck: CardType[]
   waitingForCardRemoval?: boolean
   bootsTransformMode?: boolean
   onCardRemovalSelect?: (cardId: string) => void
 }
 
-export function RelicSelectionScreen({
-  relicOptions,
-  onRelicSelect,
+export function EquipmentSelectionScreen({
+  equipmentOptions,
+  onEquipmentSelect,
   currentDeck,
   waitingForCardRemoval,
   bootsTransformMode,
   onCardRemovalSelect
-}: RelicSelectionScreenProps) {
+}: EquipmentSelectionScreenProps) {
   const [viewingDeck, setViewingDeck] = useState(false)
 
-  // Show card removal UI if Boots relic was selected
+  // Show card removal UI if Boots equipment was selected
   if (waitingForCardRemoval) {
     return (
       <>
@@ -147,7 +147,7 @@ export function RelicSelectionScreen({
         margin: '0 0 20px 0',
         textAlign: 'center'
       }}>
-        Choose a Relic
+        Choose a Equipment
       </h2>
 
       {/* View Deck button */}
@@ -176,7 +176,7 @@ export function RelicSelectionScreen({
         </button>
       </div>
 
-      {/* Three relic options */}
+      {/* Three equipment options */}
       <div style={{
         display: 'flex',
         gap: '40px',
@@ -184,8 +184,8 @@ export function RelicSelectionScreen({
         justifyContent: 'center',
         flexWrap: 'wrap'
       }}>
-        {relicOptions.map((option, index) => (
-          <Tooltip key={index} text={option.relic.hoverText} style={{ display: 'inline-block' }}>
+        {equipmentOptions.map((option, index) => (
+          <Tooltip key={index} text={option.equipment.hoverText} style={{ display: 'inline-block' }}>
             <div
               style={{
                 display: 'flex',
@@ -202,7 +202,7 @@ export function RelicSelectionScreen({
                 width: '250px',
                 textAlign: 'center'
               }}
-              onClick={() => onRelicSelect(option.relic)}
+              onClick={() => onEquipmentSelect(option.equipment)}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = '#74b9ff'
                 e.currentTarget.style.backgroundColor = 'rgba(116, 185, 255, 0.1)'
@@ -212,7 +212,7 @@ export function RelicSelectionScreen({
                 e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.3)'
               }}
             >
-            {/* Relic Icon */}
+            {/* Equipment Icon */}
             <div style={{
               width: '120px',
               height: '120px',
@@ -225,27 +225,27 @@ export function RelicSelectionScreen({
               backgroundColor: 'rgba(116, 185, 255, 0.1)',
               marginBottom: '10px'
             }}>
-              {getRelicIcon(option.relic.name)}
+              {getEquipmentIcon(option.equipment.name)}
             </div>
             
-            {/* Relic Name */}
+            {/* Equipment Name */}
             <div style={{
               fontSize: '18px',
               fontWeight: 'bold',
               color: '#74b9ff',
               marginBottom: '10px'
             }}>
-              {option.relic.name}
+              {option.equipment.name}
             </div>
             
-            {/* Relic Description */}
+            {/* Equipment Description */}
             <div style={{
               fontSize: '14px',
               color: '#ddd',
               lineHeight: '1.4',
               fontStyle: 'italic'
             }}>
-              {option.relic.description}
+              {option.equipment.description}
             </div>
           </div>
           </Tooltip>

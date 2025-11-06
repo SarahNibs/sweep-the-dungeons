@@ -1,9 +1,9 @@
 import { GameState } from '../../types'
 import { calculateAdjacency, removeSpecialTile } from '../boardSystem'
-import { hasRelic } from './relicUtils'
+import { hasEquipment } from './equipmentUtils'
 
 export function triggerDustBunnyEffect(state: GameState): GameState {
-  if (!hasRelic(state, 'Dust Bunny')) {
+  if (!hasEquipment(state, 'Dust Bunny')) {
     return state
   }
 
@@ -155,7 +155,7 @@ export function triggerTemporaryBunnyBuffs(state: GameState): GameState {
 }
 
 export function triggerMatedPairEffect(state: GameState): GameState {
-  if (!hasRelic(state, 'Mated Pair')) {
+  if (!hasEquipment(state, 'Mated Pair')) {
     return state
   }
 
@@ -223,7 +223,7 @@ export function triggerMatedPairEffect(state: GameState): GameState {
 }
 
 export function triggerBabyBunnyEffect(state: GameState): GameState {
-  if (!hasRelic(state, 'Baby Bunny')) {
+  if (!hasEquipment(state, 'Baby Bunny')) {
     return state
   }
 

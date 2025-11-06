@@ -337,7 +337,7 @@ export class TargetingController {
     if (effect.type === 'horse' && effectState.horseRevealedNonPlayer) {
       // Check if Frilly Dress would prevent turn ending
       // This happens when revealing neutrals (up to 6) on first turn
-      const hasFrillyDress = effectState.relics.some(r => r.name === 'Frilly Dress')
+      const hasFrillyDress = effectState.equipment.some(r => r.name === 'Frilly Dress')
       const frillyDressPrevents = hasFrillyDress && effectState.isFirstTurn && effectState.neutralsRevealedThisTurn < 6
 
       if (!frillyDressPrevents) {

@@ -1,7 +1,7 @@
 import { GameState, UpgradeOption } from '../types'
 import { advanceToNextLevel } from './cardSystem'
-import { shouldShowRelicReward, shouldShowShopReward } from './levelSystem'
-import { startRelicSelection } from './relics'
+import { shouldShowEquipmentReward, shouldShowShopReward } from './levelSystem'
+import { startEquipmentSelection } from './equipment'
 import { startShopSelection } from './shopSystem'
 
 import { createCard } from './gameRepository'
@@ -96,14 +96,14 @@ export function applyUpgrade(state: GameState, option: UpgradeOption, selectedCa
     pendingUpgradeOption: undefined
   }
   
-  // Check if this level should show relic rewards after upgrade
-  if (shouldShowRelicReward(state.currentLevelId)) {
-    return startRelicSelection(updatedState)
+  // Check if this level should show equipment rewards after upgrade
+  if (shouldShowEquipmentReward(state.currentLevelId)) {
+    return startEquipmentSelection(updatedState)
   } else if (shouldShowShopReward(state.currentLevelId)) {
-    // No relic rewards but has shop reward - go to shop
+    // No equipment rewards but has shop reward - go to shop
     return startShopSelection(updatedState)
   } else {
-    // No relic/shop rewards - advance to next level immediately
+    // No equipment/shop rewards - advance to next level immediately
     return advanceToNextLevel(updatedState)
   }
 }

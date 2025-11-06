@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ShopOption, Card } from '../types'
 import { PileViewingScreen } from './PileViewingScreen'
-import { getRelicIcon, getCardDescription, getCardIcon } from '../game/gameRepository'
+import { getEquipmentIcon, getCardDescription, getCardIcon } from '../game/gameRepository'
 
 interface ShopSelectionScreenProps {
   shopOptions: ShopOption[]
@@ -296,13 +296,13 @@ export function ShopSelectionScreen({
           const isPurchased = purchasedItems?.has(index) || false
           const isAvailable = canAfford && !isPurchased
           
-          // Get hover text for cards and relics
+          // Get hover text for cards and equipment
           const getHoverText = () => {
             if (option.card) {
               return getCardDescription(option.card)
             }
-            if (option.relic) {
-              return option.relic.hoverText || option.relic.description
+            if (option.equipment) {
+              return option.equipment.hoverText || option.equipment.description
             }
             return option.description
           }
@@ -457,8 +457,8 @@ function getShopItemIcon(option: ShopOption): string {
     case 'add_energy_card':
     case 'add_enhanced_card':
       return option.card ? getCardIcon(option.card.name) : '📜'
-    case 'add_relic':
-      return option.relic ? getRelicIcon(option.relic.name) : '🏺'
+    case 'add_equipment':
+      return option.equipment ? getEquipmentIcon(option.equipment.name) : '🏺'
     case 'remove_card':
       return '🗑️'
     case 'temp_bunny':

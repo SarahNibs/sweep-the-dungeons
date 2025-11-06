@@ -57,7 +57,7 @@ export interface ClueResult {
 export interface TileAnnotation {
   type: 'safe' | 'unsafe' | 'rival' | 'clue_results' | 'owner_subset' | 'player_slash' | 'player_big_checkmark' | 'player_small_checkmark' | 'player_owner_possibility' | 'adjacency_info'
   clueResults?: ClueResult[] // For clue strength annotations
-  ownerSubset?: Set<'player' | 'rival' | 'neutral' | 'mine'> // For subset annotations (lower-right, from cards/relics)
+  ownerSubset?: Set<'player' | 'rival' | 'neutral' | 'mine'> // For subset annotations (lower-right, from cards/equipment)
   playerOwnerPossibility?: Set<'player' | 'rival' | 'neutral' | 'mine'> // For player's upper-right annotations
   adjacencyInfo?: { player?: number; neutral?: number; rival?: number; mine?: number } // For eavesdropping card results
 }
@@ -104,7 +104,7 @@ export interface LevelConfig {
   levelId: string
   uponFinish: {
     cardReward: boolean
-    relicReward: boolean
+    equipmentReward: boolean
     upgradeReward: boolean
     shopReward: boolean
     winTheGame: boolean
@@ -164,16 +164,16 @@ export interface GameState {
   rivalClueCounter: number // Counter for rival clue rows
   instructionsPlayedThisFloor: Set<string> // Names of Instructions cards played this floor (for enhanced Instructions energy refund)
   currentLevelId: string
-  gamePhase: 'playing' | 'card_selection' | 'viewing_pile' | 'upgrade_selection' | 'relic_selection' | 'shop_selection' | 'relic_upgrade_display'
+  gamePhase: 'playing' | 'card_selection' | 'viewing_pile' | 'upgrade_selection' | 'equipment_selection' | 'shop_selection' | 'equipment_upgrade_display'
   pileViewingType?: PileType
   cardSelectionOptions?: Card[] // Three cards to choose from when advancing level
   upgradeOptions?: UpgradeOption[] // Three upgrade options to choose from
   waitingForCardRemoval?: boolean // True when remove card option was selected
-  bootsTransformMode?: boolean // True when Boots relic is transforming a card (uses card removal UI)
+  bootsTransformMode?: boolean // True when Boots equipment is transforming a card (uses card removal UI)
   pendingUpgradeOption?: UpgradeOption // The upgrade option waiting to be applied after card removal
-  relicUpgradeResults?: { before: Card; after: Card }[] // Results from Estrogen/Progesterone relic effects
-  relicOptions?: RelicOption[] // Three relic options to choose from
-  relics: Relic[] // Relics the player currently has
+  equipmentUpgradeResults?: { before: Card; after: Card }[] // Results from Estrogen/Progesterone equipment effects
+  equipmentOptions?: EquipmentOption[] // Three equipment options to choose from
+  equipment: Equipment[] // Equipment the player currently has
   isFirstTurn: boolean // True if this is the first turn of the level (for Frilly Dress)
   neutralsRevealedThisTurn: number // Number of neutrals revealed this turn (for Frilly Dress - allows 6 on turn 1)
   // Dual rival clue system: visible clues (shown as X) vs AI clues (hidden)
@@ -267,14 +267,14 @@ export interface GameState {
   // Queued card draws (for Mop effect when cleaning by revealing dirty tiles)
   queuedCardDraws: number // Number of cards to draw at start of next turn
 
-  // Glasses Tingle animation (for Glasses relic effect)
-  glassesNeedsTingleAnimation: boolean // True if Glasses relic should trigger Tingle animation
+  // Glasses Tingle animation (for Glasses equipment effect)
+  glassesNeedsTingleAnimation: boolean // True if Glasses equipment should trigger Tingle animation
 
   // Rival mine protection (special behavior)
   rivalMineProtectionCount: number // Number of remaining protected mine reveals
 
-  // Relic upgrade context (tracks where the relic upgrade came from)
-  relicUpgradeContext?: 'debug' | 'reward' | 'shop' // Context for how we entered relic upgrade display
+  // Equipment upgrade context (tracks where the equipment upgrade came from)
+  equipmentUpgradeContext?: 'debug' | 'reward' | 'shop' // Context for how we entered equipment upgrade display
 
   // Masking card state (for selecting which card to play with Masking)
   maskingState: {
@@ -295,23 +295,23 @@ export interface UpgradeOption {
   displayCard?: Card // The upgraded version to display
 }
 
-export interface Relic {
+export interface Equipment {
   id: string
   name: string
   description: string
   hoverText: string
-  prerequisites?: string[] // List of relic names that must be owned before this relic can be offered
+  prerequisites?: string[] // List of equipment names that must be owned before this equipment can be offered
 }
 
-export interface RelicOption {
-  relic: Relic
+export interface EquipmentOption {
+  equipment: Equipment
 }
 
 export interface ShopOption {
-  type: 'add_card' | 'add_energy_card' | 'add_enhanced_card' | 'add_relic' | 'remove_card' | 'temp_bunny' | 'random_enhance'
+  type: 'add_card' | 'add_energy_card' | 'add_enhanced_card' | 'add_equipment' | 'remove_card' | 'temp_bunny' | 'random_enhance'
   cost: number
   card?: Card // For card options
-  relic?: Relic // For relic options
+  equipment?: Equipment // For equipment options
   displayName: string
   description: string
 }

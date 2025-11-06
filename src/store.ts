@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { GameState, Tile, Position, Board, Card as CardType, PileType, Relic } from './types'
+import { GameState, Tile, Position, Board, Card as CardType, PileType, Equipment } from './types'
 import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel, selectCardForMasking, selectCardForNap } from './game/cardSystem'
 import { AnimationController } from './game/animation/AnimationController'
 import { AnnotationController } from './game/annotations/AnnotationController'
@@ -7,11 +7,11 @@ import { DebugController } from './game/debug/DebugController'
 import { TargetingController } from './game/targeting/TargetingController'
 import { isTestMode } from './game/utils/testMode'
 import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
-import { startRelicSelection, selectRelic, closeRelicUpgradeDisplay, transformCardForBoots } from './game/relics'
+import { startEquipmentSelection, selectEquipment, closeEquipmentUpgradeDisplay, transformCardForBoots } from './game/equipment'
 import { revealTileWithResult, shouldRevealEndTurn, getTile } from './game/boardSystem'
-import { getTargetingInfo, revealTileWithRelicEffects } from './game/cardEffects'
+import { getTargetingInfo, revealTileWithEquipmentEffects } from './game/cardEffects'
 import { AIController } from './game/ai/AIController'
-import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowRelicReward, shouldShowShopReward, calculateCopperReward } from './game/levelSystem'
+import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowEquipmentReward, shouldShowShopReward, calculateCopperReward } from './game/levelSystem'
 import { startShopSelection, purchaseShopItem, removeSelectedCard, exitShop } from './game/shopSystem'
 import { canDirectRevealTile } from './game/targetingSystem'
 
@@ -51,13 +51,13 @@ interface GameStore extends GameState {
   closePileView: () => void
   selectCardForNap: (cardId: string) => void
   debugWinLevel: () => void
-  debugGiveRelic: (relicName: string) => void
+  debugGiveEquipment: (equipmentName: string) => void
   debugGiveCard: (cardName: string, upgrades?: { energyReduced?: boolean; enhanced?: boolean }) => void
   debugSetAIType: (aiType: string) => void
   debugSkipToLevel: (levelId: string) => void
-  startRelicSelection: () => void
-  selectRelic: (relic: Relic) => void
-  closeRelicUpgradeDisplay: () => void
+  startEquipmentSelection: () => void
+  selectEquipment: (equipmentItem: Equipment) => void
+  closeEquipmentUpgradeDisplay: () => void
   startShopSelection: () => void
   purchaseShopItem: (optionIndex: number) => void
   removeSelectedCard: (cardId: string) => void
@@ -296,8 +296,8 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     const revealResult = revealTileWithResult(currentState.board, tile.position, 'player')
 
-    // Use shared reveal function that includes relic effects
-    let stateWithBoard = revealTileWithRelicEffects(currentState, tile.position, 'player')
+    // Use shared reveal function that includes equipment effects
+    let stateWithBoard = revealTileWithEquipmentEffects(currentState, tile.position, 'player')
 
     // Add hover state clearing
     stateWithBoard = {
@@ -407,12 +407,12 @@ export const useGameStore = create<GameStore>((set, get) => {
       // No card reward but has upgrade reward - go directly to upgrade selection
       const upgradeState = startUpgradeSelection(currentState)
       set(upgradeState)
-    } else if (shouldShowRelicReward(currentState.currentLevelId)) {
-      // No card/upgrade rewards but has relic reward - go directly to relic selection
-      const relicState = startRelicSelection(currentState)
-      set(relicState)
+    } else if (shouldShowEquipmentReward(currentState.currentLevelId)) {
+      // No card/upgrade rewards but has equipment reward - go directly to equipment selection
+      const equipmentState = startEquipmentSelection(currentState)
+      set(equipmentState)
     } else if (shouldShowShopReward(currentState.currentLevelId)) {
-      // No card/upgrade/relic rewards but has shop reward - go directly to shop
+      // No card/upgrade/equipment rewards but has shop reward - go directly to shop
       const shopState = startShopSelection(currentState)
       set(shopState)
     } else {
@@ -430,16 +430,16 @@ export const useGameStore = create<GameStore>((set, get) => {
     if (shouldShowUpgradeReward(currentState.currentLevelId)) {
       const upgradeState = startUpgradeSelection(nextLevelState)
       set(upgradeState)
-    } else if (shouldShowRelicReward(currentState.currentLevelId)) {
-      // No upgrade rewards but has relic reward - go to relic selection
-      const relicState = startRelicSelection(nextLevelState)
-      set(relicState)
+    } else if (shouldShowEquipmentReward(currentState.currentLevelId)) {
+      // No upgrade rewards but has equipment reward - go to equipment selection
+      const equipmentState = startEquipmentSelection(nextLevelState)
+      set(equipmentState)
     } else if (shouldShowShopReward(currentState.currentLevelId)) {
-      // No upgrade/relic rewards but has shop reward - go to shop
+      // No upgrade/equipment rewards but has shop reward - go to shop
       const shopState = startShopSelection(nextLevelState)
       set(shopState)
     } else {
-      // No upgrade/relic/shop rewards - advance to next level immediately
+      // No upgrade/equipment/shop rewards - advance to next level immediately
       const advancedState = advanceToNextLevel(nextLevelState)
       set(advancedState)
     }
@@ -453,16 +453,16 @@ export const useGameStore = create<GameStore>((set, get) => {
     if (shouldShowUpgradeReward(currentState.currentLevelId)) {
       const upgradeState = startUpgradeSelection(nextLevelState)
       set(upgradeState)
-    } else if (shouldShowRelicReward(currentState.currentLevelId)) {
-      // No upgrade rewards but has relic reward - go to relic selection
-      const relicState = startRelicSelection(nextLevelState)
-      set(relicState)
+    } else if (shouldShowEquipmentReward(currentState.currentLevelId)) {
+      // No upgrade rewards but has equipment reward - go to equipment selection
+      const equipmentState = startEquipmentSelection(nextLevelState)
+      set(equipmentState)
     } else if (shouldShowShopReward(currentState.currentLevelId)) {
-      // No upgrade/relic rewards but has shop reward - go to shop
+      // No upgrade/equipment rewards but has shop reward - go to shop
       const shopState = startShopSelection(nextLevelState)
       set(shopState)
     } else {
-      // No upgrade/relic/shop rewards - advance to next level immediately
+      // No upgrade/equipment/shop rewards - advance to next level immediately
       const advancedState = advanceToNextLevel(nextLevelState)
       set(advancedState)
     }
@@ -557,8 +557,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     debugController.debugWinLevel()
   },
   
-  debugGiveRelic: (relicName: string) => {
-    debugController.debugGiveRelic(relicName)
+  debugGiveEquipment: (equipmentName: string) => {
+    debugController.debugGiveEquipment(equipmentName)
   },
   
   debugGiveCard: (cardName: string, upgrades?: { energyReduced?: boolean; enhanced?: boolean }) => {
@@ -601,8 +601,8 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     // Check if this is Boots transformation mode
     if (currentState.bootsTransformMode) {
-      // transformCardForBoots sets gamePhase to 'relic_upgrade_display'
-      // The closeRelicUpgradeDisplay will handle shop/level advancement
+      // transformCardForBoots sets gamePhase to 'equipment_upgrade_display'
+      // The closeEquipmentUpgradeDisplay will handle shop/level advancement
       const transformedState = transformCardForBoots(currentState, cardId)
       set(transformedState)
       return
@@ -615,21 +615,21 @@ export const useGameStore = create<GameStore>((set, get) => {
     set(upgradedState)
   },
 
-  startRelicSelection: () => {
+  startEquipmentSelection: () => {
     const currentState = get()
-    const relicState = startRelicSelection(currentState)
-    set(relicState)
+    const equipmentState = startEquipmentSelection(currentState)
+    set(equipmentState)
   },
 
-  selectRelic: (relic: Relic) => {
+  selectEquipment: (equipmentItem: Equipment) => {
     const currentState = get()
-    const nextLevelState = selectRelic(currentState, relic)
+    const nextLevelState = selectEquipment(currentState, equipmentItem)
     set(nextLevelState)
   },
 
-  closeRelicUpgradeDisplay: () => {
+  closeEquipmentUpgradeDisplay: () => {
     const currentState = get()
-    const nextState = closeRelicUpgradeDisplay(currentState)
+    const nextState = closeEquipmentUpgradeDisplay(currentState)
     set(nextState)
   },
 

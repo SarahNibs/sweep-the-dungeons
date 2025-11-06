@@ -1,8 +1,8 @@
-import { Relic, RelicOption, GameState } from '../../types'
+import { Equipment, EquipmentOption, GameState } from '../../types'
 import { advanceToNextLevel } from '../cardSystem'
 import { shouldShowShopReward } from '../levelSystem'
 import { startShopSelection } from '../shopSystem'
-import { getAllRelics } from '../gameRepository'
+import { getAllEquipment } from '../gameRepository'
 import { applyEstrogenEffect } from './estrogen'
 import { applyProgesteroneEffect } from './progesterone'
 import { applyBootsEffect } from './boots'
@@ -13,7 +13,7 @@ import { applyCocktailEffect } from './cocktail'
 import { applyDiscoBallEffect } from './discoBall'
 import { applyBleachEffect } from './bleach'
 
-// Re-export all relic effects
+// Re-export all equipment effects
 export { triggerDoubleBroomEffect } from './doubleBroom'
 export { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerMatedPairEffect, triggerBabyBunnyEffect } from './dustBunny'
 export { checkFrillyDressEffect } from './frillyDress'
@@ -34,24 +34,24 @@ export { applyCocktailEffect } from './cocktail'
 export { applyDiscoBallEffect } from './discoBall'
 
 // Re-export utilities
-export { hasRelic } from './relicUtils'
+export { hasEquipment } from './equipmentUtils'
 
-// Relic selection and management
-export function createRelicOptions(ownedRelics: Relic[] = []): RelicOption[] {
-  const allRelics = getAllRelics()
+// Equipment selection and management
+export function createEquipmentOptions(ownedEquipment: Equipment[] = []): EquipmentOption[] {
+  const allEquipment = getAllEquipment()
 
-  // Filter out relics the player already owns or doesn't have prerequisites for
-  const ownedRelicNames = new Set(ownedRelics.map(relic => relic.name))
-  const availableRelics = allRelics.filter(relic => {
-    // Already own this relic
-    if (ownedRelicNames.has(relic.name)) {
+  // Filter out equipment the player already owns or doesn't have prerequisites for
+  const ownedEquipmentNames = new Set(ownedEquipment.map(equipment => equipment.name))
+  const availableEquipment = allEquipment.filter(equipment => {
+    // Already own this equipment
+    if (ownedEquipmentNames.has(equipment.name)) {
       return false
     }
 
-    // Check prerequisites - relic must have all prerequisite relics owned
-    if (relic.prerequisites && relic.prerequisites.length > 0) {
-      const hasAllPrerequisites = relic.prerequisites.every(prereqName =>
-        ownedRelicNames.has(prereqName)
+    // Check prerequisites - equipment must have all prerequisite equipment owned
+    if (equipment.prerequisites && equipment.prerequisites.length > 0) {
+      const hasAllPrerequisites = equipment.prerequisites.every(prereqName =>
+        ownedEquipmentNames.has(prereqName)
       )
       if (!hasAllPrerequisites) {
         return false
@@ -62,70 +62,70 @@ export function createRelicOptions(ownedRelics: Relic[] = []): RelicOption[] {
   })
 
   // Shuffle using Fisher-Yates algorithm (proper random shuffle)
-  const shuffled = [...availableRelics]
+  const shuffled = [...availableEquipment]
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
-  return shuffled.slice(0, 3).map(relic => ({ relic }))
+  return shuffled.slice(0, 3).map(equipment => ({ equipment }))
 }
 
-export function selectRelic(state: GameState, selectedRelic: Relic): GameState {
-  const newRelics = [...state.relics, selectedRelic]
+export function selectEquipment(state: GameState, selectedEquipment: Equipment): GameState {
+  const newEquipment = [...state.equipment, selectedEquipment]
 
-  // For Boots, preserve relicOptions so the screen stays visible during card selection
-  // For other relics, clear relicOptions
-  const shouldPreserveRelicOptions = selectedRelic.name === 'Boots'
+  // For Boots, preserve equipmentOptions so the screen stays visible during card selection
+  // For other equipment, clear equipmentOptions
+  const shouldPreserveEquipmentOptions = selectedEquipment.name === 'Boots'
 
   // Determine context: if we have shopOptions, we're in shop; otherwise we're in reward flow
   const context: 'reward' | 'shop' = state.shopOptions ? 'shop' : 'reward'
 
   let updatedState: GameState = {
     ...state,
-    relics: newRelics,
-    relicOptions: shouldPreserveRelicOptions ? state.relicOptions : undefined,
-    relicUpgradeContext: context // Set context for upgrade display
+    equipment: newEquipment,
+    equipmentOptions: shouldPreserveEquipmentOptions ? state.equipmentOptions : undefined,
+    equipmentUpgradeContext: context // Set context for upgrade display
   }
 
-  // Apply special relic effects for Estrogen, Progesterone, Boots, Crystal, Broom Closet, Novel, Cocktail, Disco Ball, and Bleach
-  if (selectedRelic.name === 'Estrogen') {
-    // Estrogen triggers upgrade display, continuation handled by closeRelicUpgradeDisplay
+  // Apply special equipment effects for Estrogen, Progesterone, Boots, Crystal, Broom Closet, Novel, Cocktail, Disco Ball, and Bleach
+  if (selectedEquipment.name === 'Estrogen') {
+    // Estrogen triggers upgrade display, continuation handled by closeEquipmentUpgradeDisplay
     return applyEstrogenEffect(updatedState)
-  } else if (selectedRelic.name === 'Progesterone') {
-    // Progesterone triggers upgrade display, continuation handled by closeRelicUpgradeDisplay
+  } else if (selectedEquipment.name === 'Progesterone') {
+    // Progesterone triggers upgrade display, continuation handled by closeEquipmentUpgradeDisplay
     return applyProgesteroneEffect(updatedState)
-  } else if (selectedRelic.name === 'Boots') {
-    // Boots triggers card selection for transformation, relicOptions preserved above
+  } else if (selectedEquipment.name === 'Boots') {
+    // Boots triggers card selection for transformation, equipmentOptions preserved above
     return applyBootsEffect(updatedState)
-  } else if (selectedRelic.name === 'Crystal') {
+  } else if (selectedEquipment.name === 'Crystal') {
     // Crystal triggers upgrade display showing the 3 added Tingles
     return applyCrystalEffect(updatedState)
-  } else if (selectedRelic.name === 'Broom Closet') {
+  } else if (selectedEquipment.name === 'Broom Closet') {
     // Broom Closet removes all Spritz and adds 3 Sweep cards
     return applyBroomClosetEffect(updatedState)
-  } else if (selectedRelic.name === 'Novel') {
+  } else if (selectedEquipment.name === 'Novel') {
     // Novel replaces all Instructions with doubly-upgraded Sarcastic Instructions
     return applyNovelEffect(updatedState)
-  } else if (selectedRelic.name === 'Cocktail') {
+  } else if (selectedEquipment.name === 'Cocktail') {
     // Cocktail removes all Scurry and adds 2 random cards
     return applyCocktailEffect(updatedState)
-  } else if (selectedRelic.name === 'Disco Ball') {
+  } else if (selectedEquipment.name === 'Disco Ball') {
     // Disco Ball adds 2 doubly-upgraded Tingles
     return applyDiscoBallEffect(updatedState)
-  } else if (selectedRelic.name === 'Bleach') {
+  } else if (selectedEquipment.name === 'Bleach') {
     // Bleach enhances all Spritz and Sweep cards
     return applyBleachEffect(updatedState)
   } else {
-    // For other relics, set gamePhase to playing and continue normal flow
+    // For other equipment, set gamePhase to playing and continue normal flow
     const nonUpgradeState: GameState = {
       ...updatedState,
       gamePhase: 'playing' as const
     }
-    delete nonUpgradeState.relicUpgradeContext // Clear context for non-upgrade relics
+    delete nonUpgradeState.equipmentUpgradeContext // Clear context for non-upgrade equipment
     updatedState = nonUpgradeState
   }
 
-  // Check if this level should show shop rewards after relic selection
+  // Check if this level should show shop rewards after equipment selection
   if (shouldShowShopReward(state.currentLevelId)) {
     return startShopSelection(updatedState)
   } else {
@@ -134,34 +134,34 @@ export function selectRelic(state: GameState, selectedRelic: Relic): GameState {
   }
 }
 
-export function startRelicSelection(state: GameState): GameState {
-  const relicOptions = createRelicOptions(state.relics)
+export function startEquipmentSelection(state: GameState): GameState {
+  const equipmentOptions = createEquipmentOptions(state.equipment)
   return {
     ...state,
-    gamePhase: 'relic_selection',
-    relicOptions
+    gamePhase: 'equipment_selection',
+    equipmentOptions
   }
 }
 
-export function closeRelicUpgradeDisplay(state: GameState): GameState {
-  console.log('📋 CLOSING RELIC UPGRADE DISPLAY')
-  console.log('📋 Context:', state.relicUpgradeContext)
+export function closeEquipmentUpgradeDisplay(state: GameState): GameState {
+  console.log('📋 CLOSING EQUIPMENT UPGRADE DISPLAY')
+  console.log('📋 Context:', state.equipmentUpgradeContext)
 
   const updatedState: GameState = {
     ...state,
     gamePhase: 'playing' as const,
-    relicUpgradeResults: undefined
+    equipmentUpgradeResults: undefined
   }
-  delete updatedState.relicUpgradeContext // Clear the context
+  delete updatedState.equipmentUpgradeContext // Clear the context
 
   // Handle based on context
-  if (state.relicUpgradeContext === 'debug') {
-    // Debug relic addition - return to playing without level advancement
-    console.log('📋 Debug relic addition - returning to playing without level advancement')
+  if (state.equipmentUpgradeContext === 'debug') {
+    // Debug equipment addition - return to playing without level advancement
+    console.log('📋 Debug equipment addition - returning to playing without level advancement')
     return updatedState
   }
 
-  if (state.relicUpgradeContext === 'shop') {
+  if (state.equipmentUpgradeContext === 'shop') {
     // Return to shop with existing options and purchased items preserved
     console.log('📋 Shop context - returning to shop')
     return {

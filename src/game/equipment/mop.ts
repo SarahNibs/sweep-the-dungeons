@@ -1,15 +1,15 @@
 import { GameState } from '../../types'
 import { drawCards } from '../cardSystem'
-import { hasRelic } from './relicUtils'
+import { hasEquipment } from './equipmentUtils'
 
 export function triggerMopEffect(state: GameState, tilesCleanedCount: number): GameState {
   console.log('🧽 MOP EFFECT DEBUG')
-  console.log('  - Has Mop relic:', hasRelic(state, 'Mop'))
+  console.log('  - Has Mop equipment:', hasEquipment(state, 'Mop'))
   console.log('  - Tiles cleaned count:', tilesCleanedCount)
-  console.log('  - Player relics:', state.relics.map(r => r.name))
+  console.log('  - Player equipment:', state.equipment.map(r => r.name))
 
-  if (!hasRelic(state, 'Mop') || tilesCleanedCount <= 0) {
-    console.log('  - Mop effect not triggered (no relic or no tiles cleaned)')
+  if (!hasEquipment(state, 'Mop') || tilesCleanedCount <= 0) {
+    console.log('  - Mop effect not triggered (no equipment or no tiles cleaned)')
     return state
   }
 

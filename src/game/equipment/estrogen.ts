@@ -1,6 +1,6 @@
 import { GameState, Card } from '../../types'
 import { createCard } from '../gameRepository'
-import { getEligibleCardsForUpgrade, selectRandomCards } from './relicUtils'
+import { getEligibleCardsForUpgrade, selectRandomCards } from './equipmentUtils'
 
 export function applyEstrogenEffect(state: GameState): GameState {
   console.log('💉 ESTROGEN EFFECT - Applying energy reduction to 3 random cards')
@@ -37,7 +37,7 @@ export function applyEstrogenEffect(state: GameState): GameState {
   return {
     ...state,
     persistentDeck: newPersistentDeck,
-    gamePhase: 'relic_upgrade_display',
-    relicUpgradeResults: upgradeResults
+    gamePhase: 'equipment_upgrade_display',
+    equipmentUpgradeResults: upgradeResults
   }
 }

@@ -134,7 +134,7 @@ export function calculateBasePriorities(
     }
 
     // Add Eyeshadow bonus if applicable (applied to ALL tiles)
-    // TODO: Implement Eyeshadow bonus when that relic is added
+    // TODO: Implement Eyeshadow bonus when that equipment is added
     // Note: According to spec, these bonuses apply to ALL tiles, not just those with clue pips
 
     basePriorities.set(key, basePriority)

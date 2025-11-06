@@ -1,10 +1,10 @@
 import { GameState } from '../../types'
 import { positionToKey, removeSpecialTile } from '../boardSystem'
-import { revealTileWithRelicEffects } from '../cardEffects'
-import { hasRelic } from './relicUtils'
+import { revealTileWithEquipmentEffects } from '../cardEffects'
+import { hasEquipment } from './equipmentUtils'
 
 export function triggerInterceptedNoteEffect(state: GameState): GameState {
-  if (!hasRelic(state, 'Intercepted Communications')) {
+  if (!hasEquipment(state, 'Intercepted Communications')) {
     return state
   }
 
@@ -44,7 +44,7 @@ export function triggerInterceptedNoteEffect(state: GameState): GameState {
   }
 
   // Reveal the tile with 'player' to show player adjacency info (uncontrollable - random selection)
-  const newState = revealTileWithRelicEffects(currentState, position, 'player', false)
+  const newState = revealTileWithEquipmentEffects(currentState, position, 'player', false)
 
   console.log('  - Intercepted Communications effect completed')
   return newState

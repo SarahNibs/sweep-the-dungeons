@@ -1,4 +1,4 @@
-import { Card, Relic } from '../types'
+import { Card, Equipment } from '../types'
 
 // Card definitions with all properties centralized
 export interface CardDefinition {
@@ -13,14 +13,14 @@ export interface CardDefinition {
   icon: string
 }
 
-// Relic definitions with all properties centralized
-export interface RelicDefinition {
+// Equipment definitions with all properties centralized
+export interface EquipmentDefinition {
   name: string
   description: string
   hoverText: string
   category: 'common' | 'uncommon' | 'rare'
   icon: string
-  prerequisites?: string[] // List of relic names that must be owned before this relic can be offered
+  prerequisites?: string[] // List of equipment names that must be owned before this equipment can be offered
 }
 
 // Centralized card definitions
@@ -450,8 +450,8 @@ export const AI_METADATA: Record<string, AIMetadata> = {
   }
 }
 
-// Centralized relic definitions
-export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
+// Centralized equipment definitions
+export const EQUIPMENT_DEFINITIONS: Record<string, EquipmentDefinition> = {
   'Double Broom': {
     name: 'Double Broom',
     description: 'brush some nearby tiles when cleaning',
@@ -706,8 +706,8 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
 }
 
 // Helper function to apply DIY Gel enhancement to a card if owned
-export function applyDIYGel(relics: Relic[], card: Card): Card {
-  const hasDIYGel = relics.some(r => r.name === 'DIY Gel')
+export function applyDIYGel(equipment: Equipment[], card: Card): Card {
+  const hasDIYGel = equipment.some(r => r.name === 'DIY Gel')
 
   // If DIY Gel is owned and the card is not already enhanced, enhance it
   if (hasDIYGel && !card.enhanced) {
@@ -722,12 +722,12 @@ export function applyDIYGel(relics: Relic[], card: Card): Card {
 }
 
 // Helper function to add a card to the persistent deck, respecting DIY Gel
-export function addCardToPersistentDeck(state: { persistentDeck: Card[]; relics: Relic[] }, card: Card): Card[] {
-  const finalCard = applyDIYGel(state.relics, card)
+export function addCardToPersistentDeck(state: { persistentDeck: Card[]; equipment: Equipment[] }, card: Card): Card[] {
+  const finalCard = applyDIYGel(state.equipment, card)
   return [...state.persistentDeck, finalCard]
 }
 
-// Factory functions for creating cards and relics
+// Factory functions for creating cards and equipment
 
 export function createCard(name: string, upgrades?: { energyReduced?: boolean; enhanced?: boolean }): Card {
   const definition = CARD_DEFINITIONS[name]
@@ -756,10 +756,10 @@ export function createCard(name: string, upgrades?: { energyReduced?: boolean; e
   }
 }
 
-export function createRelic(name: string): Relic {
-  const definition = RELIC_DEFINITIONS[name]
+export function createEquipment(name: string): Equipment {
+  const definition = EQUIPMENT_DEFINITIONS[name]
   if (!definition) {
-    throw new Error(`Unknown relic: ${name}`)
+    throw new Error(`Unknown equipment: ${name}`)
   }
 
   return {
@@ -878,8 +878,8 @@ export function selectWeightedCard(pool: CardPoolEntry[]): string {
   return firstEntry.baseName
 }
 
-export function getAllRelics(): Relic[] {
-  return Object.keys(RELIC_DEFINITIONS).map(name => createRelic(name))
+export function getAllEquipment(): Equipment[] {
+  return Object.keys(EQUIPMENT_DEFINITIONS).map(name => createEquipment(name))
 }
 
 export function getCardDescription(card: Card): string {
@@ -900,8 +900,8 @@ export function getCardIcon(cardName: string): string {
   return definition?.icon || '❓'
 }
 
-export function getRelicIcon(relicName: string): string {
-  const definition = RELIC_DEFINITIONS[relicName]
+export function getEquipmentIcon(equipmentName: string): string {
+  const definition = EQUIPMENT_DEFINITIONS[equipmentName]
   return definition?.icon || '✨'
 }
 

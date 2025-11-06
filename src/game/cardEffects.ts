@@ -1,6 +1,6 @@
 import { GameState, CardEffect, Position, Tile, TileAnnotation, ClueResult, GameStatusInfo } from '../types'
 import { positionToKey, getTile, revealTileWithResult, hasSpecialTile, calculateAdjacency } from './boardSystem'
-import { triggerDoubleBroomEffect, checkFrillyDressEffect } from './relics'
+import { triggerDoubleBroomEffect, checkFrillyDressEffect } from './equipment'
 import { removeStatusEffect, createCard } from './gameRepository'
 import { getLevelConfig } from './levelSystem'
 import { executeScoutEffect } from './cards/scout'
@@ -72,8 +72,8 @@ export function trackPlayerTileReveal(
   return updatedState
 }
 
-// Shared reveal function that includes relic effects
-export function revealTileWithRelicEffects(
+// Shared reveal function that includes equipment effects
+export function revealTileWithEquipmentEffects(
   state: GameState,
   position: Position,
   revealer: 'player' | 'rival',
@@ -241,7 +241,7 @@ export function revealTileWithRelicEffects(
     gameStatus
   }
   
-  // Apply relic effects only for player reveals
+  // Apply equipment effects only for player reveals
   if (revealer === 'player') {
     // Trigger Double Broom effect if tile was revealed (not just cleaned)
     if (revealResult.revealed) {
@@ -267,7 +267,7 @@ export function revealTileWithRelicEffects(
   // Track player tile reveals and award copper every 5th reveal
   stateWithBoard = trackPlayerTileReveal(stateWithBoard, position, revealResult.revealed)
 
-  console.log('🔚 REVEAL TILE WITH RELIC EFFECTS - FINAL STATE')
+  console.log('🔚 REVEAL TILE WITH EQUIPMENT EFFECTS - FINAL STATE')
   console.log('  - Final underwireProtection:', stateWithBoard.underwireProtection)
   console.log('  - Final activeStatusEffects:', stateWithBoard.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
   console.log('  - Final hand size:', stateWithBoard.hand.length)
@@ -670,8 +670,8 @@ export function checkGameStatus(state: GameState): GameStatusInfo {
   }
   
   // Check win conditions
-  // Favor relic: finish when 1 player tile remaining instead of 0
-  const hasFavor = state.relics.some(r => r.name === 'Favor')
+  // Favor equipment: finish when 1 player tile remaining instead of 0
+  const hasFavor = state.equipment.some(r => r.name === 'Favor')
   const unrevealedPlayerTiles = totalPlayerTiles - playerTilesRevealed
 
   if (playerTilesRevealed === totalPlayerTiles) {

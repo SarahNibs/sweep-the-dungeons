@@ -2,7 +2,7 @@ import { GameState } from '../../types'
 import { createCard } from '../gameRepository'
 
 /**
- * Glasses relic: at the beginning of every turn, play a Tingle for free (adds a Tingle to discard)
+ * Glasses equipment: at the beginning of every turn, play a Tingle for free (adds a Tingle to discard)
  * Just adds the Tingle card to discard - the animation will be triggered by the store
  */
 export function prepareGlassesEffect(state: GameState): GameState {

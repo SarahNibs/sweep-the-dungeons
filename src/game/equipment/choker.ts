@@ -1,11 +1,11 @@
 import { GameState } from '../../types'
 
 /**
- * Choker relic: when your rival reaches 5 tiles left unrevealed, the rival's turn ends
+ * Choker equipment: when your rival reaches 5 tiles left unrevealed, the rival's turn ends
  */
 export function checkChokerEffect(state: GameState): { shouldEndTurn: boolean; reason?: string } {
-  // Check if player has Choker relic
-  const hasChoker = state.relics.some(relic => relic.name === 'Choker')
+  // Check if player has Choker equipment
+  const hasChoker = state.equipment.some(equipment => equipment.name === 'Choker')
   if (!hasChoker) {
     return { shouldEndTurn: false }
   }

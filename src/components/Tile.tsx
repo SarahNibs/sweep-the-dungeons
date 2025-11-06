@@ -796,16 +796,16 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           let color: string
           if (player !== undefined) {
             value = player
-            color = '#22c55e' // Green for player
+            color = '#81b366' // Green for player (matches revealed tile color)
           } else if (rival !== undefined) {
             value = rival
-            color = '#ef4444' // Red for rival
+            color = '#c65757' // Red for rival (matches revealed tile color)
           } else if (neutral !== undefined) {
             value = neutral
-            color = '#6b7280' // Gray for neutral
+            color = '#d4aa5a' // Yellow for neutral (matches revealed tile color)
           } else { // mine !== undefined
             value = mine!
-            color = '#000000' // Black for mine
+            color = '#8b6ba8' // Purple for mine (matches revealed tile color)
           }
 
           // For revealed tiles, position it offset from center to avoid conflict with adjacency count
@@ -837,10 +837,10 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         } else if (values.length > 1) {
           // Enhanced version: four smaller circles in 2x2 grid
           const positions = [
-            { top: '30%', left: '30%', label: 'P', name: 'Player', value: player, color: '#22c55e' }, // Green for player
-            { top: '30%', left: '70%', label: 'N', name: 'Neutral', value: neutral, color: '#6b7280' }, // Gray for neutral
-            { top: '70%', left: '30%', label: 'R', name: 'Rival', value: rival, color: '#ef4444' }, // Red for rival
-            { top: '70%', left: '70%', label: 'M', name: 'Mine', value: mine, color: '#000000' }  // Black for mine
+            { top: '30%', left: '30%', label: 'P', name: 'Player', value: player, color: '#81b366' }, // Green for player (matches revealed tile color)
+            { top: '30%', left: '70%', label: 'N', name: 'Neutral', value: neutral, color: '#d4aa5a' }, // Yellow for neutral (matches revealed tile color)
+            { top: '70%', left: '30%', label: 'R', name: 'Rival', value: rival, color: '#c65757' }, // Red for rival (matches revealed tile color)
+            { top: '70%', left: '70%', label: 'M', name: 'Mine', value: mine, color: '#8b6ba8' }  // Purple for mine (matches revealed tile color)
           ]
 
           positions.forEach((pos, index) => {
@@ -852,7 +852,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                       width: '12px',
                       height: '12px',
                       backgroundColor: pos.color,
-                      color: 'white',
+                      color: 'black',
                       border: '1px solid black',
                       borderRadius: '50%',
                       display: 'flex',

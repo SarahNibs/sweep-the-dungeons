@@ -1,6 +1,7 @@
 import { RivalAI, AIContext } from '../AITypes'
 import { GameState, Tile, ClueResult, Position } from '../../../types'
 import { hasSpecialTile } from '../../boardSystem'
+import { AI_METADATA } from '../../gameRepository'
 
 /**
  * RandomAI - Completely random tile selection
@@ -8,9 +9,9 @@ import { hasSpecialTile } from '../../boardSystem'
  * Useful for testing and as a difficulty floor
  */
 export class RandomAI implements RivalAI {
-  readonly name = 'Random Rival'
-  readonly description = 'Makes completely random choices, ignoring all clues'
-  readonly icon = '🎲'
+  readonly name = AI_METADATA['random'].name
+  readonly description = AI_METADATA['random'].description
+  readonly icon = AI_METADATA['random'].icon
 
   selectTilesToReveal(
     state: GameState,

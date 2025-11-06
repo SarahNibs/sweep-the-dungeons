@@ -6,10 +6,10 @@ export function checkFrillyDressEffect(state: GameState, revealedTile: { owner: 
     return false
   }
 
-  // Check if this is first turn and we haven't revealed 6 neutrals yet
-  // Tea removes the 6 neutral limit
+  // Check if this is first turn and we haven't revealed 4 neutrals yet
+  // Tea removes the 4 neutral limit
   const hasTea = hasRelic(state, 'Tea')
-  const withinLimit = hasTea || state.neutralsRevealedThisTurn < 6
+  const withinLimit = hasTea || state.neutralsRevealedThisTurn < 4
 
   return state.isFirstTurn &&
          withinLimit &&

@@ -123,7 +123,7 @@ export function createShopOptions(state: GameState): ShopOption[] {
       type: 'remove_card',
       cost: scaleCost(15), // Base cost 15
       displayName: 'Remove Card',
-      description: 'Remove a card from your deck permanently'
+      description: 'Remove a card from your deck'
     })
   }
 
@@ -131,7 +131,7 @@ export function createShopOptions(state: GameState): ShopOption[] {
   options.push({
     type: 'temp_bunny',
     cost: scaleCost(5), // Base cost 5
-    displayName: 'Temporary Bunny Helper',
+    displayName: 'Visiting Bunny',
     description: 'A bunny will reveal one of your tiles at the start of the next level'
   })
 
@@ -139,7 +139,7 @@ export function createShopOptions(state: GameState): ShopOption[] {
   options.push({
     type: 'random_enhance',
     cost: scaleCost(10), // Base cost 10
-    displayName: 'Random Enhance Upgrade',
+    displayName: 'Enhance!',
     description: 'Randomly enhance a card in your deck that isn\'t already enhanced'
   })
   

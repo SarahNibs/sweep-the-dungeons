@@ -51,7 +51,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 2,
     category: 'reward',
     description: {
-      base: 'Evidence of ~two of your tiles vs ~one not yours, or of lots of your tiles AROUND 1-2 not yours',
+      base: 'Evidence of ~two of your tiles vs ~one not yours, or of lots of your tiles AROUND ~1 not yours',
       enhanced: 'Evidence of ~two of your tiles vs ~one not yours, or of lots of your tiles AROUND 1-2 not yours. Gain 1 energy if any other Instructions card has been played this floor.'
     },
     icon: '😏'
@@ -71,8 +71,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'starter',
     description: {
-      base: 'Annotate a random rival or mine tile with its owner',
-      enhanced: 'Annotate a random rival or mine tile with its owner, and sense player adjacency info for it'
+      base: 'Sense a random rival or mine tile',
+      enhanced: 'Sense a random rival or mine tile, and your tiles around it'
     },
     icon: '😳'
   },
@@ -145,8 +145,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Remove all dirt in a 5x5 area',
-      enhanced: 'Remove all dirt in a 7x7 area'
+      base: 'Clean up a 5x5 area',
+      enhanced: 'Clean up a 7x7 area'
     },
     icon: '🧹'
   },
@@ -156,8 +156,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     exhaust: true,
     category: 'reward',
     description: {
-      base: 'Protection against revealing one mine this floor. Exhaust.',
-      enhanced: 'Protection against revealing one mine this floor.'
+      base: 'Protection against one mine this floor. Exhaust.',
+      enhanced: 'Protection against one mine this floor.'
     },
     icon: '🛡️'
   },
@@ -167,7 +167,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     category: 'reward',
     description: {
       base: 'You and your rival reveal a random tile for each other',
-      enhanced: 'You and your rival reveal a tile for each other as close to a designated tile as possible'
+      enhanced: 'You and your rival reveal a tile for each other as close to a designated spot as possible'
     },
     icon: '🥺'
   },
@@ -207,8 +207,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 3,
     category: 'reward',
     description: {
-      base: 'Reveal ALL of the safest type of tile in a burst 1 cross area. After the upfront investment, Horse cards cost 0 for the rest of the floor.',
-      enhanced: 'Annotate ALL of the safest type of tile in a burst 1 cross area. After the upfront investment, Horse cards cost 0 for the rest of the floor.'
+      base: 'Reveal ALL of the safest type of tile in a burst 1 cross area. Horses cost 0 until next floor.',
+      enhanced: 'Sense ALL of the safest type of tile in a burst 1 cross area. Horses cost 0 until next floor.'
     },
     icon: '🐴'
   },
@@ -217,8 +217,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Listen in on a tile to get player adjacency info',
-      enhanced: 'Listen in on a tile to get ALL adjacency info (player, neutral, rival, mines)'
+      base: 'Listen in on a tile to sense your tiles around it',
+      enhanced: 'Listen in on a tile to sense ALL tiles around it'
     },
     icon: '👂'
   },
@@ -258,8 +258,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Defuse all mines on a tile. If any mine is defused, gain 2 copper, then reveal the tile.',
-      enhanced: 'Defuse all mines on a tile. If any mine is defused, gain 2 copper, then reveal the tile and sense nearby mines.'
+      base: 'Defuse all mines on a tile. If any mine is defused, gain 2 copper; if the tile was a mine, reveal it safely.',
+      enhanced: 'Defuse all mines on a tile. If any mine is defused, gain 2 copper; if the tile was a mine, reveal it safely and sense nearby mines.'
     },
     icon: '✂️'
   },
@@ -290,8 +290,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Target a tile and all tiles in manhattan distance 1 (cross shape). Any dirt, goblins, and surface mines are blown to a random adjacent unrevealed tile.',
-      enhanced: 'Target a tile and all tiles in a 3x3 area. Any dirt, goblins, and surface mines are blown to a random adjacent unrevealed tile.'
+      base: 'Blow dirt, goblins, and surface mines in a burst 1 cross area to adjacent tiles',
+      enhanced: 'Blow dirt, goblins, and surface mines in a 3x3 area to adjacent tiles'
     },
     icon: '🪭'
   },
@@ -300,8 +300,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Choose a tile, search upward for first rival tile. Annotate rival tile and all checked tiles as not rival.',
-      enhanced: 'Choose a tile, search upward for first rival AND first mine. Annotate found tiles and all checked tiles.'
+      base: 'Look up and sense the first rival tile',
+      enhanced: 'Look up and sense the first rival tile and the first mine tile'
     },
     icon: '👀'
   },
@@ -310,8 +310,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Choose a tile, search downward for first rival tile. Annotate rival tile and all checked tiles as not rival.',
-      enhanced: 'Choose a tile, search downward for first rival AND first mine. Annotate found tiles and all checked tiles.'
+      base: 'Look down and sense the first rival tile',
+      enhanced: 'Look down and sense the first rival tile and the first mine tile'
     },
     icon: '👀'
   },
@@ -320,8 +320,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Choose a tile, search left for first rival tile. Annotate rival tile and all checked tiles as not rival.',
-      enhanced: 'Choose a tile, search left for first rival AND first mine. Annotate found tiles and all checked tiles.'
+      base: 'Look left and sense the first rival tile',
+      enhanced: 'Look left and sense the first rival tile and the first mine tile'
     },
     icon: '👀'
   },
@@ -330,8 +330,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Choose a tile, search right for first rival tile. Annotate rival tile and all checked tiles as not rival.',
-      enhanced: 'Choose a tile, search right for first rival AND first mine. Annotate found tiles and all checked tiles.'
+      base: 'Look right and sense the first rival tile',
+      enhanced: 'Look right and sense the first rival tile and the first mine tile'
     },
     icon: '👀'
   },
@@ -340,8 +340,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Choose a tile, check it and all tiles upward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player.',
-      enhanced: 'Choose a tile, check it and all tiles upward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player. Draw a card.'
+      base: 'Look up and reveal all tiles of the most common type you see',
+      enhanced: 'Look up and reveal all tiles of the most common type you see. Draw a card.'
     },
     icon: '🎾'
   },
@@ -350,8 +350,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Choose a tile, check it and all tiles downward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player.',
-      enhanced: 'Choose a tile, check it and all tiles downward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player. Draw a card.'
+      base: 'Look down and reveal all tiles of the most common type you see',
+      enhanced: 'Look down and reveal all tiles of the most common type you see. Draw a card.'
     },
     icon: '🎾'
   },
@@ -360,8 +360,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Choose a tile, check it and all tiles leftward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player.',
-      enhanced: 'Choose a tile, check it and all tiles leftward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player. Draw a card.'
+      base: 'Look left and reveal all tiles of the most common type you see',
+      enhanced: 'Look left and reveal all tiles of the most common type you see. Draw a card.'
     },
     icon: '🎾'
   },
@@ -370,8 +370,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Choose a tile, check it and all tiles rightward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player.',
-      enhanced: 'Choose a tile, check it and all tiles rightward. Find most common owner (tiebreak to safest). Reveal all of that owner. Annotate rest as not majority owner. Turn ends if not player. Draw a card.'
+      base: 'Look right and reveal all tiles of the most common type you see',
+      enhanced: 'Look right and reveal all tiles of the most common type you see. Draw a card.'
     },
     icon: '🎾'
   },
@@ -381,8 +381,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     category: 'reward',
     exhaust: true,
     description: {
-      base: 'Draw +1 card every turn for 2 floors. Stacks if played again.',
-      enhanced: 'Draw +1 card every turn for 3 floors. Draw a card now. Stacks if played again.'
+      base: 'Draw a card every turn for 2 more floors',
+      enhanced: 'Draw a card every turn for 3 more floors'
     },
     icon: '🍔'
   },
@@ -391,8 +391,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 1,
     category: 'reward',
     description: {
-      base: 'Summon a goblin on a random unrevealed player tile and annotate it as player',
-      enhanced: 'Summon 2 goblins on random unrevealed player tiles and annotate them as player'
+      base: 'Summon a goblin on one of your tiles at random',
+      enhanced: 'Summon a goblin on two of your tiles at random'
     },
     icon: '🍩'
   },
@@ -402,8 +402,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     category: 'reward',
     exhaust: true,
     description: {
-      base: 'Gain +1 energy when revealing player tiles grants copper for 2 floors. Stacks if played again.',
-      enhanced: 'Gain +1 energy when revealing player tiles grants copper for 3 floors. Stacks if played again.'
+      base: 'Gaining copper from your tile reveals also gains 1 energy for 2 more floors',
+      enhanced: 'Gaining copper from your tile reveals also gains 1 energy for 3 more floors'
     },
     icon: '🍦'
   },
@@ -413,11 +413,41 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     category: 'reward',
     exhaust: true,
     description: {
-      base: 'Reveal +1 player tile at start of floor for 2 floors. Stacks if played again.',
-      enhanced: 'Reveal +1 player tile at start of floor for 3 floors. Stacks if played again.'
+      base: 'Reveal one of your tiles at the start of each floor for 2 more floors',
+      enhanced: 'Reveal one of your tiles at the start of each floor for 3 more floors'
     },
     icon: '🥕'
   },
+}
+
+// Centralized AI metadata
+export interface AIMetadata {
+  name: string
+  description: string
+  icon: string
+}
+
+export const AI_METADATA: Record<string, AIMetadata> = {
+  'noguess': {
+    name: 'Instruction Follower',
+    description: 'Rival follows their instructions as best they can, and that\'s it',
+    icon: '🛡️'
+  },
+  'random': {
+    name: 'Random Rival',
+    description: 'Makes completely random choices, ignoring all clues',
+    icon: '?'
+  },
+  'conservative': {
+    name: 'Observant',
+    description: 'Rival uses some deduction if they can, then follows their instructions',
+    icon: '🧠'
+  },
+  'reasoning': {
+    name: 'Intuitive',
+    description: 'Rival accounts for probabilities as best they can, while also following their instructions',
+    icon: '🎲'
+  }
 }
 
 // Centralized relic definitions
@@ -425,34 +455,34 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   'Double Broom': {
     name: 'Double Broom',
     description: 'brush some nearby tiles when cleaning',
-    hoverText: 'Double Broom: whenever you reveal a tile, apply the Brush effect to two random unrevealed adjacent tiles',
+    hoverText: 'Double Broom: whenever you reveal a tile, apply a Brush effect to two random unrevealed adjacent tiles',
     category: 'common',
     icon: '🧹'
   },
   'Dust Bunny': {
     name: 'Dust Bunny',
     description: 'animal companion who helps you clean',
-    hoverText: 'Dust Bunny: when you start a new floor, you immediately reveal one of your non-dirty tiles at random, getting adjacency info just as if you revealed it normally',
+    hoverText: 'Dust Bunny: when you start a new floor, reveal one of your tiles at random',
     category: 'common',
     icon: '🐰'
   },
   'Frilly Dress': {
     name: 'Frilly Dress',
     description: 'your counterpart sometimes watches you clean rather than cleaning themselves',
-    hoverText: 'Frilly Dress: revealing neutral tiles on your first turn of any floor does not end your turn (up to 6 neutrals)',
+    hoverText: 'Frilly Dress: revealing up to four neutral tiles on your first turn does not end your turn',
     category: 'common',
     icon: '👗'
   },
   'Busy Canary': {
     name: 'Busy Canary',
-    description: 'industrious bird who scans for mines at floor start',
-    hoverText: 'Busy Canary: at the beginning of every floor, randomly scan up to 2 areas for mines',
+    description: 'industrious birb who scans for mines at floor start',
+    hoverText: 'Busy Canary: at the start of every floor, randomly scan up to 2 areas for mines',
     category: 'common',
     icon: '🐦'
   },
   'Mop': {
     name: 'Mop',
-    description: 'efficient cleaning tool that rewards thoroughness',
+    description: 'cleaning is super efficient now!',
     hoverText: 'Mop: whenever you clean dirt from a tile, draw a card',
     category: 'common',
     icon: '🪣'
@@ -467,14 +497,14 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   'Estrogen': {
     name: 'Estrogen',
     description: 'everything is just... smoother',
-    hoverText: 'Estrogen: replaces three random non-upgraded cards in your deck with their energy-upgraded versions',
+    hoverText: 'Estrogen: replace three random cards in your deck with their energy-upgraded versions',
     category: 'rare',
     icon: '💉'
   },
   'Progesterone': {
     name: 'Progesterone',
     description: "nothing's easier but everything's better",
-    hoverText: 'Progesterone: replaces three random non-upgraded cards in your deck with their enhance-upgraded versions',
+    hoverText: 'Progesterone: replace three random cards in your deck with their enhance-upgraded versions',
     category: 'rare',
     icon: '💊'
   },
@@ -488,106 +518,106 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   'Intercepted Communications': {
     name: 'Mirrors',
     description: 'reflect your rival\'s moves',
-    hoverText: 'Mirrors: at the beginning of each floor, one of the rival\'s tiles is revealed at random, giving info about adjacent player tiles',
+    hoverText: 'Mirrors: at the start of each floor, one random rival tile is revealed and you sense your own adjacent tiles',
     category: 'common',
     icon: '🪞'
   },
   'Handbag': {
     name: 'Handbag',
-    description: 'carry extra supplies for the start of battle',
-    hoverText: 'Handbag: draw 2 additional cards at the start of your first turn each floor',
+    description: 'a purse; a big purse',
+    hoverText: 'Handbag: draw 2 additional cards on your first turn',
     category: 'common',
     icon: '👜'
   },
   'Eyeshadow': {
     name: 'Eyeshadow',
     description: 'distract your rival with your beauty',
-    hoverText: 'Eyeshadow: your rival gets a random [0-1] added to each priority (permanent half-Ramble effect)',
+    hoverText: 'Eyeshadow: your rival ... um. their clues won\'t work as well. kinda-sorta like playing half a Ramble every turn?',
     category: 'common',
     icon: '👁️'
   },
   'Hyperfocus': {
     name: 'Hyperfocus',
     description: 'you will *definitely* do *something*',
-    hoverText: 'Hyperfocus: at the beginning of each floor, add a random cost-0 card to your first turn hand (not added to persistent deck)',
+    hoverText: 'Hyperfocus: put a random net-cost-0 card into your first turn\'s hand',
     category: 'common',
     icon: '🎯'
   },
   'Choker': {
     name: 'Choker',
-    description: 'strategic accessory for close games',
-    hoverText: 'Choker: when your rival reaches 5 tiles left unrevealed, the rival\'s turn ends',
+    description: 'your rival can\'t help but look',
+    hoverText: 'Choker: when your rival reaches 5 tiles left unrevealed, their turn ends',
     category: 'common',
     icon: '📿'
   },
   'Crystal': {
     name: 'Crystal',
-    description: 'three shimmering amplifications',
-    hoverText: 'Crystal: add 3 doubly-enhanced Tingles to your permanent deck',
+    description: 'enhance your senses',
+    hoverText: 'Crystal: add 3 doubly-upgraded Tingles to your deck',
     category: 'rare',
     icon: '💎'
   },
   'Boots': {
     name: 'Boots',
-    description: 'boots made for walking all over your deck',
-    hoverText: 'Boots: when gained, transform one of your cards into any random non-starter card with BOTH enhanced and energy upgrades',
+    description: 'replace your slippers with rockin\' boots',
+    hoverText: 'Boots: replace a card from your deck with a random doubly-upgraded card',
     category: 'rare',
     icon: '👢'
   },
   'Glasses': {
     name: 'Glasses',
-    description: 'see everything more clearly',
-    hoverText: 'Glasses: at the beginning of every turn, play a Tingle for free (adds a Tingle to discard)',
+    description: 'see clearly now',
+    hoverText: 'Glasses: before each of your turns, play a free Tingle (it is discarded)',
     category: 'common',
     icon: '👓'
   },
   'Broom Closet': {
     name: 'Broom Closet',
-    description: 'trade in all your Spritz for better cleaning tools',
-    hoverText: 'Broom Closet: when gained, remove all Spritz cards from your deck and add 3 Broom cards (one regular, one energy-upgraded, one enhance-upgraded)',
+    description: 'put away your spray bottle and break out the brooms',
+    hoverText: 'Broom Closet: remove all Spritz cards from your deck and add 3 Broom cards (regular, energy-upgraded, one enhance-upgraded)',
     category: 'rare',
     icon: '🚪'
   },
   'Novel': {
     name: 'Novel',
-    description: 'rewrite the instruction manual',
-    hoverText: 'Novel: when gained, replace all Instruction cards with doubly-upgraded Sarcastic Instructions. Future Instruction card additions are also replaced.',
+    description: 'read instead of working',
+    hoverText: 'Novel: replace all current and future Instruction cards in your deck with doubly-upgraded Sarcastic Instructions',
     category: 'rare',
     icon: '📖'
   },
   'Bleach': {
     name: 'Bleach',
-    description: 'enhance all your Spritz and Sweep cards',
-    hoverText: 'Bleach: when gained, enhance all Spritz and Sweep cards in your deck',
+    description: 'clean so easily',
+    hoverText: 'Bleach: enhance-upgrade all Spritz and Sweep cards in your deck',
     category: 'common',
     icon: '🧴'
   },
   'Cocktail': {
     name: 'Cocktail',
-    description: 'trade in your Scurry cards for random variety',
-    hoverText: 'Cocktail: when gained, remove all Scurry cards from your deck and add 2 random cards instead',
+    description: 'chill out and relax',
+    hoverText: 'Cocktail: remove all Scurry cards from your deck, add 2 random energy-upgraded cards instead',
     category: 'uncommon',
     icon: '🍸'
   },
   'DIY Gel': {
     name: 'DIY Gel',
-    description: 'every new card is automatically enhanced',
-    hoverText: 'DIY Gel: every card you add to your permanent deck will be automatically enhance-upgraded',
+    description: 'waow, what a feeling',
+    hoverText: 'DIY Gel: every card added to your deck will be automatically enhance-upgraded',
     category: 'rare',
     icon: '🧴',
     prerequisites: ['Progesterone']
   },
   'Tea': {
     name: 'Tea',
-    description: 'unlimited neutral reveals on first turn',
-    hoverText: 'Tea: Frilly Dress is no longer limited to 6 neutrals',
+    description: 'she tells good stories, too',
+    hoverText: 'Tea: Frilly Dress is no longer limited to 4 neutral tiles',
     category: 'uncommon',
     icon: '☕',
     prerequisites: ['Frilly Dress']
   },
   'Triple Broom': {
     name: 'Triple Broom',
-    description: 'brush even more nearby tiles when cleaning',
+    description: 'brush even more',
     hoverText: 'Triple Broom: revealing applies Brush effect to 3 random adjacent unrevealed tiles instead of 2',
     category: 'uncommon',
     icon: '3️⃣',
@@ -595,7 +625,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   },
   'Quadruple Broom': {
     name: 'Quadruple Broom',
-    description: 'brush maximum nearby tiles when cleaning',
+    description: 'sweep, sweep, sweep, sweep',
     hoverText: 'Quadruple Broom: revealing applies Brush effect to 4 random adjacent unrevealed tiles instead of 3',
     category: 'rare',
     icon: '💪',
@@ -603,24 +633,24 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   },
   'Mated Pair': {
     name: 'Mated Pair',
-    description: 'a second bunny companion to help you clean',
-    hoverText: 'Mated Pair: reveal a second player tile at the start of each floor (Dust Bunny reveals the first, Mated Pair reveals the second)',
+    description: 'a second bunny companion!',
+    hoverText: 'Mated Pair: reveal another of your tiles at the start of each floor',
     category: 'uncommon',
     icon: '🍐',
     prerequisites: ['Dust Bunny']
   },
   'Baby Bunny': {
     name: 'Baby Bunny',
-    description: 'yet another bunny companion to help you clean',
-    hoverText: 'Baby Bunny: reveal a third player tile at the start of each floor',
+    description: 'where could this bun have come from',
+    hoverText: 'Baby Bunny: reveal a third of your tiles at the start of each floor',
     category: 'rare',
     icon: '🍼',
     prerequisites: ['Mated Pair']
   },
   'Pockets': {
     name: 'Pockets',
-    description: 'carry even more supplies for the start of battle',
-    hoverText: 'Pockets: draw a third extra card at the start of your first turn each floor (Handbag draws the first two, Pockets draws the third)',
+    description: 'do you even need a purse?',
+    hoverText: 'Pockets: draw a third additional card on your first turn',
     category: 'uncommon',
     icon: '👖',
     prerequisites: ['Handbag']
@@ -628,22 +658,22 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   'Mascara': {
     name: 'Mascara',
     description: 'even more distracting beauty',
-    hoverText: 'Mascara: your rival gets an additional random [0-0.5] added to each priority (stacks with Eyeshadow for [0-1.5] total)',
+    hoverText: 'Mascara: look I don\'t know how to tell you exactly what this does but yeah it\'s like playing more Rambles',
     category: 'uncommon',
     icon: '✏️',
     prerequisites: ['Eyeshadow']
   },
   'Geode': {
     name: 'Geode',
-    description: 'crystal amplifies all tingles',
-    hoverText: 'Geode: whenever you play a Tingle, draw a card (includes Tingles played by Glasses)',
+    description: 'the future reveals itself to you',
+    hoverText: 'Geode: whenever you play a Tingle, draw a card',
     category: 'rare',
     icon: '🔷',
     prerequisites: ['Crystal']
   },
   'Fanfic': {
     name: 'Fanfic',
-    description: 'rewrite the sarcasm for fun and profit',
+    description: 'read *fanfiction* instead of working',
     hoverText: 'Fanfic: playing a Sarcastic Instructions draws a card and loses 1 copper',
     category: 'rare',
     icon: '📜',
@@ -651,16 +681,16 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   },
   'Favor': {
     name: 'Favor',
-    description: 'someone owes you one',
-    hoverText: 'Favor: finish a floor when 1 player tile is remaining instead of when 0 player tiles are remaining',
+    description: 'your rival owes you one',
+    hoverText: 'Favor: finish a floor when 1 of your tiles is remaining instead of 0',
     category: 'rare',
     icon: '🤝',
     prerequisites: ['Tea', 'Cocktail']
   },
   'Disco Ball': {
     name: 'Disco Ball',
-    description: 'party time with enhanced tingles',
-    hoverText: 'Disco Ball: add 2 doubly-upgraded Tingles to your deck (enhanced and energy-reduced)',
+    description: 'lock eyes across the dance floor',
+    hoverText: 'Disco Ball: add 2 doubly-upgraded Tingles to your deck',
     category: 'rare',
     icon: '🪩',
     prerequisites: ['Geode']
@@ -811,7 +841,10 @@ export function getWeightedRewardCardPool(): CardPoolEntry[] {
     { baseName: 'Fan', weight: 1.0 },
     { baseName: 'Gaze', weight: 1.0, variants: ['Gaze ↑', 'Gaze ↓', 'Gaze ←', 'Gaze →'] },
     { baseName: 'Fetch', weight: 1.0, variants: ['Fetch ↑', 'Fetch ↓', 'Fetch ←', 'Fetch →'] },
-    { baseName: 'Burger', weight: 2/3 } // Rare - appears 2/3 as often
+    { baseName: 'Burger', weight: 2/3 }, // Rare - appears 2/3 as often
+    { baseName: 'Ice Cream', weight: 2/3 }, // Rare - appears 2/3 as often
+    { baseName: 'Donut', weight: 2/3 }, // Rare - appears 2/3 as often
+    { baseName: 'Carrots', weight: 2/3 } // Rare - appears 2/3 as often
   ]
 }
 
@@ -885,8 +918,8 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         id: baseId,
         type: 'underwire_protection',
         icon: '🛡️',
-        name: 'Underwire Protection',
-        description: 'Protects from revealing mines (prevents loss)',
+        name: 'Underwire',
+        description: 'Protects once from revealing mines',
         enhanced,
         count: 1
       }
@@ -895,8 +928,8 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         id: baseId,
         type: 'ramble_active',
         icon: '🌀',
-        name: 'Ramble Active',
-        description: 'Rival\'s guaranteed bag pulls are disrupted for their next turn',
+        name: 'Rambling',
+        description: 'Rival has a harder time following instructions on their next turn',
         enhanced
       }
     case 'manhattan_adjacency':
@@ -904,23 +937,23 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         id: baseId,
         type: 'manhattan_adjacency',
         icon: '🔢',
-        name: 'Manhattan Distance 2',
-        description: 'This floor uses Manhattan distance (4-way) adjacency rules at distance 2 instead of standard 8-way'
+        name: 'Wide Adjacency',
+        description: 'For this floor, the four tiles up, down, left, and right at distance 2 are also considered adjacent'
       }
     case 'horse_discount':
       return {
         id: baseId,
         type: 'horse_discount',
         icon: '🐴',
-        name: 'Horse Discount',
-        description: 'Horse cards cost 0 energy for the rest of this floor'
+        name: 'Horse Girl',
+        description: 'Horses cost 0 for the rest of this floor (someone else is paying)'
       }
     case 'rival_never_mines':
       return {
         id: baseId,
         type: 'rival_never_mines',
         icon: '🚫',
-        name: 'Rival Mine Avoidance',
+        name: 'Rival Advantage',
         description: 'Your rival will never reveal mine tiles this floor'
       }
     case 'grace':
@@ -929,15 +962,15 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         type: 'grace',
         icon: '🤞',
         name: 'Grace',
-        description: 'Prevents losing to one mine reveal this floor (adds Evidence to top of draw pile if triggered)'
+        description: 'Protects once from revealing mines, but adds an Evidence to the top of your draw pile and an Evidence to your discard'
       }
     case 'rival_mine_protection':
       return {
         id: baseId,
         type: 'rival_mine_protection',
         icon: '🪙',
-        name: 'Rival Mine Protection',
-        description: 'Rival can safely reveal mines (awards copper)',
+        name: 'Rival Favoritism',
+        description: 'Protects rival, once, from revealing mines, but awards you copper if used',
         count: 0 // Will be set based on level config
       }
     case 'rival_places_mines':
@@ -945,7 +978,7 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         id: baseId,
         type: 'rival_places_mines',
         icon: '💣',
-        name: 'Rival Mining Alert',
+        name: 'Rival Mines You!',
         description: 'Rival places surface mines on your tiles after each turn!',
         count: 0 // Will be set based on level config
       }
@@ -963,8 +996,28 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         id: baseId,
         type: 'burger',
         icon: '🍔',
-        name: 'Burger Boost',
-        description: 'Draw +1 card at the start of each turn',
+        name: 'Burger',
+        description: 'Draw an additional card every turn',
+        enhanced,
+        count: 1
+      }
+    case 'ice_cream':
+      return {
+        id: baseId,
+        type: 'ice_cream',
+        icon: '🍦',
+        name: 'Ice Cream',
+        description: 'Gaining copper from your tile reveals also gains 1 energy',
+        enhanced,
+        count: 1
+      }
+    case 'carrots':
+      return {
+        id: baseId,
+        type: 'carrots',
+        icon: '🥕',
+        name: 'Carrots',
+        description: 'Reveal one of your tiles at the start of the floor',
         enhanced,
         count: 1
       }
@@ -1052,5 +1105,43 @@ export function clearAllStatusEffects(state: GameState): GameState {
   return {
     ...state,
     activeStatusEffects: []
+  }
+}
+
+/**
+ * Get the AI type key from an AI name
+ * @param aiName - The AI name (e.g., 'NoGuess Rival', 'Random Rival')
+ * @returns The AI type key (e.g., 'NoGuess', 'Random')
+ */
+export function getAITypeKeyFromName(aiName: string): string {
+  for (const [key, metadata] of Object.entries(AI_METADATA)) {
+    if (metadata.name === aiName) {
+      return key
+    }
+  }
+  throw new Error(`Unknown AI name: ${aiName}. Available names: ${Object.values(AI_METADATA).map(m => m.name).join(', ')}`)
+}
+
+/**
+ * Create a rival AI status effect from an AI type key
+ * This centralizes the creation logic for AI status effects
+ * Uses the centralized AI_METADATA registry
+ *
+ * @param aiTypeKey - The AI type key (e.g., 'NoGuess', 'Random', 'Conservative', 'Reasoning')
+ */
+export function createAIStatusEffect(aiTypeKey: string): StatusEffect {
+  const metadata = AI_METADATA[aiTypeKey]
+
+  if (!metadata) {
+    throw new Error(`Unknown AI type: ${aiTypeKey}. Available types: ${Object.keys(AI_METADATA).join(', ')}`)
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    type: 'rival_ai_type' as const,
+    icon: metadata.icon,
+    name: metadata.name,
+    description: metadata.description,
+    count: 0
   }
 }

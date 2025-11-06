@@ -46,7 +46,7 @@ function getCardEffectType(cardName: string): string {
   }
 }
 
-import { createCard as createCardFromRepository, getRewardCardPool, getStarterCards, removeStatusEffect, addStatusEffect, addCardToPersistentDeck } from './gameRepository'
+import { createCard as createCardFromRepository, getRewardCardPool, getStarterCards, removeStatusEffect, addStatusEffect, addCardToPersistentDeck, createAIStatusEffect, getAITypeKeyFromName } from './gameRepository'
 
 export function createCard(name: string, upgrades?: { energyReduced?: boolean; enhanced?: boolean }): Card {
   return createCardFromRepository(name, upgrades)
@@ -1149,14 +1149,9 @@ export function createInitialState(
   if (levelConfig) {
     const currentAI = AIController.getCurrentAI(finalState)
 
-    // Create a custom status effect for this AI type
-    const aiStatusEffect = {
-      id: crypto.randomUUID(),
-      type: 'rival_ai_type' as const,
-      icon: currentAI.icon,
-      name: currentAI.name,
-      description: currentAI.description
-    }
+    // Create a custom status effect for this AI type using centralized metadata
+    const aiTypeKey = getAITypeKeyFromName(currentAI.name)
+    const aiStatusEffect = createAIStatusEffect(aiTypeKey)
 
     finalState = {
       ...finalState,

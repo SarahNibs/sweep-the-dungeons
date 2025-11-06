@@ -254,7 +254,7 @@ function App() {
 
             {/* Player tile reveal counter */}
             <Tooltip
-              text={`Every 5th player tile revealed grants 1 copper. Current progress: ${playerTilesRevealedCount % 5}/5`}
+              text={`Gain 1 copper per 5 of your tiles revealed`}
               style={{ display: 'block', margin: '0 auto' }}
             >
               <div

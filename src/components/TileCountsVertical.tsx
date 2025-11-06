@@ -35,7 +35,7 @@ export function TileCountsVertical({ board, annotationButtons, onToggleButton }:
         return (
           <Tooltip
             key={type}
-            text={`${label}: ${count} (Click to ${isDepressed ? 'exclude' : 'include'} in annotations)`}
+            text={`${label}: ${count}`}
             style={{ display: 'block', width: '100%' }}
           >
             <button

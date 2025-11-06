@@ -2,6 +2,7 @@ import { GameState, CardEffect, Position, Tile, TileAnnotation, ClueResult, Game
 import { positionToKey, getTile, revealTileWithResult, hasSpecialTile, calculateAdjacency } from './boardSystem'
 import { triggerDoubleBroomEffect, checkFrillyDressEffect } from './relics'
 import { removeStatusEffect, createCard } from './gameRepository'
+import { getLevelConfig } from './levelSystem'
 import { executeScoutEffect } from './cards/scout'
 import { executeQuantumEffect } from './cards/quantumChoice'
 import { executeReportEffect } from './cards/report'
@@ -622,6 +623,10 @@ export function addClueResult(state: GameState, position: Position, clueResult: 
 export function checkGameStatus(state: GameState): GameStatusInfo {
   const board = state.board
 
+  // Get level config for level number
+  const levelConfig = getLevelConfig(state.currentLevelId)
+  const levelNumber = levelConfig?.levelNumber
+
   // Count tiles first for potential rival tiles left calculation
   // Exclude destroyed tiles from all counts
   let playerTilesRevealed = 0
@@ -658,7 +663,8 @@ export function checkGameStatus(state: GameState): GameStatusInfo {
       return {
         status: tile.revealedBy === 'player' ? 'player_lost' : 'player_won',
         reason: tile.revealedBy === 'player' ? 'player_revealed_mine' : 'rival_revealed_mine',
-        rivalTilesLeft: tile.revealedBy === 'rival' ? totalRivalTiles - rivalTilesRevealed : undefined
+        rivalTilesLeft: tile.revealedBy === 'rival' ? totalRivalTiles - rivalTilesRevealed : undefined,
+        levelNumber: tile.revealedBy === 'player' ? levelNumber : undefined
       }
     }
   }
@@ -688,7 +694,8 @@ export function checkGameStatus(state: GameState): GameStatusInfo {
   if (rivalTilesRevealed === totalRivalTiles) {
     return {
       status: 'player_lost',
-      reason: 'all_rival_tiles_revealed'
+      reason: 'all_rival_tiles_revealed',
+      levelNumber
     }
   }
   

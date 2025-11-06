@@ -66,6 +66,7 @@ export interface GameStatusInfo {
   status: 'playing' | 'player_won' | 'player_lost'
   reason?: 'player_revealed_mine' | 'rival_revealed_mine' | 'all_player_tiles_revealed' | 'all_rival_tiles_revealed'
   rivalTilesLeft?: number
+  levelNumber?: number
 }
 
 export type GameEvent = 

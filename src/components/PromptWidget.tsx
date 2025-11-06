@@ -25,12 +25,13 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel
         return `🎉 Floor ${levelNumber} Complete! ${rivalLeft} rival tiles left! 🎉`
       }
     } else if (gameStatus.status === 'player_lost') {
+      const floorInfo = gameStatus.levelNumber ? ` (Floor ${gameStatus.levelNumber})` : ''
       if (gameStatus.reason === 'player_revealed_mine') {
-        return "💀 Failure! You revealed a mine! 💀"
+        return `💀 Failure! You revealed a mine!${floorInfo} 💀`
       } else if (gameStatus.reason === 'all_rival_tiles_revealed') {
-        return "💀 Failure! All rival tiles revealed! 💀"
+        return `💀 Failure! All rival tiles revealed!${floorInfo} 💀`
       }
-      return "💀 Failure! 💀"
+      return `💀 Failure!${floorInfo} 💀`
     } else if (targetingInfo) {
       return `${targetingInfo.description} (${targetingInfo.selected.length}/${targetingInfo.count})`
     } else {

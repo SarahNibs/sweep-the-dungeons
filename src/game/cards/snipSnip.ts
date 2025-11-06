@@ -1,6 +1,6 @@
 import { GameState, Position, TileAnnotation } from '../../types'
 import { getTile, positionToKey, removeSpecialTile, hasSpecialTile, calculateAdjacency, getNeighbors } from '../boardSystem'
-import { addTileAnnotation, updateNeighborAdjacencyInfo, addOwnerSubsetAnnotation } from '../cardEffects'
+import { updateNeighborAdjacencyInfo, addOwnerSubsetAnnotation } from '../cardEffects'
 
 // Helper function to count adjacent mines
 function countAdjacentMines(state: GameState, position: Position): number {
@@ -56,31 +56,42 @@ export function executeSnipSnipEffect(state: GameState, target: Position, card?:
       adjacencyCount: playerAdjacency
     }
 
-    newTiles.set(key, currentTile)
-    mineDefused = true
-
     // Enhanced: also show mine adjacency info as annotation
     if (card?.enhanced) {
       const mineAdjacency = countAdjacentMines(newState, target)
       console.log(`✂️ SNIP SNIP (Enhanced): Mine adjacency = ${mineAdjacency}`)
 
+      // Remove existing adjacency_info annotations and add new one
+      const existingAnnotations = currentTile.annotations.filter(a => a.type !== 'adjacency_info')
       const annotation: TileAnnotation = {
         type: 'adjacency_info',
         adjacencyInfo: { mine: mineAdjacency }
       }
-      newState = addTileAnnotation(newState, target, annotation)
+      currentTile = {
+        ...currentTile,
+        annotations: [...existingAnnotations, annotation]
+      }
     }
+
+    newTiles.set(key, currentTile)
+    mineDefused = true
   }
   // Enhanced: show mine adjacency regardless of whether we defused
   else if (card?.enhanced) {
     const mineAdjacency = countAdjacentMines(newState, target)
     console.log(`✂️ SNIP SNIP (Enhanced): Mine adjacency = ${mineAdjacency}`)
 
+    // Remove existing adjacency_info annotations and add new one
+    const existingAnnotations = currentTile.annotations.filter(a => a.type !== 'adjacency_info')
     const annotation: TileAnnotation = {
       type: 'adjacency_info',
       adjacencyInfo: { mine: mineAdjacency }
     }
-    newState = addTileAnnotation(newState, target, annotation)
+    currentTile = {
+      ...currentTile,
+      annotations: [...existingAnnotations, annotation]
+    }
+    newTiles.set(key, currentTile)
   }
 
   // Update board with changes BEFORE adding non-mine annotation

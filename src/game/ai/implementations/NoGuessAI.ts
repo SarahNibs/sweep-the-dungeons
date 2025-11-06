@@ -3,6 +3,7 @@ import { GameState, Tile, ClueResult, Position } from '../../../types'
 import { calculateTilePriorities } from '../utils/priorityScoring'
 import { logAIPriorityAnalysis } from '../utils/aiCommon'
 import { hasSpecialTile } from '../../boardSystem'
+import { AI_METADATA } from '../../gameRepository'
 
 /**
  * NoGuessAI - The current default AI implementation
@@ -10,9 +11,9 @@ import { hasSpecialTile } from '../../boardSystem'
  * Never uses revealed adjacency information for deductions
  */
 export class NoGuessAI implements RivalAI {
-  readonly name = 'NoGuess Rival'
-  readonly description = 'Uses clues but never makes logical deductions'
-  readonly icon = '🛡️'
+  readonly name = AI_METADATA['noguess'].name
+  readonly description = AI_METADATA['noguess'].description
+  readonly icon = AI_METADATA['noguess'].icon
 
   selectTilesToReveal(
     state: GameState,

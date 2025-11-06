@@ -1,4 +1,5 @@
 import { GameState, Card } from '../../types'
+import { createStatusEffect } from '../gameRepository'
 
 /**
  * Carrots card effect: reveals 1 player tile at the beginning of a floor
@@ -34,14 +35,12 @@ export function executeCarrotsEffect(state: GameState, card?: Card): GameState {
       )
     }
   } else {
-    // Create new carrots status effect with stacks
+    // Create new carrots status effect with stacks using centralized definition
+    const baseEffect = createStatusEffect('carrots', card?.enhanced)
     const carrotsEffect = {
-      id: crypto.randomUUID(),
-      type: 'carrots' as const,
-      icon: '🥕',
-      name: 'Carrots',
-      description: `Reveal +1 player tile at start of floor (${stacksToAdd} floor${stacksToAdd > 1 ? 's' : ''} remaining)`,
-      count: stacksToAdd
+      ...baseEffect,
+      count: stacksToAdd,
+      description: `Reveal +1 player tile at start of floor (${stacksToAdd} floor${stacksToAdd > 1 ? 's' : ''} remaining)`
     }
 
     newState = {

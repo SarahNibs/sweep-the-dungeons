@@ -3,9 +3,9 @@ import { getTile, getNeighbors } from '../boardSystem'
 
 export function executeEavesdroppingEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
   const targetTile = getTile(state.board, target)
-  
-  if (!targetTile || targetTile.revealed) {
-    // Can't eavesdrop on revealed tiles or empty spaces
+
+  if (!targetTile) {
+    // Can't eavesdrop on empty spaces
     return state
   }
   

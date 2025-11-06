@@ -1,4 +1,5 @@
 import { GameState, Card } from '../../types'
+import { createStatusEffect } from '../gameRepository'
 
 /**
  * Ice Cream card effect: grants 1 energy when gaining copper from revealing player tiles
@@ -34,14 +35,12 @@ export function executeIceCreamEffect(state: GameState, card?: Card): GameState 
       )
     }
   } else {
-    // Create new ice cream status effect with stacks
+    // Create new ice cream status effect with stacks using centralized definition
+    const baseEffect = createStatusEffect('ice_cream', card?.enhanced)
     const iceCreamEffect = {
-      id: crypto.randomUUID(),
-      type: 'ice_cream' as const,
-      icon: '🍦',
-      name: 'Ice Cream',
-      description: `Gain +1 energy when revealing player tiles grants copper (${stacksToAdd} floor${stacksToAdd > 1 ? 's' : ''} remaining)`,
-      count: stacksToAdd
+      ...baseEffect,
+      count: stacksToAdd,
+      description: `Gain +1 energy when revealing player tiles grants copper (${stacksToAdd} floor${stacksToAdd > 1 ? 's' : ''} remaining)`
     }
 
     newState = {

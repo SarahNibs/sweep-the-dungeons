@@ -5,6 +5,7 @@ import { analyzeExclusionsAndGuarantees } from '../reasoning/exclusionLogic'
 import { extractAdjacencyInfo } from '../reasoning/adjacencyExtractor'
 import { runMonteCarloSimulation } from '../reasoning/monteCarloRunner'
 import { calculatePriorities, calculateBasePriorities } from '../reasoning/priorityCalculator'
+import { AI_METADATA } from '../../gameRepository'
 
 /**
  * ReasoningAI - Uses Monte Carlo simulation with hill climbing for probabilistic tile selection
@@ -17,9 +18,9 @@ import { calculatePriorities, calculateBasePriorities } from '../reasoning/prior
  * 5. Select highest priority tile
  */
 export class ReasoningAI implements RivalAI {
-  readonly name = 'Reasoning Rival'
-  readonly description = 'Uses Monte Carlo simulation and hill climbing to make probabilistic decisions'
-  readonly icon = '🎲'
+  readonly name = AI_METADATA['reasoning'].name
+  readonly description = AI_METADATA['reasoning'].description
+  readonly icon = AI_METADATA['reasoning'].icon
 
   selectTilesToReveal(
     state: GameState,

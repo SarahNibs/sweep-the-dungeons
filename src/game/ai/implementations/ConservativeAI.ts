@@ -3,6 +3,7 @@ import { GameState, Tile, ClueResult, Position } from '../../../types'
 import { calculateTilePriorities } from '../utils/priorityScoring'
 import { revealTile, positionToKey, hasSpecialTile } from '../../boardSystem'
 import { analyzeExclusionsAndGuarantees } from '../reasoning/exclusionLogic'
+import { AI_METADATA } from '../../gameRepository'
 
 /**
  * ConservativeAI - Uses iterative constraint propagation for logical deduction
@@ -17,9 +18,9 @@ import { analyzeExclusionsAndGuarantees } from '../reasoning/exclusionLogic'
  * 4. Re-applies full logic after each reveal to use new information
  */
 export class ConservativeAI implements RivalAI {
-  readonly name = 'Conservative Rival'
-  readonly description = 'Uses iterative logic to deduce tile ownership and make safe choices'
-  readonly icon = '🧠'
+  readonly name = AI_METADATA['conservative'].name
+  readonly description = AI_METADATA['conservative'].description
+  readonly icon = AI_METADATA['conservative'].icon
 
   selectTilesToReveal(
     state: GameState,

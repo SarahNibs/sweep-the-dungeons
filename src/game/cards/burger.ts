@@ -1,4 +1,5 @@
 import { GameState, Card } from '../../types'
+import { createStatusEffect } from '../gameRepository'
 
 /**
  * Burger card effect: grants bonus card draw every turn for 3 floors
@@ -34,14 +35,12 @@ export function executeBurgerEffect(state: GameState, card?: Card): GameState {
       )
     }
   } else {
-    // Create new burger status effect with stacks
+    // Create new burger status effect with stacks using centralized definition
+    const baseEffect = createStatusEffect('burger', card?.enhanced)
     const burgerEffect = {
-      id: crypto.randomUUID(),
-      type: 'burger' as const,
-      icon: '🍔',
-      name: 'Burger',
-      description: `Draw +1 card every turn (${stacksToAdd} floor${stacksToAdd > 1 ? 's' : ''} remaining)`,
-      count: stacksToAdd
+      ...baseEffect,
+      count: stacksToAdd,
+      description: `Draw +1 card every turn (${stacksToAdd} floor${stacksToAdd > 1 ? 's' : ''} remaining)`
     }
 
     newState = {

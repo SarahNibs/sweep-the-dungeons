@@ -1,6 +1,7 @@
 import { GameState } from '../../types'
 import { checkGameStatus } from '../cardEffects'
 import { calculateCopperReward } from '../levelSystem'
+import { createAIStatusEffect } from '../gameRepository'
 
 /**
  * Helper function to update state and award copper if game was just won
@@ -208,18 +209,9 @@ export class DebugController {
         return
       }
 
-      // Get AI info for status effect
-      const ai = AIRegistry.create(aiType)
-
-      // Remove existing AI status effect and add new one
+      // Remove existing AI status effect and add new one using centralized metadata
       const filteredEffects = currentState.activeStatusEffects.filter(e => e.type !== 'rival_ai_type')
-      const newStatusEffect = {
-        id: crypto.randomUUID(),
-        type: 'rival_ai_type' as const,
-        icon: ai.icon,
-        name: ai.name,
-        description: ai.description
-      }
+      const newStatusEffect = createAIStatusEffect(aiType)
 
       const newState = {
         ...currentState,
@@ -227,7 +219,7 @@ export class DebugController {
         activeStatusEffects: [...filteredEffects, newStatusEffect]
       }
 
-      console.log(`✅ Changed rival AI to: ${ai.name}`)
+      console.log(`✅ Changed rival AI to: ${newStatusEffect.name}`)
       console.log(`   Next rival turn will use AI type: ${aiType}`)
       this.setState(newState)
     }).catch(err => {

@@ -344,6 +344,16 @@ export const useGameStore = create<GameStore>((set, get) => {
 
   getTargetingInfo: () => {
     const currentState = get()
+
+    // Check for masking state first
+    if (currentState.maskingState) {
+      return {
+        count: 1,
+        description: `🎭 Select a card from your hand to play for free! (Both cards will exhaust${currentState.maskingState.enhanced ? ', except Masking' : ''})`,
+        selected: []
+      }
+    }
+
     if (!currentState.pendingCardEffect || !currentState.selectedCardName) return null
 
     // Find the card to check if it's enhanced - use ID to find the exact card being played
@@ -352,14 +362,14 @@ export const useGameStore = create<GameStore>((set, get) => {
       : currentState.hand.find(c => c.name === currentState.selectedCardName)
     const info = getTargetingInfo(currentState.selectedCardName, card?.enhanced)
     if (!info) return null
-    
+
     const selected: Position[] = []
     const effect = currentState.pendingCardEffect
-    
+
     if (effect.type === 'quantum' && 'targets' in effect) {
       selected.push(...effect.targets)
     }
-    
+
     return {
       count: info.count,
       description: info.description,

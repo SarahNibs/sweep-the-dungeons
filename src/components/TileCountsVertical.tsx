@@ -15,48 +15,49 @@ interface TileCountsVerticalProps {
 
 export function TileCountsVertical({ board, annotationButtons, onToggleButton }: TileCountsVerticalProps) {
   const counts = getUnrevealedCounts(board)
-  
-  const tileInfo = [
-    { type: 'player' as const, count: counts.player, color: '#81b366', label: 'Player tiles remaining' },
-    { type: 'rival' as const, count: counts.rival, color: '#c65757', label: 'Rival tiles remaining' },
-    { type: 'neutral' as const, count: counts.neutral, color: '#d4aa5a', label: 'Neutral tiles remaining' },
-    { type: 'mine' as const, count: counts.mine, color: '#8b6ba8', label: 'Mine tiles remaining' }
+
+  // Layout: upper left = mine, upper right = neutral, lower left = rival, lower right = player
+  const gridLayout = [
+    { type: 'mine' as const, count: counts.mine, color: '#8b6ba8', label: 'Mine tiles remaining', row: 0, col: 0 },
+    { type: 'neutral' as const, count: counts.neutral, color: '#d4aa5a', label: 'Neutral tiles remaining', row: 0, col: 1 },
+    { type: 'rival' as const, count: counts.rival, color: '#c65757', label: 'Rival tiles remaining', row: 1, col: 0 },
+    { type: 'player' as const, count: counts.player, color: '#81b366', label: 'Player tiles remaining', row: 1, col: 1 }
   ]
-  
+
   return (
     <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '6px',
-      width: '100%'
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gridTemplateRows: '1fr 1fr',
+      gap: '4px',
+      width: '52px',
+      margin: '0 auto 8px auto'
     }}>
-      {tileInfo.map(({ type, count, color, label }) => {
-        const isDepressed = annotationButtons[type]
+      {gridLayout.map(({ type, count, color, label }) => {
+        const isActive = annotationButtons[type]
         return (
           <Tooltip
             key={type}
             text={`${label}: ${count}`}
-            style={{ display: 'block', width: '100%' }}
+            style={{ display: 'block' }}
           >
             <button
               onClick={() => onToggleButton(type)}
               style={{
-                width: '40px',
+                width: '24px',
                 height: '24px',
                 backgroundColor: color,
-                borderRadius: '4px',
+                borderRadius: '3px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'black',
-                fontSize: '14px',
+                fontSize: '11px',
                 fontWeight: 'bold',
-                margin: '0 auto',
-                border: isDepressed ? '3px inset #999' : '3px outset #ccc',
+                border: isActive ? '2px solid #333' : '1px solid black',
                 cursor: 'pointer',
-                opacity: isDepressed ? 0.8 : 1,
-                transform: isDepressed ? 'translateY(1px)' : 'translateY(0)',
-                boxShadow: isDepressed ? 'inset 2px 2px 4px rgba(0,0,0,0.3)' : '2px 2px 4px rgba(0,0,0,0.2)'
+                opacity: isActive ? 1 : 0.6,
+                padding: 0
               }}
             >
               {count}

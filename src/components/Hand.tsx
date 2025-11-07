@@ -37,23 +37,6 @@ export function Hand({ cards, onCardClick, canPlayCard, deckCount, discardCount,
       gap: '10px',
       width: '100%'
     }}>
-      {/* Masking Mode Indicator */}
-      {maskingState && (
-        <div style={{
-          backgroundColor: '#3b82f6',
-          color: 'white',
-          padding: '10px 20px',
-          borderRadius: '8px',
-          textAlign: 'center',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-          animation: 'pulse 2s infinite'
-        }}>
-          🎭 Select a card from your hand to play for free! (Both cards will exhaust{maskingState.enhanced && ', except Masking'})
-        </div>
-      )}
-
       <div style={{
         display: 'flex',
         alignItems: 'center',

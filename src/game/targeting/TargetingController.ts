@@ -365,6 +365,27 @@ export class TargetingController {
   cancelCardTargeting(): void {
     const currentState = this.getState()
 
+    // Check for masking state first
+    if (currentState.maskingState) {
+      // Cancel masking - return card to hand
+      const maskingCard = currentState.discard.find(c => c.id === currentState.maskingState!.maskingCardId)
+      if (maskingCard) {
+        this.setState({
+          ...currentState,
+          hand: [...currentState.hand, maskingCard],
+          discard: currentState.discard.filter(c => c.id !== currentState.maskingState!.maskingCardId),
+          maskingState: null
+        })
+      } else {
+        // Card not found, just clear masking state
+        this.setState({
+          ...currentState,
+          maskingState: null
+        })
+      }
+      return
+    }
+
     // Check if this is an Espresso forced play
     if (currentState.espressoForcedPlay) {
       console.log('☕ ESPRESSO: Canceling forced play - deducting energy and discarding card')

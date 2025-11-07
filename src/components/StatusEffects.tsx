@@ -66,13 +66,17 @@ export function StatusEffects({ statusEffects }: StatusEffectsProps) {
     }}>
       {visibleEffects.map((effect) => {
         const shouldPulse = isPulsing && pulsingStatusEffectIds.includes(effect.id)
+        // Determine border color: red for rival-related effects, green for others
+        const isRivalEffect = ['rival_never_mines', 'rival_ai_type', 'rival_mine_protection', 'rival_places_mines'].includes(effect.type)
+        const borderColor = isRivalEffect ? '#dc3545' : '#28a745'
+
         return (
         <Tooltip key={effect.id} text={`${effect.name}: ${effect.description}`} style={{ display: 'block', margin: '0 auto' }}>
           <div
             style={{
               width: '42px',
               height: '42px',
-              border: '2px solid #e17055',
+              border: `2px solid ${borderColor}`,
               borderRadius: '6px',
               display: 'flex',
               alignItems: 'center',

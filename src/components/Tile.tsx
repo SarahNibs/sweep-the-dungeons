@@ -34,17 +34,10 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     setHoveredClueId,
     tingleAnimation,
     adjacencyPatternAnimation,
-    useDefaultAnnotations,
-    enabledOwnerPossibilities,
-    setUseDefaultAnnotations,
-    toggleOwnerPossibility,
     toggleFilteredAnnotation,
     board
   } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
-  const [showContextMenu, setShowContextMenu] = useState(false)
-  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
-  const [rightClickTimer, setRightClickTimer] = useState<NodeJS.Timeout | null>(null)
   
   // Add animation styles when component mounts
   useEffect(() => {
@@ -94,98 +87,9 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
   
   const handleRightClick = (e: React.MouseEvent) => {
     e.preventDefault() // Prevent browser context menu
-    // Let the mouseUp handler deal with the annotation logic
-  }
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button === 2 && !tile.revealed) { // Right mouse button
-      e.preventDefault()
-      
-      // Start timer for hold detection
-      const timer = setTimeout(() => {
-        // Show context menu
-        setContextMenuPosition({ x: e.clientX, y: e.clientY })
-        setShowContextMenu(true)
-      }, 500) // 500ms hold time
-      
-      setRightClickTimer(timer)
+    if (!tile.revealed) {
+      toggleFilteredAnnotation(tile.position)
     }
-  }
-
-  const handleMouseUp = (e: React.MouseEvent) => {
-    if (e.button === 2) {
-      if (rightClickTimer) {
-        clearTimeout(rightClickTimer)
-        setRightClickTimer(null)
-        
-        // If context menu is not showing, this was a quick right-click
-        if (!showContextMenu && !tile.revealed) {
-          toggleFilteredAnnotation(tile.position)
-        }
-      }
-    }
-  }
-
-  // All 16 possible owner combinations organized as 2x2 grid of 2x2 grids
-  const getAllOwnerCombinations = (): string[][] => {
-    // Outer grid: [could be player][could be rival] vs [can't be player][can't be rival]
-    // Inner grid: [could be neutral][could be mine] vs [can't be neutral][can't be mine]
-    
-    const combinations: string[][] = []
-    
-    // Top-left quadrant: CAN be player, CAN be rival
-    combinations.push([
-      'player,rival,neutral,mine', // Can be anything
-      'player,rival,neutral',      // Can be player/rival/neutral (not mine)
-      'player,rival,mine',         // Can be player/rival/mine (not neutral)  
-      'player,rival'               // Can only be player/rival
-    ])
-    
-    // Top-right quadrant: CAN be player, CAN'T be rival
-    combinations.push([
-      'player,neutral,mine',       // Can be player/neutral/mine (not rival)
-      'player,neutral',            // Can be player/neutral (not rival/mine)
-      'player,mine',               // Can be player/mine (not rival/neutral)
-      'player'                     // Can only be player
-    ])
-    
-    // Bottom-left quadrant: CAN'T be player, CAN be rival
-    combinations.push([
-      'rival,neutral,mine',        // Can be rival/neutral/mine (not player)
-      'rival,neutral',             // Can be rival/neutral (not player/mine)
-      'rival,mine',                // Can be rival/mine (not player/neutral)
-      'rival'                      // Can only be rival
-    ])
-    
-    // Bottom-right quadrant: CAN'T be player, CAN'T be rival
-    combinations.push([
-      'neutral,mine',              // Can be neutral/mine (not player/rival)
-      'neutral',                   // Can only be neutral
-      'mine',                      // Can only be mine
-      ''                           // Can't be anything (impossible)
-    ])
-    
-    return combinations
-  }
-
-  const ownerCombos = getAllOwnerCombinations()
-
-  const getComboLabel = (combo: string): string => {
-    if (combo === '') return '∅' // Empty set symbol
-    if (combo === 'player,rival,neutral,mine') return 'Any'
-    
-    const owners = combo.split(',')
-    const labels = owners.map(owner => {
-      switch(owner) {
-        case 'player': return 'P'
-        case 'rival': return 'E' 
-        case 'neutral': return 'N'
-        case 'mine': return 'M'
-        default: return ''
-      }
-    }).filter(l => l)
-    
-    return labels.join('')
   }
 
   // Combine player annotation with card results to get the actual display annotation
@@ -215,23 +119,6 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     return result.size > 0 ? result : null
   }
 
-  // Close context menu when clicking elsewhere
-  useEffect(() => {
-    const handleClickOutside = () => setShowContextMenu(false)
-    if (showContextMenu) {
-      document.addEventListener('click', handleClickOutside)
-      return () => document.removeEventListener('click', handleClickOutside)
-    }
-  }, [showContextMenu])
-
-  // Clean up timer on unmount
-  useEffect(() => {
-    return () => {
-      if (rightClickTimer) {
-        clearTimeout(rightClickTimer)
-      }
-    }
-  }, [rightClickTimer])
   
   // Check if this tile should be highlighted due to clue hover
   const isClueHighlighted = () => {
@@ -309,7 +196,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           left: '50%',
           transform: 'translate(-50%, -50%)',
           backgroundColor: getAdjacencyColor(),
-          color: 'white',
+          color: 'black',
           borderRadius: tile.revealedBy === 'player' ? '50%' : '3px',
           minWidth: '20px',
           height: '20px',
@@ -999,8 +886,6 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     <div
       onClick={handleClick}
       onContextMenu={handleRightClick}
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
       style={{
         position: 'relative',
         width: '56px',
@@ -1052,98 +937,9 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       </div>
   )
 
-  return (
-    <>
-      {tile.specialTiles.includes('extraDirty') && !tile.revealed ? (
-        <Tooltip text="Cannot reveal tile without cleaning it!">
-          {mainTile}
-        </Tooltip>
-      ) : mainTile}
-
-      {/* Context Menu */}
-      {showContextMenu && (
-        <div
-          style={{
-            position: 'fixed',
-            top: contextMenuPosition.y,
-            left: contextMenuPosition.x,
-            backgroundColor: 'white',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
-            zIndex: 10000,
-            padding: '8px',
-            fontSize: '12px',
-            minWidth: '200px'
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Default annotation toggle */}
-          <div
-            style={{
-              padding: '4px 8px',
-              cursor: 'pointer',
-              backgroundColor: useDefaultAnnotations ? '#e9ecef' : 'transparent',
-              border: '1px solid #ddd',
-              borderRadius: '3px',
-              marginBottom: '8px',
-              textAlign: 'center'
-            }}
-            onClick={() => {
-              setUseDefaultAnnotations(!useDefaultAnnotations)
-            }}
-          >
-            {useDefaultAnnotations ? '✓' : '○'} Default (slash only)
-          </div>
-
-          {/* 4x4 Grid of owner possibilities */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
-            {ownerCombos.map((quadrant, quadIndex) => (
-              <div key={quadIndex} style={{ 
-                border: '1px solid #ddd',
-                borderRadius: '3px',
-                padding: '2px'
-              }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
-                  {quadrant.map((combo, comboIndex) => (
-                    <Tooltip key={comboIndex} text={combo === '' ? 'Impossible (empty set)' : `Can be: ${combo.replace(/,/g, ', ')}`}>
-                      <div
-                        style={{
-                          padding: '4px 2px',
-                          cursor: 'pointer',
-                          backgroundColor: enabledOwnerPossibilities.has(combo) ? '#e9ecef' : 'transparent',
-                          border: '1px solid #eee',
-                          borderRadius: '2px',
-                          textAlign: 'center',
-                          fontSize: '10px',
-                          minHeight: '20px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                        onClick={() => {
-                          toggleOwnerPossibility(combo)
-                        }}
-                      >
-                        {getComboLabel(combo)}
-                      </div>
-                    </Tooltip>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ 
-            marginTop: '8px', 
-            fontSize: '10px', 
-            color: '#666',
-            textAlign: 'center'
-          }}>
-            Toggle combinations, then right-click tiles to cycle
-          </div>
-        </div>
-      )}
-    </>
-  )
+  return tile.specialTiles.includes('extraDirty') && !tile.revealed ? (
+    <Tooltip text="Cannot reveal tile without cleaning it!">
+      {mainTile}
+    </Tooltip>
+  ) : mainTile
 }

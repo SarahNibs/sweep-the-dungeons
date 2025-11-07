@@ -34,7 +34,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     setHoveredClueId,
     tingleAnimation,
     adjacencyPatternAnimation,
-    toggleFilteredAnnotation,
+    togglePlayerSlash,
     board
   } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
@@ -88,7 +88,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
   const handleRightClick = (e: React.MouseEvent) => {
     e.preventDefault() // Prevent browser context menu
     if (!tile.revealed) {
-      toggleFilteredAnnotation(tile.position)
+      togglePlayerSlash(tile.position)
     }
   }
 

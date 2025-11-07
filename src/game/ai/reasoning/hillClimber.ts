@@ -1,6 +1,5 @@
 import { CounterfactualAssignment, AdjacencyInfo } from './types'
 import { calculateTension } from './tensionCalculator'
-import { keyToPosition } from './utils' // Used in printAssignmentWithTension
 
 /**
  * Perform hill climbing optimization on a counterfactual assignment
@@ -26,8 +25,6 @@ export function hillClimb(
   const maxIterations = 100
 
   if (debug) {
-    console.log('\n  🔬 HILL CLIMBING DEBUG (First Monte Carlo Iteration)')
-    console.log('  ' + '='.repeat(100))
   }
 
   while (iteration < maxIterations) {
@@ -37,15 +34,12 @@ export function hillClimb(
     const tensionInfo = calculateTension(currentAssignment, adjacencyInfo)
 
     if (debug) {
-      console.log(`\n  📍 STEP ${iteration}:`)
-      printAssignmentWithTension(currentAssignment, tensionInfo)
-      console.log(`  📊 Total Tension: ${tensionInfo.totalTension.toFixed(4)}`)
+      printAssignmentWithTension()
     }
 
     // Stop if we've reached 0 tension (perfect assignment)
     if (tensionInfo.totalTension === 0) {
       if (debug) {
-        console.log('  ✅ Reached 0 tension, stopping')
       }
       break
     }
@@ -56,23 +50,17 @@ export function hillClimb(
     // If no swap was possible, stop
     if (!swapInfo) {
       if (debug) {
-        console.log('  ⚠️  No violation-reducing swap found, stopping')
       }
       break
     }
 
     if (debug && swapInfo.swapDetails) {
-      console.log(`  🔄 Swapping ${swapInfo.swapDetails.pos1} [${swapInfo.swapDetails.owner1}] ↔️ ${swapInfo.swapDetails.pos2} [${swapInfo.swapDetails.owner2}]`)
-      console.log(`     Violations: ${swapInfo.swapDetails.violationsBefore} → ${swapInfo.swapDetails.violationsAfter} (reduction: ${swapInfo.swapDetails.violationsBefore - swapInfo.swapDetails.violationsAfter})`)
     }
 
     currentAssignment = swapInfo.newAssignment
   }
 
   if (debug) {
-    console.log('\n  ' + '='.repeat(100))
-    console.log(`  🏁 Hill climbing complete after ${iteration} steps`)
-    console.log('  ' + '='.repeat(100))
   }
 
   return currentAssignment
@@ -248,30 +236,7 @@ function calculateViolations(
 /**
  * Print the current assignment state with tension values for debugging
  */
-function printAssignmentWithTension(
-  assignment: CounterfactualAssignment,
-  tensionInfo: { tensions: Map<string, number>; totalTension: number }
-): void {
-  // Group tiles by position for organized display
-  const sortedKeys = Array.from(assignment.assignments.keys()).sort((a, b) => {
-    const posA = keyToPosition(a)
-    const posB = keyToPosition(b)
-    if (posA.y !== posB.y) return posA.y - posB.y
-    return posA.x - posB.x
-  })
-
+function printAssignmentWithTension(): void {
   // Print board assignment with tensions
-  console.log('  Board assignment with tensions:')
-  for (const key of sortedKeys) {
-    const owner = assignment.assignments.get(key)
-    const isCounterfactual = assignment.counterfactualPositions.has(key)
-    const marker = isCounterfactual ? '?' : '✓'
-    const ownerStr = owner ? owner.charAt(0).toUpperCase() : '?'
-
-    // Get tension for this tile (only counterfactual tiles have tension)
-    const tension = isCounterfactual ? (tensionInfo.tensions.get(key) || 0) : 0
-    const tensionStr = tension > 0 ? `T=${tension.toFixed(4)}` : 'T=0.0000'
-
-    console.log(`    ${key.padEnd(8)} = ${ownerStr} ${marker}  ${tensionStr}`)
-  }
+  // (removed for production)
 }

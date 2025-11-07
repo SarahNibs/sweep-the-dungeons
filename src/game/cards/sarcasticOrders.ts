@@ -24,7 +24,6 @@ interface Method2Result {
  * Finds tiles with mostly player-owned neighbors and marks them with red dots
  */
 function generateMethod1(state: GameState): Method1Result {
-  console.log('\n=== SARCASTIC ORDERS METHOD 1 ===')
 
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
@@ -32,8 +31,6 @@ function generateMethod1(state: GameState): Method1Result {
   const playerTiles = unrevealedTiles.filter(t => t.owner === 'player')
   const totalPlayerTilesRemaining = playerTiles.length
 
-  console.log(`Total unrevealed tiles: ${unrevealedTiles.length}`)
-  console.log(`Total player tiles remaining: ${totalPlayerTilesRemaining}`)
 
   // Find candidate tiles
   const candidates: Array<{
@@ -94,23 +91,11 @@ function generateMethod1(state: GameState): Method1Result {
         adjacentUnrevealed: N
       })
 
-      console.log(`  Candidate: (${tile.position.x},${tile.position.y})`, {
-        owner: tile.owner,
-        adjacentPlayer: P,
-        adjacentUnrevealed: N,
-        isMoreThanHalfPlayer,
-        threshold,
-        isHighPercentage,
-        isHighCount,
-        isAllOrAlmostAll
-      })
     }
   }
 
-  console.log(`Found ${candidates.length} candidate tiles`)
 
   if (candidates.length === 0) {
-    console.log('Method 1: No candidates found')
     return {
       exists: false,
       candidateTiles: [],
@@ -135,13 +120,9 @@ function generateMethod1(state: GameState): Method1Result {
     return Math.random() - 0.5 // Random tiebreaker
   })
 
-  console.log('Candidates sorted:', candidates.map(c =>
-    `(${c.tile.position.x},${c.tile.position.y}): P=${c.adjacentPlayer} R=${c.adjacentRival} N=${c.adjacentNeutral}`
-  ))
 
   // Limit to at most the best 2 candidates
   const limitedCandidates = candidates.slice(0, 2)
-  console.log(`Limited to ${limitedCandidates.length} candidates`)
 
   // Collect candidates until reaching 2+ adjacent rivals OR 4+ adjacent non-players
   const selectedTiles: Tile[] = []
@@ -153,8 +134,6 @@ function generateMethod1(state: GameState): Method1Result {
     totalAdjacentRivals += candidate.adjacentRival
     totalAdjacentNonPlayers += candidate.adjacentRival + candidate.adjacentNeutral
 
-    console.log(`  Added (${candidate.tile.position.x},${candidate.tile.position.y}): ` +
-      `totalRivals=${totalAdjacentRivals}, totalNonPlayers=${totalAdjacentNonPlayers}`)
 
     if (totalAdjacentRivals >= 2 || totalAdjacentNonPlayers >= 4) {
       break
@@ -179,8 +158,6 @@ function generateMethod1(state: GameState): Method1Result {
     }
   }
 
-  console.log(`Method 1: ${selectedTiles.length} candidate tiles selected, score=${score}`)
-  console.log(`Candidate tiles:`, selectedTiles.map(t => `(${t.position.x},${t.position.y})`))
 
   // === GENERATE RED PIPS USING BAG SYSTEM ===
 
@@ -189,12 +166,10 @@ function generateMethod1(state: GameState): Method1Result {
   const instancesPerCandidate = Math.floor(10 / selectedTiles.length)
   const extraInstances = 10 % selectedTiles.length
 
-  console.log(`Distributing 10 instances: ${instancesPerCandidate} per tile, ${extraInstances} extra`)
 
   for (let i = 0; i < selectedTiles.length; i++) {
     const tile = selectedTiles[i]
     const copies = instancesPerCandidate + (i < extraInstances ? 1 : 0)
-    console.log(`  Candidate tile (${tile.position.x},${tile.position.y}): ${copies} instances`)
     for (let j = 0; j < copies; j++) {
       redCluesBag.push(tile)
     }
@@ -207,7 +182,6 @@ function generateMethod1(state: GameState): Method1Result {
     return !candidatePositions.has(posKey)
   })
 
-  console.log(`Spoiler tiles available: ${spoilerTiles.length}`)
 
   const spoilersBag: Tile[] = []
   for (const tile of spoilerTiles) {
@@ -224,12 +198,6 @@ function generateMethod1(state: GameState): Method1Result {
     spoilersBagCopy.splice(randomIndex, 1)
   }
 
-  console.log(`RedClues bag size: ${redCluesBag.length}`)
-  console.log(`RedClues bag contents:`, redCluesBag.reduce((acc, t) => {
-    const key = `${t.position.x},${t.position.y}(${t.owner})`
-    acc[key] = (acc[key] || 0) + 1
-    return acc
-  }, {} as Record<string, number>))
 
   // Draw 5 from RedClues bag → red pips
   const redPipTargets: Tile[] = []
@@ -240,7 +208,6 @@ function generateMethod1(state: GameState): Method1Result {
     redCluesBagCopy.splice(randomIndex, 1)
   }
 
-  console.log(`Red pip targets (5 draws):`, redPipTargets.map(t => `(${t.position.x},${t.position.y},${t.owner})`))
 
   // Count red pips per tile
   const redPipCounts = new Map<string, number>()
@@ -249,7 +216,6 @@ function generateMethod1(state: GameState): Method1Result {
     redPipCounts.set(key, (redPipCounts.get(key) || 0) + 1)
   }
 
-  console.log(`Red pip counts:`, Object.fromEntries(redPipCounts))
 
   // Deduplicate red targets
   const redTargetPositions = new Set<string>()
@@ -284,12 +250,6 @@ function generateMethod1(state: GameState): Method1Result {
     }
   }
 
-  console.log(`Found ${adjacentNonPlayerTiles.length} adjacent non-player tiles`)
-  console.log(`Adjacent tiles:`, adjacentNonPlayerTiles.map(t => {
-    const posKey = `${t.position.x},${t.position.y}`
-    const pipCount = redPipCounts.get(posKey) || 0
-    return `(${t.position.x},${t.position.y},${t.owner}): ${pipCount} pips`
-  }))
 
   if (adjacentNonPlayerTiles.length > 0 && redPipCounts.size > 0) {
     // Find the minimum non-zero pip count, or 0 if all are 0
@@ -304,9 +264,6 @@ function generateMethod1(state: GameState): Method1Result {
       return minNonZero > 0 ? pipCount === minNonZero : pipCount === 0
     })
 
-    console.log(`Candidates with least non-zero pips (${minNonZero}):`, candidates.map(t =>
-      `(${t.position.x},${t.position.y},${t.owner})`
-    ))
 
     // Sort by priority: rival > neutral, then random
     candidates.sort((a, b) => {
@@ -327,9 +284,6 @@ function generateMethod1(state: GameState): Method1Result {
       if (tilesWithPips.length > 0) {
         const [sourcePosKey, sourceCount] = tilesWithPips[0]
 
-        const chosenCurrentPips = redPipCounts.get(chosenPosKey) || 0
-        console.log(`Moving 1 pip from ${sourcePosKey} (${sourceCount} pips) to ${chosenPosKey} (${chosenCurrentPips} pips)`)
-
         // Update pip counts
         redPipCounts.set(sourcePosKey, sourceCount - 1)
         redPipCounts.set(chosenPosKey, (redPipCounts.get(chosenPosKey) || 0) + 1)
@@ -343,7 +297,6 @@ function generateMethod1(state: GameState): Method1Result {
           if (sourceIndex !== -1) {
             redTargets.splice(sourceIndex, 1)
             redTargetPositions.delete(sourcePosKey)
-            console.log(`Removed ${sourcePosKey} from red targets (0 pips remaining)`)
           }
         }
 
@@ -351,13 +304,11 @@ function generateMethod1(state: GameState): Method1Result {
         if (!redTargetPositions.has(chosenPosKey)) {
           redTargets.push(chosenTile)
           redTargetPositions.add(chosenPosKey)
-          console.log(`Added ${chosenPosKey} to red targets`)
         }
       }
     }
   }
 
-  console.log(`Final red pip counts after redistribution:`, Object.fromEntries(redPipCounts))
 
   // === GENERATE GREEN PIPS USING BAG SYSTEM ===
 
@@ -380,7 +331,6 @@ function generateMethod1(state: GameState): Method1Result {
     }
   }
 
-  console.log(`Green bag size: ${greenBag.length}`)
 
   // Draw 5 from green bag
   const greenDraws: Tile[] = []
@@ -391,7 +341,6 @@ function generateMethod1(state: GameState): Method1Result {
     greenBagCopy.splice(randomIndex, 1)
   }
 
-  console.log(`Green draws (5 total):`, greenDraws.map(t => `(${t.position.x},${t.position.y},${t.owner})`))
 
   // Count green pips per tile
   const greenPipCounts = new Map<string, number>()
@@ -400,7 +349,6 @@ function generateMethod1(state: GameState): Method1Result {
     greenPipCounts.set(key, (greenPipCounts.get(key) || 0) + 1)
   }
 
-  console.log(`Green pip counts:`, Object.fromEntries(greenPipCounts))
 
   // Convert to Position map
   const greenClueTargets = new Map<Position, number>()
@@ -409,7 +357,6 @@ function generateMethod1(state: GameState): Method1Result {
     greenClueTargets.set({ x, y }, count)
   }
 
-  console.log(`Method 1 complete: ${redTargets.length} red targets, ${greenClueTargets.size} green targets, score=${score}`)
 
   return {
     exists: true,
@@ -426,14 +373,11 @@ function generateMethod1(state: GameState): Method1Result {
  * Uses bag-based generation for both red (anti) and green (positive) clues
  */
 function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
-  console.log('\n=== SARCASTIC ORDERS METHOD 2 ===')
 
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
   const nonPlayerTiles = unrevealedTiles.filter(t => t.owner !== 'player')
 
-  console.log(`Total unrevealed tiles: ${unrevealedTiles.length}`)
-  console.log(`Non-player tiles: ${nonPlayerTiles.length}`)
 
   // === RED CLUES GENERATION ===
 
@@ -446,19 +390,12 @@ function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
     }
   }
 
-  console.log(`NotThese bag size: ${notTheseBag.length}`)
-  console.log(`NotThese bag contents:`, notTheseBag.reduce((acc, t) => {
-    const key = `${t.position.x},${t.position.y}(${t.owner})`
-    acc[key] = (acc[key] || 0) + 1
-    return acc
-  }, {} as Record<string, number>))
 
   // Draw from NotThese bag
   const drawnNotThese: Tile[] = []
   const drawCount = Math.random() < 0.75 ? 1 : 2
   const copiesPerDrawn = drawCount === 1 ? 10 : 5
 
-  console.log(`Drawing ${drawCount} tiles from NotThese bag, ${copiesPerDrawn}x each`)
 
   const notTheseBagCopy = [...notTheseBag]
   for (let i = 0; i < Math.min(drawCount, notTheseBagCopy.length); i++) {
@@ -475,7 +412,6 @@ function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
     }
   }
 
-  console.log(`Drawn tiles:`, drawnNotThese.map(t => `(${t.position.x},${t.position.y},${t.owner})`))
 
   // Create RedClues bag: add drawn tiles with their multipliers
   const redCluesBag: Tile[] = []
@@ -498,7 +434,6 @@ function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
     }
   }
 
-  console.log(`Spoilers bag size: ${spoilersBag.length}`)
 
   // Draw 10 from spoilers bag and add to RedClues bag
   const spoilersBagCopy = [...spoilersBag]
@@ -509,12 +444,6 @@ function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
     spoilersBagCopy.splice(randomIndex, 1)
   }
 
-  console.log(`RedClues bag size: ${redCluesBag.length}`)
-  console.log(`RedClues bag contents:`, redCluesBag.reduce((acc, t) => {
-    const key = `${t.position.x},${t.position.y}(${t.owner})`
-    acc[key] = (acc[key] || 0) + 1
-    return acc
-  }, {} as Record<string, number>))
 
   // Draw 5 from RedClues bag → these get red pips
   const redPipTargets: Tile[] = []
@@ -525,7 +454,6 @@ function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
     redCluesBagCopy.splice(randomIndex, 1)
   }
 
-  console.log(`Red pip targets (5 draws):`, redPipTargets.map(t => `(${t.position.x},${t.position.y},${t.owner})`))
 
   // Count red pips per tile
   const redPipCounts = new Map<string, number>()
@@ -534,7 +462,6 @@ function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
     redPipCounts.set(key, (redPipCounts.get(key) || 0) + 1)
   }
 
-  console.log(`Red pip counts:`, Object.fromEntries(redPipCounts))
 
   // Deduplicate red targets
   const redTargetPositions = new Set<string>()
@@ -559,8 +486,6 @@ function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
   )
   const chosenRandomTiles = selectTilesForClue(remainingTiles, 5)
 
-  console.log(`Green clue targets:`, chosenPlayerTiles.map(t => `(${t.position.x},${t.position.y})`))
-  console.log(`Green clue spoilers:`, chosenRandomTiles.map(t => `(${t.position.x},${t.position.y})`))
 
   // Build bag with adjustments (12 copies of player, 4 copies of spoilers)
   const buildBagWithAdjustmentsLocal = (
@@ -602,7 +527,6 @@ function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
     ...buildBagWithAdjustmentsLocal(chosenRandomTiles, 4, 'player', chosenPlayerTiles)
   ]
 
-  console.log(`Green bag size: ${greenBag.length}`)
 
   // Guarantee first 2 draws are player tiles, then draw 3 more (total 5)
   const greenDraws: Tile[] = [...chosenPlayerTiles]
@@ -613,7 +537,6 @@ function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
     greenBagCopy.splice(randomIndex, 1)
   }
 
-  console.log(`Green draws (5 total):`, greenDraws.map(t => `(${t.position.x},${t.position.y},${t.owner})`))
 
   // Count green pips per tile
   const greenPipCounts = new Map<string, number>()
@@ -622,7 +545,6 @@ function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
     greenPipCounts.set(key, (greenPipCounts.get(key) || 0) + 1)
   }
 
-  console.log(`Green pip counts:`, Object.fromEntries(greenPipCounts))
 
   // Convert to Position map
   const greenClueTargets = new Map<Position, number>()
@@ -644,7 +566,6 @@ function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
   }
   const score = playerTilesWithGreenDots + 1
 
-  console.log(`Method 2 complete: ${redTargets.length} red targets, ${greenClueTargets.size} green targets, score=${score}`)
 
   return {
     redClueTargets: redTargets,
@@ -655,7 +576,6 @@ function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
 }
 
 export function executeSarcasticOrdersEffect(state: GameState, card?: Card): GameState {
-  console.log('\n\n=== SARCASTIC ORDERS CARD PLAYED ===')
 
   const enhanced = card?.enhanced || false
 
@@ -663,14 +583,10 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
   const method1 = generateMethod1(state)
   const method2 = generateMethod2(state, enhanced)
 
-  console.log('\n=== COMPARISON ===')
-  console.log(`Method 1 score: ${method1.score} (exists: ${method1.exists})`)
-  console.log(`Method 2 score: ${method2.score}`)
 
   // Choose best method
   const useMethod1 = method1.exists && method1.score > method2.score
 
-  console.log(`Using Method ${useMethod1 ? '1' : '2'}`)
 
   let newState = {
     ...state,
@@ -691,9 +607,7 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
         ...newState,
         energy: newState.energy + 1
       }
-      console.log(`Enhanced: Gained 1 energy (new total: ${newState.energy})`)
     } else {
-      console.log(`Enhanced: No other Instructions cards played this floor, no energy gain`)
     }
   }
 
@@ -702,7 +616,6 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
 
   if (useMethod1) {
     // Method 1: Both red and green dots from bag system
-    console.log('\n=== APPLYING METHOD 1 ===')
 
     // Add red dots (anti-clues)
     const redClueId = crypto.randomUUID()
@@ -722,7 +635,6 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
       }
 
       newState = addClueResult(newState, tile.position, clueResult)
-      console.log(`Added red clue (${strength} pips) to (${tile.position.x},${tile.position.y})`)
     }
 
     // Add green dots (positive clues)
@@ -741,11 +653,9 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
       }
 
       newState = addClueResult(newState, position, clueResult)
-      console.log(`Added green clue (${strength} pips) to (${position.x},${position.y})`)
     }
   } else {
     // Method 2: Both red and green dots
-    console.log('\n=== APPLYING METHOD 2 ===')
 
     // Add red dots (anti-clues)
     const redClueId = crypto.randomUUID()
@@ -765,7 +675,6 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
       }
 
       newState = addClueResult(newState, tile.position, clueResult)
-      console.log(`Added red clue (${strength} pips) to (${tile.position.x},${tile.position.y})`)
     }
 
     // Add green dots (positive clues)
@@ -784,11 +693,9 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
       }
 
       newState = addClueResult(newState, position, clueResult)
-      console.log(`Added green clue (${strength} pips) to (${position.x},${position.y})`)
     }
   }
 
-  console.log('=== SARCASTIC ORDERS COMPLETE ===\n\n')
 
   return newState
 }

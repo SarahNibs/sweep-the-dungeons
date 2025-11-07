@@ -1,4 +1,4 @@
-import { GameState, ClueResult, Position, Tile } from '../../../types'
+import { GameState, ClueResult, Position } from '../../../types'
 import { prepareRivalClueSetup, generateRivalClueWithSharedSetup } from '../../clueSystem'
 import { RivalClueSet } from '../AITypes'
 
@@ -15,7 +15,6 @@ export function generateDualRivalClues(
   const { chosenRivalTiles, chosenRandomTiles } = prepareRivalClueSetup(state)
 
   // Generate two different clue sets using the same setup but different random draws
-  console.log('=== GENERATING PLAYER-FACING RIVAL CLUES (Xs) ===')
   const visibleResult = generateRivalClueWithSharedSetup(
     chosenRivalTiles,
     chosenRandomTiles,
@@ -23,7 +22,6 @@ export function generateDualRivalClues(
     clueRowPosition
   )
 
-  console.log('=== GENERATING AI-ONLY RIVAL CLUES (Hidden) ===')
   const hiddenResult = generateRivalClueWithSharedSetup(
     chosenRivalTiles,
     chosenRandomTiles,
@@ -99,42 +97,7 @@ export function applyVisibleRivalClues(
 /**
  * Log the top tiles for AI debugging
  */
-export function logAIPriorityAnalysis(
-  tilesWithPriority: Array<{ tile: Tile; priority: number }>,
-  hiddenRivalCluesPairs: { clueResult: ClueResult; targetPosition: Position }[],
-  rivalNeverMines: boolean
-): void {
-  console.log('=== ENEMY AI PRIORITY ANALYSIS ===')
-  const topFour = tilesWithPriority.slice(0, 4)
-  topFour.forEach((item, index) => {
-    const tile = item.tile
-    const pos = `(${tile.position.x},${tile.position.y})`
-    const owner = tile.owner
-    const priority = item.priority.toFixed(2)
-
-    // Get player clue information
-    const playerClueAnnotations = tile.annotations.find(a => a.type === 'clue_results')
-    let playerClueInfo = 'none'
-    if (playerClueAnnotations?.clueResults) {
-      const playerClues = playerClueAnnotations.clueResults.filter(r => r.cardType !== 'rival_clue')
-      if (playerClues.length > 0) {
-        playerClueInfo = playerClues.map(r => `${r.strengthForThisTile}pips`).join(', ')
-      }
-    }
-
-    // Get hidden rival clue information
-    let rivalClueInfo = 'none'
-    const affectedByRivalClues = hiddenRivalCluesPairs.filter(({ targetPosition }) => {
-      return targetPosition.x === tile.position.x && targetPosition.y === tile.position.y
-    })
-    if (affectedByRivalClues.length > 0) {
-      rivalClueInfo = affectedByRivalClues.map(({ clueResult }) => `${clueResult.strengthForThisTile}pips`).join(', ')
-    }
-
-    console.log(`${index + 1}. ${pos} [${owner}] Priority: ${priority} | Player: ${playerClueInfo} | Rival-Hidden: ${rivalClueInfo}`)
-  })
-  console.log('=====================================')
-  if (rivalNeverMines) {
-    console.log('SPECIAL BEHAVIOR: Rival will skip mine tiles')
-  }
+export function logAIPriorityAnalysis(): void {
+  // Log AI priority analysis
+  // (removed for production)
 }

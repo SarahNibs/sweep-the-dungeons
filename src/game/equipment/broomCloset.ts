@@ -6,13 +6,9 @@ import { createCard, applyDIYGel } from '../gameRepository'
  * (one regular, one energy-upgraded, one enhance-upgraded)
  */
 export function applyBroomClosetEffect(state: GameState): GameState {
-  console.log('🚪 BROOM CLOSET EFFECT: Removing all Spritz, adding 3 Sweep cards')
-
   // Filter out all Spritz cards from persistent deck
-  const spritzCards = state.persistentDeck.filter(card => card.name === 'Spritz')
   const deckWithoutSpritz = state.persistentDeck.filter(card => card.name !== 'Spritz')
 
-  console.log(`  - Removed ${spritzCards.length} Spritz cards`)
 
   // Create 3 Sweep cards with different upgrade states
   const regularSweep = applyDIYGel(state.equipment, createCard('Sweep', {}))

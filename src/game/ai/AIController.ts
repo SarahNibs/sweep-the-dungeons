@@ -17,11 +17,6 @@ function updateStateWithCopperReward(
   get: () => GameState,
   newState: GameState
 ): void {
-  console.log('🏪 UPDATE STATE WITH COPPER REWARD DEBUG')
-  console.log('  - Input state underwireProtection:', newState.underwireProtection)
-  console.log('  - Input state activeStatusEffects:', newState.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
-  console.log('  - Input state hand size:', newState.hand.length)
-  console.log('  - Input state deck size:', newState.deck.length)
 
   const previousState = get()
   const wasPlaying = previousState.gameStatus.status === 'playing'
@@ -35,20 +30,13 @@ function updateStateWithCopperReward(
       ...newState,
       copper: newState.copper + copperReward
     }
-    console.log('  - Added copper reward, setting state with copper')
   } else {
     finalState = newState
-    console.log('  - No copper reward, setting state as-is')
   }
 
-  console.log('  - Final state underwireProtection:', finalState.underwireProtection)
-  console.log('  - Final state activeStatusEffects:', finalState.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
-  console.log('  - Final state hand size:', finalState.hand.length)
-  console.log('  - Final state deck size:', finalState.deck.length)
 
   set(finalState)
 
-  console.log('🏪 STATE SET COMPLETE')
 }
 
 /**
@@ -291,7 +279,6 @@ export class AIController {
     // This can happen when AI plans to reveal a tile multiple times (e.g., once to clean goblin, once to reveal)
     const currentTile = getTile(currentState.board, tileToReveal.position)
     if (currentTile && currentTile.revealed) {
-      console.log(`⚠️ Rival tried to reveal already-revealed tile at (${tileToReveal.position.x}, ${tileToReveal.position.y}), skipping to next`)
       this.setState({
         ...currentState,
         rivalAnimation: {
@@ -344,7 +331,6 @@ export class AIController {
       // Track player tile reveals and award copper every 5th reveal
       stateAfterReveal = trackPlayerTileReveal(stateAfterReveal, tileToReveal.position, revealResult.revealed)
       if (tileAfterGoblinMove && tileAfterGoblinMove.owner === 'mine' && state.rivalMineProtectionCount > 0) {
-        console.log(`🛡️ Rival revealed protected mine! Awarding 5 copper and decrementing protection count`)
 
         // Mark the mine tile as protected (similar to Underwire)
         const protectedTileKey = positionToKey(tileToReveal.position)
@@ -407,7 +393,6 @@ export class AIController {
       if (revealResult.revealed) {
         const chokerResult = checkChokerEffect(stateAfterReveal)
         if (chokerResult.shouldEndTurn && chokerResult.reason === 'choker_rival') {
-          console.log(`📿 CHOKER TRIGGERED: Rival has 5 tiles remaining - ending rival turn`)
           shouldContinue = false
         }
       }

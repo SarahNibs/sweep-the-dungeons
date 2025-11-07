@@ -145,19 +145,16 @@ export function createBoard(
 }
 
 function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig): void {
-  console.log(`🎯 APPLYING SPECIAL TILES: type=${config.type}, count=${config.count}, placement=${JSON.stringify(config.placement)}`)
 
   // Handle coordinate array placement
   if (Array.isArray(config.placement)) {
     const positions = config.placement.map(([x, y]) => createPosition(x, y))
-    console.log(`  - Coordinate array placement: choosing ${config.count} from ${positions.length} positions`)
 
     // Get tiles at the specified positions
     const eligibleTiles = positions
       .map(pos => getTile({ tiles, width: 0, height: 0 } as Board, pos))
       .filter((tile): tile is Tile => tile !== undefined)
 
-    console.log(`  - Found ${eligibleTiles.length} eligible tiles at specified positions`)
 
     // Shuffle eligible tiles
     for (let i = eligibleTiles.length - 1; i > 0; i--) {
@@ -170,11 +167,9 @@ function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig):
     for (let i = 0; i < count; i++) {
       const tile = eligibleTiles[i]
       const key = positionToKey(tile.position)
-      console.log(`    - Adding ${config.type} at position (${tile.position.x}, ${tile.position.y}), existing: [${tile.specialTiles.join(', ')}]`)
       tiles.set(key, addSpecialTile(tile, config.type))
     }
 
-    console.log(`✅ APPLIED ${count} ${config.type} tiles`)
     return
   }
 
@@ -202,7 +197,6 @@ function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig):
     return false
   })
 
-  console.log(`  - Found ${eligibleTiles.length} eligible tiles`)
 
   // Shuffle eligible tiles
   for (let i = eligibleTiles.length - 1; i > 0; i--) {
@@ -212,16 +206,13 @@ function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig):
 
   // Apply special tile type to the requested count
   const count = Math.min(config.count, eligibleTiles.length)
-  console.log(`  - Applying to ${count} tiles`)
 
   for (let i = 0; i < count; i++) {
     const tile = eligibleTiles[i]
     const key = positionToKey(tile.position)
-    console.log(`    - Adding ${config.type} at position (${tile.position.x}, ${tile.position.y}), existing: [${tile.specialTiles.join(', ')}]`)
     tiles.set(key, addSpecialTile(tile, config.type))
   }
 
-  console.log(`✅ APPLIED ${count} ${config.type} tiles`)
 }
 
 export function getTile(board: Board, position: Position): Tile | undefined {
@@ -240,19 +231,15 @@ export function calculateAdjacency(board: Board, position: Position, revealedBy:
   // Count adjacent tiles that belong to the revealer's team
   const targetOwner = revealedBy // 'player' or 'rival'
 
-  console.log(`🔢 ADJACENCY CALC - Position (${position.x}, ${position.y}), revealedBy: ${revealedBy}, counting: ${targetOwner} tiles`)
 
   for (const neighborPos of neighbors) {
     const neighbor = getTile(board, neighborPos)
     if (neighbor && neighbor.owner === targetOwner) {
-      console.log(`  ✓ Found ${targetOwner} tile at (${neighborPos.x}, ${neighborPos.y})`)
       count++
     } else if (neighbor) {
-      console.log(`  ✗ Tile at (${neighborPos.x}, ${neighborPos.y}) is ${neighbor.owner}, not ${targetOwner}`)
     }
   }
 
-  console.log(`🔢 ADJACENCY CALC - Final count: ${count}`)
 
   return count
 }
@@ -266,7 +253,6 @@ export function revealTileWithResult(board: Board, position: Position, revealedB
   const key = positionToKey(position)
   const tile = board.tiles.get(key)
 
-  console.log(`🔍 REVEAL TILE WITH RESULT - Position (${position.x}, ${position.y}), revealedBy: ${revealedBy}, tile owner: ${tile?.owner}`)
 
   if (!tile || tile.revealed || tile.owner === 'empty') {
     return { board, revealed: false }
@@ -458,7 +444,6 @@ export function moveGoblin(board: Board, fromPosition: Position): Board {
 
   if (unrevealedNeighbors.length === 0) {
     // No place to move, goblin disappears
-    console.log(`  👺 Goblin at (${fromPosition.x}, ${fromPosition.y}) has nowhere to move, disappearing`)
     return board
   }
 
@@ -474,11 +459,9 @@ export function moveGoblin(board: Board, fromPosition: Position): Board {
   const targetPos = targetOptions[randomIndex].pos
   const targetTile = getTile(board, targetPos)!
 
-  console.log(`  👺 Goblin moving from (${fromPosition.x}, ${fromPosition.y}) to (${targetPos.x}, ${targetPos.y})`)
 
   // Check if target is a surface mine
   if (hasSpecialTile(targetTile, 'surfaceMine')) {
-    console.log(`  💥 Goblin moved to surface mine - EXPLOSION!`)
 
     // Explode the surface mine (mark as destroyed, goblin disappears)
     const newTiles = new Map(board.tiles)
@@ -546,13 +529,11 @@ export function spawnGoblinsFromLairs(board: Board): Board {
     return board
   }
 
-  console.log(`🏠 SPAWNING GOBLINS FROM ${lairTiles.length} LAIRS`)
 
   let currentBoard = board
 
   for (const lairTile of lairTiles) {
     const neighbors = getNeighbors(currentBoard, lairTile.position)
-    console.log(`  - Lair at (${lairTile.position.x}, ${lairTile.position.y}): Found ${neighbors.length} adjacent tiles`)
 
     // Find all unrevealed adjacent tiles that are not mines and don't already have goblins
     const validSpawnTargets = neighbors
@@ -565,7 +546,6 @@ export function spawnGoblinsFromLairs(board: Board): Board {
         !hasSpecialTile(tile, 'goblin')
       )
 
-    console.log(`  - Lair at (${lairTile.position.x}, ${lairTile.position.y}): ${validSpawnTargets.length} valid spawn targets (unrevealed, non-empty, non-mine, no existing goblin)`)
 
     // If no valid non-mine targets, try spawning on mines as fallback
     if (validSpawnTargets.length === 0) {
@@ -579,11 +559,9 @@ export function spawnGoblinsFromLairs(board: Board): Board {
         )
 
       if (mineSpawnTargets.length === 0) {
-        console.log(`  - Lair at (${lairTile.position.x}, ${lairTile.position.y}) ❌ NO VALID SPAWN TARGETS (not even mines)`)
         continue
       }
 
-      console.log(`  - Lair at (${lairTile.position.x}, ${lairTile.position.y}): ${mineSpawnTargets.length} mine spawn targets (fallback)`)
       validSpawnTargets.push(...mineSpawnTargets)
     }
 
@@ -592,12 +570,10 @@ export function spawnGoblinsFromLairs(board: Board): Board {
     const targetPos = validSpawnTargets[randomIndex].pos
     const targetTile = getTile(currentBoard, targetPos)!
 
-    console.log(`  - Lair at (${lairTile.position.x}, ${lairTile.position.y}) 👺 SPAWNING goblin at (${targetPos.x}, ${targetPos.y}) [owner: ${targetTile.owner}, existing special tiles: ${targetTile.specialTiles.join(', ') || 'none'}]`)
 
     // Spawn goblin on target tile
     const newTiles = new Map(currentBoard.tiles)
     const updatedTile = addSpecialTile(targetTile, 'goblin')
-    console.log(`  - After spawn: tile (${targetPos.x}, ${targetPos.y}) now has: [${updatedTile.specialTiles.join(', ')}]`)
     newTiles.set(positionToKey(targetPos), updatedTile)
 
     currentBoard = {
@@ -606,7 +582,6 @@ export function spawnGoblinsFromLairs(board: Board): Board {
     }
   }
 
-  console.log(`✅ SPAWNED GOBLINS FROM LAIRS - Final board state updated`)
   return currentBoard
 }
 
@@ -619,7 +594,6 @@ export function placeRivalSurfaceMines(board: Board, count: number): Board {
     return board
   }
 
-  console.log(`💣 PLACING ${count} RIVAL SURFACE MINES`)
 
   // Find all unrevealed non-rival tiles without surface mines or goblins
   const validTargets = Array.from(board.tiles.values()).filter(tile =>
@@ -630,10 +604,8 @@ export function placeRivalSurfaceMines(board: Board, count: number): Board {
     !hasSpecialTile(tile, 'goblin')
   )
 
-  console.log(`  - Found ${validTargets.length} valid targets (unrevealed, non-rival, non-empty, no existing surface mine, no goblin)`)
 
   if (validTargets.length === 0) {
-    console.log(`  - ❌ NO VALID TARGETS FOR SURFACE MINE PLACEMENT`)
     return board
   }
 
@@ -650,11 +622,9 @@ export function placeRivalSurfaceMines(board: Board, count: number): Board {
   for (let i = 0; i < tilesToPlace; i++) {
     const targetTile = validTargets[i]
     const updatedTile = addSpecialTile(targetTile, 'surfaceMine')
-    console.log(`  - 💣 Placed surface mine at (${targetTile.position.x}, ${targetTile.position.y}) [owner: ${targetTile.owner}]`)
     newTiles.set(positionToKey(targetTile.position), updatedTile)
   }
 
-  console.log(`✅ PLACED ${tilesToPlace} SURFACE MINES`)
   return {
     ...board,
     tiles: newTiles

@@ -34,7 +34,6 @@ export function executeSolidClueEffect(state: GameState, card?: Card): GameState
 
   // Enhanced Imperious Instructions: add owner_subset annotation (excludes mines)
   if (enhanced && affectedPositions.size > 0) {
-    console.log('🔍 ENHANCED IMPERIOUS ORDERS: Adding no-mine annotation to', affectedPositions.size, 'tiles')
     const noMineSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player', 'rival', 'neutral'])
 
     affectedPositions.forEach(key => {

@@ -21,14 +21,12 @@ export function executeDonutEffect(state: GameState, enhanced: boolean = false):
   const playerTiles = getUnrevealedPlayerTiles(state)
 
   if (playerTiles.length === 0) {
-    console.log('🍩 DONUT: No unrevealed player tiles found')
     return state
   }
 
   const numberOfGoblins = enhanced ? 2 : 1
   const tilesToSummon = Math.min(numberOfGoblins, playerTiles.length)
 
-  console.log(`🍩 DONUT: Summoning ${tilesToSummon} goblin(s)`)
 
   // Shuffle and pick random tiles
   const shuffled = [...playerTiles].sort(() => Math.random() - 0.5)
@@ -51,7 +49,6 @@ export function executeDonutEffect(state: GameState, enhanced: boolean = false):
       }
     }
 
-    console.log(`  - Added goblin at (${position.x}, ${position.y})`)
 
     // Annotate the tile as player
     const playerOwnerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player'])
@@ -101,7 +98,6 @@ export function executeDonutEffect(state: GameState, enhanced: boolean = false):
         }
       }
 
-      console.log(`  - Added player adjacency info: ${playerCount} adjacent player tiles`)
     }
   }
 

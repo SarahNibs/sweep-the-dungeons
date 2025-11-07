@@ -29,7 +29,7 @@ export class NoGuessAI implements RivalAI {
     const rivalNeverMines = context.specialBehaviors.rivalNeverMines || false
 
     // Log the top tiles for debugging
-    logAIPriorityAnalysis(tilesWithPriority, hiddenClues, rivalNeverMines)
+    logAIPriorityAnalysis()
 
     // Return ordered list, stopping when we would reveal a non-rival tile
     // Skip mines if rivalNeverMines is enabled

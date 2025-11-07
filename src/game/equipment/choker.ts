@@ -15,7 +15,6 @@ export function checkChokerEffect(state: GameState): { shouldEndTurn: boolean; r
   const unrevealedRivalTiles = tiles.filter(t => t.owner === 'rival' && !t.revealed).length
 
   if (unrevealedRivalTiles === 5) {
-    console.log('📿 CHOKER TRIGGERED: 5 rival tiles remaining - ending rival turn')
     return { shouldEndTurn: true, reason: 'choker_rival' }
   }
 

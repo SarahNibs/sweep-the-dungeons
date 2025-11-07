@@ -6,7 +6,6 @@ import { GameState, Card } from '../../types'
 export function executeTwirlEffect(state: GameState, card?: Card): GameState {
   const copperGain = card?.enhanced ? 5 : 3
 
-  console.log(`🌪️ TWIRL: Gaining ${copperGain} copper`)
 
   return {
     ...state,

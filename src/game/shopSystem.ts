@@ -324,7 +324,6 @@ export function purchaseShopItem(state: GameState, optionIndex: number): GameSta
 
       if (upgradableCards.length === 0) {
         // No cards to upgrade - just return state
-        console.warn('No cards available to enhance')
         break
       }
 

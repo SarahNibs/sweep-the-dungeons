@@ -78,12 +78,6 @@ function needsAnimationOnPlay(card: CardType): 'tingle' | 'tryst' | null {
  * Helper function to update state and award copper if game was just won
  */
 const updateStateWithCopperReward = (set: any, get: any, newState: GameState) => {
-  console.log('🏪 UPDATE STATE WITH COPPER REWARD DEBUG')
-  console.log('  - Input state underwireProtection:', newState.underwireProtection)
-  console.log('  - Input state activeStatusEffects:', newState.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
-  console.log('  - Input state hand size:', newState.hand.length)
-  console.log('  - Input state deck size:', newState.deck.length)
-
   const previousState = get()
   const wasPlaying = previousState.gameStatus.status === 'playing'
   const isNowWon = newState.gameStatus.status === 'player_won'
@@ -96,20 +90,11 @@ const updateStateWithCopperReward = (set: any, get: any, newState: GameState) =>
       ...newState,
       copper: newState.copper + copperReward
     }
-    console.log('  - Added copper reward, setting state with copper')
   } else {
     finalState = newState
-    console.log('  - No copper reward, setting state as-is')
   }
 
-  console.log('  - Final state underwireProtection:', finalState.underwireProtection)
-  console.log('  - Final state activeStatusEffects:', finalState.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
-  console.log('  - Final state hand size:', finalState.hand.length)
-  console.log('  - Final state deck size:', finalState.deck.length)
-
   set(finalState)
-
-  console.log('🏪 STATE SET COMPLETE')
 }
 
 export const useGameStore = create<GameStore>((set, get) => {
@@ -156,7 +141,6 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     // RACE CONDITION GUARD: Prevent concurrent card plays
     if (currentState.isProcessingCard) {
-      console.log('⏳ Card already processing, ignoring click')
       return
     }
 
@@ -319,11 +303,6 @@ export const useGameStore = create<GameStore>((set, get) => {
       // Game ended, update state with potential copper reward
       updateStateWithCopperReward(set, get, stateWithBoard)
     } else if (shouldEndTurn) {
-      console.log('🔄 SHOULD END TURN - Passing full stateWithBoard instead of just board')
-      console.log('  - stateWithBoard underwireProtection:', stateWithBoard.underwireProtection)
-      console.log('  - stateWithBoard activeStatusEffects:', stateWithBoard.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
-      console.log('  - stateWithBoard hand size:', stateWithBoard.hand.length)
-      
       // BUGFIX: Pass the full state instead of just the board to preserve status effects and card changes
       const discardedState = discardHand(stateWithBoard)
       set(discardedState)

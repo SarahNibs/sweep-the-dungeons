@@ -126,12 +126,6 @@ export function calculateCopperReward(state: import('../types').GameState): numb
     copperReward *= 2
   }
 
-  console.log(`💰 COPPER REWARD CALCULATION:`)
-  console.log(`   - Unrevealed rival tiles: ${unrevealedRivalTiles.length}`)
-  console.log(`   - Has Tiara equipment: ${hasTiara}`)
-  console.log(`   - Base copper: ${unrevealedRivalTiles.length}`)
-  console.log(`   - Final copper reward: ${copperReward}`)
-  console.log(`   - Current copper before reward: ${state.copper}`)
 
   return copperReward
 }

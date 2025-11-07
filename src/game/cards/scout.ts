@@ -45,28 +45,23 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
   // Handle surface mine defusing
   const currentTile = getTile(newState.board, target)
   if (currentTile && hasSpecialTile(currentTile, 'surfaceMine')) {
-    console.log('💣 SPRITZ HIT SURFACE MINE')
     const key = positionToKey(target)
     let shouldDefuse = false
 
     // Enhanced Spritz always defuses
     if (card?.enhanced) {
-      console.log('  - Enhanced Spritz: defusing surface mine')
       shouldDefuse = true
     }
     // Regular Spritz/Sweep on 2nd cleaning defuses
     else if (currentTile.surfaceMineState?.cleanedOnce) {
-      console.log('  - 2nd cleaning (Spritz/Sweep): defusing surface mine')
       shouldDefuse = true
     }
     // Any cleaning with Mop defuses (including 1st regular Spritz)
     else if (hasEquipment(newState, 'Mop')) {
-      console.log('  - 1st cleaning + Mop: defusing surface mine')
       shouldDefuse = true
     }
     // First cleaning without Mop marks surface mine as cleanedOnce but doesn't defuse
     else {
-      console.log('  - 1st cleaning (no Mop): marking surface mine as cleanedOnce (not defusing yet)')
       const newTiles = new Map(newState.board.tiles)
       newTiles.set(key, { ...currentTile, surfaceMineState: { cleanedOnce: true } })
       newState = {
@@ -93,7 +88,6 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
         copper: newState.copper + 3
       }
 
-      console.log('  - Surface mine defused! +3 copper')
 
       // Trigger Mop effect if player has Mop equipment (defusing counts as cleaning)
       newState = triggerMopEffect(newState, 1)
@@ -169,7 +163,6 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
         // Handle surface mine defusing on adjacent tile (enhanced Spritz always defuses)
         adjTile = getTile(stateAfterAdjacentClean.board, randomAdjacent)!
         if (hasSpecialTile(adjTile, 'surfaceMine')) {
-          console.log('💣 SPRITZ+ HIT SURFACE MINE ON ADJACENT TILE - defusing')
           const key = positionToKey(randomAdjacent)
           const newTiles = new Map(stateAfterAdjacentClean.board.tiles)
           const defusedTile = removeSpecialTile(adjTile, 'surfaceMine')
@@ -184,7 +177,6 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
             copper: stateAfterAdjacentClean.copper + 3
           }
 
-          console.log('  - Adjacent surface mine defused! +3 copper')
 
           // Trigger Mop effect if player has Mop equipment (defusing counts as cleaning)
           stateAfterAdjacentClean = triggerMopEffect(stateAfterAdjacentClean, 1)

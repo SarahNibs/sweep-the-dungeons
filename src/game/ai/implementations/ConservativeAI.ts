@@ -27,7 +27,6 @@ export class ConservativeAI implements RivalAI {
     hiddenClues: { clueResult: ClueResult; targetPosition: Position }[],
     context: AIContext
   ): Tile[] {
-    console.log('=== CONSERVATIVE AI SELECTION (CONSTRAINT PROPAGATION) ===')
 
     const tilesToReveal: Tile[] = []
     let simulatedState = state
@@ -36,14 +35,11 @@ export class ConservativeAI implements RivalAI {
 
     while (revealIterationCount < maxRevealIterations) {
       revealIterationCount++
-      console.log(`\n🧠 Reveal Iteration ${revealIterationCount}:`)
 
       // Use extracted exclusion analysis logic
       const analysis = analyzeExclusionsAndGuarantees(simulatedState)
       const { guaranteedRivals, ruledOutRivals } = analysis
 
-      console.log(`  - Guaranteed rivals: ${guaranteedRivals.length} tiles`)
-      console.log(`  - Ruled out as rival: ${ruledOutRivals.size} tiles`)
 
       let nextTile: Tile | null = null
 
@@ -58,7 +54,6 @@ export class ConservativeAI implements RivalAI {
 
         if (selectableGuaranteed.length > 0) {
           nextTile = selectableGuaranteed[0]
-          console.log(`  ✓ Selected guaranteed rival at (${nextTile.position.x},${nextTile.position.y})`)
         }
       }
 
@@ -75,7 +70,6 @@ export class ConservativeAI implements RivalAI {
           )
 
         if (availableTiles.length === 0) {
-          console.log('  ⚠ No available tiles left')
           break
         }
 
@@ -86,14 +80,12 @@ export class ConservativeAI implements RivalAI {
         )
 
         if (filteredPriorities.length === 0) {
-          console.log('  ⚠ No tiles with priority available')
           break
         }
 
         // Sort by priority and pick highest
         filteredPriorities.sort((a, b) => b.priority - a.priority)
         nextTile = filteredPriorities[0].tile
-        console.log(`  → Selected by priority: (${nextTile.position.x},${nextTile.position.y}) with priority ${filteredPriorities[0].priority}`)
       }
 
       if (!nextTile) break
@@ -102,17 +94,13 @@ export class ConservativeAI implements RivalAI {
 
       // Stop if this is not a rival tile (would end turn)
       if (nextTile.owner !== 'rival') {
-        console.log(`  ⚠ Selected non-rival tile [${nextTile.owner}], stopping`)
         break
       }
 
       // Simulate revealing this tile to use new info in next iteration
-      console.log(`  ⟳ Simulating reveal to continue with updated info`)
       simulatedState = this.simulateReveal(simulatedState, nextTile)
     }
 
-    console.log(`\n🧠 CONSERVATIVE AI: Selected ${tilesToReveal.length} tiles total`)
-    console.log('=======================================================\n')
 
     return tilesToReveal
   }

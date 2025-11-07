@@ -116,8 +116,6 @@ function App() {
   // Check for Espresso special card handling
   useEffect(() => {
     if (espressoSpecialCard) {
-      console.log('☕ ESPRESSO: Handling special card:', espressoSpecialCard)
-
       if (espressoSpecialCard.type === 'tingle') {
         // Play Tingle with animation
         playCard(espressoSpecialCard.cardId)
@@ -631,10 +629,8 @@ function App() {
                 <button
                   key={equipmentItem.name}
                   onClick={() => {
-                    console.log(`🖱️ UI: Clicking equipment button for "${equipmentItem.name}"`)
                     debugGiveEquipment(equipmentItem.name)
                     setShowEquipmentDebug(false)
-                    console.log(`🖱️ UI: Equipment button click completed`)
                   }}
                   style={{
                     padding: '10px',
@@ -732,7 +728,6 @@ function App() {
                 <button
                   key={cardName}
                   onClick={() => {
-                    console.log(`🖱️ UI: Clicking card button for "${cardName}" with upgrade "${cardUpgradeType}"`)
                     const upgrades = cardUpgradeType === 'cost-reduced'
                       ? { energyReduced: true }
                       : cardUpgradeType === 'enhanced'
@@ -740,7 +735,6 @@ function App() {
                       : undefined
                     debugGiveCard(cardName, upgrades)
                     setShowCardDebug(false)
-                    console.log(`🖱️ UI: Card button click completed`)
                   }}
                   style={{
                     padding: '8px 4px',

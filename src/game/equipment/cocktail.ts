@@ -5,13 +5,9 @@ import { createCard, getRewardCardPool, applyDIYGel } from '../gameRepository'
  * Cocktail equipment: when gained, remove all Scurry cards and add 2 random energy-upgraded cards
  */
 export function applyCocktailEffect(state: GameState): GameState {
-  console.log('🍸 COCKTAIL EFFECT: Removing all Scurry, adding 2 random energy-upgraded cards')
-
   // Filter out all Scurry cards from persistent deck
-  const scurryCards = state.persistentDeck.filter(card => card.name === 'Scurry')
   const deckWithoutScurry = state.persistentDeck.filter(card => card.name !== 'Scurry')
 
-  console.log(`  - Removed ${scurryCards.length} Scurry cards`)
 
   // Get 2 random energy-upgraded cards from reward pool
   const rewardPool = getRewardCardPool()
@@ -23,7 +19,6 @@ export function applyCocktailEffect(state: GameState): GameState {
   const randomCard1 = applyDIYGel(state.equipment, card1)
   const randomCard2 = applyDIYGel(state.equipment, card2)
 
-  console.log(`  - Adding ${randomCard1.name} and ${randomCard2.name}`)
 
   const newDeck = [...deckWithoutScurry, randomCard1, randomCard2]
 

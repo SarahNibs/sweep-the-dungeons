@@ -26,7 +26,6 @@ export function destroyTile(board: Board, position: Position): Board {
     }
   }
 
-  console.log(`💥 DESTROYING TILE at (${position.x}, ${position.y}), owner was: ${tile.owner}`)
 
   const newTiles = new Map(board.tiles)
 
@@ -69,14 +68,12 @@ export function destroyTile(board: Board, position: Position): Board {
         tiles: updatedTiles
       }
 
-      console.log(`  - Updated adjacency for neighbor at (${neighborPos.x}, ${neighborPos.y}): ${neighbor.adjacencyCount} -> ${newAdjacencyCount}`)
     }
   }
 
   // Remove destroyed tile from all clue annotations across the board
   updatedBoard = removeFromClueAnnotations(updatedBoard, position)
 
-  console.log(`✅ TILE DESTROYED at (${position.x}, ${position.y})`)
   return updatedBoard
 }
 
@@ -156,7 +153,6 @@ function removeFromClueAnnotations(board: Board, destroyedPosition: Position): B
   }
 
   if (changedCount > 0) {
-    console.log(`  - Removed destroyed tile from clue annotations on ${changedCount} tiles`)
   }
 
   return {

@@ -29,7 +29,6 @@ export function executeSnipSnipEffect(state: GameState, target: Position, card?:
 
   // Defuse surface mine if present
   if (hasSpecialTile(currentTile, 'surfaceMine')) {
-    console.log('✂️ SNIP SNIP: Defusing surface mine')
     currentTile = removeSpecialTile(currentTile, 'surfaceMine')
     newTiles.set(key, currentTile)
     mineDefused = true
@@ -37,7 +36,6 @@ export function executeSnipSnipEffect(state: GameState, target: Position, card?:
 
   // Convert regular mine to neutral and reveal
   if (currentTile.owner === 'mine') {
-    console.log('✂️ SNIP SNIP: Converting mine to neutral and revealing')
 
     // Change owner to neutral
     currentTile = {
@@ -59,7 +57,6 @@ export function executeSnipSnipEffect(state: GameState, target: Position, card?:
     // Enhanced: also show mine adjacency info as annotation
     if (card?.enhanced) {
       const mineAdjacency = countAdjacentMines(newState, target)
-      console.log(`✂️ SNIP SNIP (Enhanced): Mine adjacency = ${mineAdjacency}`)
 
       // Remove existing adjacency_info annotations and add new one
       const existingAnnotations = currentTile.annotations.filter(a => a.type !== 'adjacency_info')
@@ -79,7 +76,6 @@ export function executeSnipSnipEffect(state: GameState, target: Position, card?:
   // Enhanced: show mine adjacency regardless of whether we defused
   else if (card?.enhanced) {
     const mineAdjacency = countAdjacentMines(newState, target)
-    console.log(`✂️ SNIP SNIP (Enhanced): Mine adjacency = ${mineAdjacency}`)
 
     // Remove existing adjacency_info annotations and add new one
     const existingAnnotations = currentTile.annotations.filter(a => a.type !== 'adjacency_info')
@@ -106,7 +102,6 @@ export function executeSnipSnipEffect(state: GameState, target: Position, card?:
 
   // If tile is not a mine and has no surface mine, annotate as not-mine
   if (!mineDefused && !tile.revealed) {
-    console.log('✂️ SNIP SNIP: Tile is not a mine, annotating as player/neutral/rival')
     const possibleOwners = new Set<'player' | 'rival' | 'neutral' | 'mine'>([
       'player',
       'rival',
@@ -117,13 +112,11 @@ export function executeSnipSnipEffect(state: GameState, target: Position, card?:
 
   // Update adjacency_info annotations on neighboring tiles if ownership changed
   if (mineDefused && tile.owner === 'mine') {
-    console.log('✂️ SNIP SNIP: Updating neighbor adjacency info after mine conversion')
     newState = updateNeighborAdjacencyInfo(newState, target)
   }
 
   // Award copper if any mine was defused
   if (mineDefused) {
-    console.log('✂️ SNIP SNIP: +2 copper for defusing mine')
     newState = {
       ...newState,
       copper: newState.copper + 2

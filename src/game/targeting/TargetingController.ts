@@ -101,8 +101,7 @@ function removeCardAndDeductEnergy(state: GameState, card: Card): GameState {
       exhaust: newExhaust
     },
     card,
-    state.activeStatusEffects,
-    'removeCardAndDeductEnergy'
+    state.activeStatusEffects
   )
 }
 
@@ -159,7 +158,6 @@ export class TargetingController {
     const config = TARGETING_CONFIG[effect.type]
 
     if (!config) {
-      console.warn(`No targeting config for effect type: ${effect.type}`)
       return
     }
 
@@ -264,7 +262,7 @@ export class TargetingController {
         selectedCardId: null,
         shouldExhaustLastCard: false // Reset after use
       }
-      finalState = deductEnergy(stateBeforeEnergy, card, currentState.activeStatusEffects, 'targetTileForCard (general)')
+      finalState = deductEnergy(stateBeforeEnergy, card, currentState.activeStatusEffects)
     }
 
     // Check if the effect revealed a tile that should end the turn
@@ -273,7 +271,6 @@ export class TargetingController {
     if (shouldEndTurn) {
       // Clear espressoForcedPlay flag if it was set
       if (currentState.espressoForcedPlay) {
-        console.log('☕ ESPRESSO: Card played and turn ending, clearing forced play flag')
         finalState = {
           ...finalState,
           espressoForcedPlay: undefined
@@ -286,16 +283,8 @@ export class TargetingController {
       return
     }
 
-    console.log('🎯 SETTING FINAL STATE FROM CARD EFFECT')
-    console.log('  - Card played:', card.name)
-    console.log('  - Effect type:', effect.type)
-    console.log('  - Final state hand size:', finalState.hand.length)
-    console.log('  - Final state deck size:', finalState.deck.length)
-    console.log('  - Final state activeStatusEffects:', finalState.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
-
     // Clear espressoForcedPlay flag if it was set
     if (currentState.espressoForcedPlay) {
-      console.log('☕ ESPRESSO: Card successfully played, clearing forced play flag')
       finalState = {
         ...finalState,
         espressoForcedPlay: undefined
@@ -324,7 +313,6 @@ export class TargetingController {
         if (tileBefore && tileAfter && !tileBefore.revealed && tileAfter.revealed) {
           // Check if turn should end using centralized function
           if (shouldRevealEndTurn(effectState, tileAfter)) {
-            console.log('🔄 QUANTUM ENDING TURN - Revealed non-player tile')
             return true
           }
         }
@@ -343,7 +331,6 @@ export class TargetingController {
       const frillyDressPrevents = hasFrillyDress && effectState.isFirstTurn && withinLimit
 
       if (!frillyDressPrevents) {
-        console.log('🐴 HORSE ENDING TURN - Revealed non-player tiles (neutralsRevealedThisTurn:', effectState.neutralsRevealedThisTurn, ')')
         return true
       }
     }
@@ -352,7 +339,6 @@ export class TargetingController {
     // Fetch sets fetchRevealedNonPlayer flag when it reveals non-player tiles
     // Frilly Dress exception is already handled in fetch.ts
     if (effect.type === 'fetch' && effectState.fetchRevealedNonPlayer) {
-      console.log('🎾 FETCH ENDING TURN - Revealed non-player tiles')
       return true
     }
 
@@ -388,14 +374,11 @@ export class TargetingController {
 
     // Check if this is an Espresso forced play
     if (currentState.espressoForcedPlay) {
-      console.log('☕ ESPRESSO: Canceling forced play - deducting energy and discarding card')
-
       const { cardId, energyCost, shouldExhaust } = currentState.espressoForcedPlay
 
       // Find the card
       const card = currentState.hand.find(c => c.id === cardId)
       if (!card) {
-        console.error('☕ ESPRESSO: Card not found in hand during cancel')
         this.setState({
           ...currentState,
           pendingCardEffect: null,
@@ -422,7 +405,6 @@ export class TargetingController {
         espressoForcedPlay: undefined
       }
 
-      console.log(`☕ ESPRESSO: Canceled - deducted ${energyCost} energy, ${shouldExhaust ? 'exhausted' : 'discarded'} ${card.name}`)
       this.setState(newState)
     } else {
       // Normal cancel - just clear targeting state

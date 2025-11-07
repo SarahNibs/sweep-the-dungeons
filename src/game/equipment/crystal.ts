@@ -5,7 +5,6 @@ import { createCard, applyDIYGel } from '../gameRepository'
  * Crystal equipment: when gained, add 3 doubly-enhanced Tingles to your permanent deck
  */
 export function applyCrystalEffect(state: GameState): GameState {
-  console.log('💎 CRYSTAL EFFECT: Adding 3 doubly-enhanced Tingles to deck')
 
   // Create 3 doubly-enhanced Tingles (already enhanced, so DIY Gel won't affect them)
   const tingle1 = applyDIYGel(state.equipment, createCard('Tingle', { energyReduced: true, enhanced: true }))

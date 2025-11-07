@@ -89,7 +89,6 @@ export function createRandomAssignment(
     }
 
     if (assigned < count) {
-      console.warn(`⚠️ Could only assign ${assigned}/${count} ${ownerType} tiles (constraint violation)`)
     }
   }
 
@@ -106,7 +105,6 @@ export function createRandomAssignment(
 
     const possibleOwners = possibilities.get(key)
     if (!possibleOwners || possibleOwners.size === 0) {
-      console.warn(`⚠️ Tile at ${key} has no possible owners, defaulting to neutral`)
       assignments.set(key, 'neutral')
       counterfactualPositions.add(key)
       continue

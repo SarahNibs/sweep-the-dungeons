@@ -5,7 +5,6 @@ import { createCard, applyDIYGel } from '../gameRepository'
  * Disco Ball equipment: when gained, add 2 doubly-upgraded Tingles to your permanent deck
  */
 export function applyDiscoBallEffect(state: GameState): GameState {
-  console.log('🪩 DISCO BALL EFFECT: Adding 2 doubly-upgraded Tingles to deck')
 
   // Create 2 doubly-upgraded Tingles (already enhanced, so DIY Gel won't affect them)
   const tingle1 = applyDIYGel(state.equipment, createCard('Tingle', { energyReduced: true, enhanced: true }))

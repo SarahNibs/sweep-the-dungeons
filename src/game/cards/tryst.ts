@@ -61,25 +61,18 @@ export function selectTrystTiles(state: GameState, target?: Position, enhanced?:
 }
 
 export function executeTrystEffect(state: GameState, target?: Position, card?: import('../../types').Card): GameState {
-  console.log('💑 TRYST EFFECT DEBUG - Starting')
 
   const reveals = selectTrystTiles(state, target, card?.enhanced)
 
   if (reveals.length === 0) {
-    console.log('💑 TRYST - No tiles to reveal')
     return state
   }
 
   let currentState = state
 
   for (const { tile, revealer } of reveals) {
-    console.log(`💑 TRYST - Revealing ${tile.owner} tile at (${tile.position.x}, ${tile.position.y}) with revealer='${revealer}'`)
     currentState = revealTileWithEquipmentEffects(currentState, tile.position, revealer, false)
-
-    const revealedTile = currentState.board.tiles.get(`${tile.position.x},${tile.position.y}`)
-    console.log(`💑 TRYST - After reveal: adjacencyCount=${revealedTile?.adjacencyCount}`)
   }
 
-  console.log('💑 TRYST EFFECT DEBUG - Complete')
   return currentState
 }

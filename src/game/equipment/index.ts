@@ -152,7 +152,6 @@ export function startEquipmentSelection(state: GameState): GameState {
 }
 
 export function closeEquipmentUpgradeDisplay(state: GameState): GameState {
-  console.log('📋 CLOSING EQUIPMENT UPGRADE DISPLAY')
 
   // Simply pop the modal from the stack
   // The underlying gamePhase is already set correctly by the calling code

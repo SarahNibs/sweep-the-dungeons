@@ -198,15 +198,6 @@ export function generatePlayerSolidClue(
   ]
   
   // DEBUG: Log clue generation details
-  console.log('=== SOLID CLUE GENERATION ===')
-  console.log('(1) Original tiles (targets):', chosenPlayerTiles.map(t => `${t.position.x},${t.position.y} (${t.owner})`))
-  console.log('(2) Spoiler tiles:', chosenRandomTiles.map(t => `${t.position.x},${t.position.y} (${t.owner})`))
-  console.log('(3) Complete bag before drawing:', bag.map(t => `${t.position.x},${t.position.y} (${t.owner})`))
-  console.log('Bag summary:', bag.reduce((acc, tile) => {
-    const key = `${tile.position.x},${tile.position.y}`
-    acc[key] = (acc[key] || 0) + 1
-    return acc
-  }, {} as Record<string, number>))
   
   // Guarantee first 2 draws are from chosen player tiles
   const guaranteedTiles = [...chosenPlayerTiles]
@@ -249,15 +240,6 @@ export function generatePlayerStretchClue(
   ]
   
   // DEBUG: Log clue generation details
-  console.log('=== STRETCH CLUE GENERATION ===')
-  console.log('(1) Original tiles (targets):', chosenPlayerTiles.map(t => `${t.position.x},${t.position.y} (${t.owner})`))
-  console.log('(2) Spoiler tiles:', chosenRandomTiles.map(t => `${t.position.x},${t.position.y} (${t.owner})`))
-  console.log('(3) Complete bag before drawing:', bag.map(t => `${t.position.x},${t.position.y} (${t.owner})`))
-  console.log('Bag summary:', bag.reduce((acc, tile) => {
-    const key = `${tile.position.x},${tile.position.y}`
-    acc[key] = (acc[key] || 0) + 1
-    return acc
-  }, {} as Record<string, number>))
   
   // Guarantee first 3 draws are from chosen player tiles (not all 5)
   const guaranteedTiles = chosenPlayerTiles.slice(0, 3)
@@ -286,15 +268,6 @@ export function generateRivalClueWithSharedSetup(
   ]
   
   // DEBUG: Log clue generation details
-  console.log('=== RIVAL CLUE GENERATION ===')
-  console.log('(1) Original tiles (targets):', chosenRivalTiles.map(t => `${t.position.x},${t.position.y} (${t.owner})`))
-  console.log('(2) Spoiler tiles:', chosenRandomTiles.map(t => `${t.position.x},${t.position.y} (${t.owner})`))
-  console.log('(3) Complete bag before drawing:', bag.map(t => `${t.position.x},${t.position.y} (${t.owner})`))
-  console.log('Bag summary:', bag.reduce((acc, tile) => {
-    const key = `${tile.position.x},${tile.position.y}`
-    acc[key] = (acc[key] || 0) + 1
-    return acc
-  }, {} as Record<string, number>))
   
   // Guarantee first 2 draws are from chosen rival tiles
   const guaranteedTiles = [...chosenRivalTiles]

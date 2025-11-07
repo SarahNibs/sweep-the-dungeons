@@ -8,7 +8,6 @@ import { createStatusEffect } from '../gameRepository'
  * As long as there are any stacks, draw +1 card per turn
  */
 export function executeBurgerEffect(state: GameState, card?: Card): GameState {
-  console.log(`🍔 BURGER EFFECT - Enhanced: ${card?.enhanced}`)
 
   const stacksToAdd = card?.enhanced ? 3 : 2
 
@@ -20,7 +19,6 @@ export function executeBurgerEffect(state: GameState, card?: Card): GameState {
   if (existingBurger) {
     // Add more stacks
     const newCount = (existingBurger.count || 0) + stacksToAdd
-    console.log(`🍔 Adding ${stacksToAdd} Burger stacks: ${existingBurger.count} → ${newCount}`)
 
     newState = {
       ...state,
@@ -64,7 +62,6 @@ export function decrementBurgerStacks(state: GameState): GameState {
   }
 
   const newCount = (burgerEffect.count || 0) - 1
-  console.log(`🍔 Decrementing Burger stacks: ${burgerEffect.count} → ${newCount}`)
 
   if (newCount <= 0) {
     // Remove the effect

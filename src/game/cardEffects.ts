@@ -56,12 +56,10 @@ export function trackPlayerTileReveal(
   }
 
   if (shouldAwardCopper) {
-    console.log(`💰 PLAYER TILE REVEAL BONUS: Revealed ${newCount} player tiles total, awarded 1 copper!`)
 
     // Check for Ice Cream status effect - grant +1 energy when copper awarded
     const iceCreamEffect = updatedState.activeStatusEffects.find(e => e.type === 'ice_cream')
     if (iceCreamEffect && iceCreamEffect.count && iceCreamEffect.count > 0) {
-      console.log(`🍦 ICE CREAM EFFECT - Granting +1 energy from copper gain!`)
       updatedState = {
         ...updatedState,
         energy: updatedState.energy + 1
@@ -83,14 +81,12 @@ export function revealTileWithEquipmentEffects(
   const tileBeforeReveal = getTile(state.board, position)
 
   if (tileBeforeReveal && hasSpecialTile(tileBeforeReveal, 'surfaceMine')) {
-    console.log('💣 SURFACE MINE DETECTED - Handling explosion')
 
     // Handle surface mine explosion
     let stateAfterExplosion = state
 
     // If controllable player reveal, try to use Underwire protection
     if (controllableReveal && revealer === 'player' && state.underwireProtection?.active) {
-      console.log('🛡️ UNDERWIRE TRIGGERED FOR SURFACE MINE')
       const isEnhanced = state.underwireProtection.enhanced
 
       // Consume Underwire protection
@@ -102,7 +98,6 @@ export function revealTileWithEquipmentEffects(
 
       // Remove the status effect
       stateAfterExplosion = removeStatusEffect(stateAfterExplosion, 'underwire_protection')
-      console.log('🛡️ UNDERWIRE PROTECTION CONSUMED FOR SURFACE MINE')
     }
 
     // Explode the surface mine: change to empty and add destroyed special tile
@@ -123,11 +118,9 @@ export function revealTileWithEquipmentEffects(
       }
     }
 
-    console.log('💥 SURFACE MINE EXPLODED - Tile marked as destroyed')
 
     // Update adjacency_info annotations on neighboring tiles if owner changed
     if (originalOwner !== 'empty') {
-      console.log('💥 Updating neighbor adjacency info after surface mine explosion')
       stateAfterExplosion = updateNeighborAdjacencyInfo(stateAfterExplosion, position)
     }
 
@@ -152,19 +145,8 @@ export function revealTileWithEquipmentEffects(
   // Handle Underwire protection if player revealed a mine
   if (revealer === 'player' && revealResult.revealed) {
     const tile = getTile(newBoard, position)
-    console.log('🔍 UNDERWIRE DEBUG - Player revealed tile:', {
-      position,
-      tileExists: !!tile,
-      tileOwner: tile?.owner,
-      underwireProtection: state.underwireProtection,
-      activeStatusEffects: state.activeStatusEffects.map(e => e.type)
-    })
     
     if (tile && tile.owner === 'mine' && state.underwireProtection?.active) {
-      console.log('🛡️ UNDERWIRE TRIGGERED - Mine revealed with active protection!')
-      console.log('Before protection logic:')
-      console.log('  - underwireProtection:', state.underwireProtection)
-      console.log('  - activeStatusEffects:', state.activeStatusEffects)
       
       // Mark the mine tile as protected and consume the underwire protection
       const isEnhanced = state.underwireProtection.enhanced
@@ -186,22 +168,14 @@ export function revealTileWithEquipmentEffects(
         underwireUsedThisTurn: !isEnhanced // Only mark for turn end if basic Underwire
       }
       
-      console.log('After setting state (before removeStatusEffect):')
-      console.log('  - underwireProtection:', stateWithBoard.underwireProtection)
-      console.log('  - activeStatusEffects:', stateWithBoard.activeStatusEffects)
       
       // Remove the status effect
       stateWithBoard = removeStatusEffect(stateWithBoard, 'underwire_protection')
       
-      console.log('After removeStatusEffect:')
-      console.log('  - underwireProtection:', stateWithBoard.underwireProtection)
-      console.log('  - activeStatusEffects:', stateWithBoard.activeStatusEffects)
-      console.log('🛡️ UNDERWIRE PROTECTION CONSUMED')
     } else if (tile && tile.owner === 'mine') {
       // Check for Grace status effect as fallback protection
       const hasGrace = state.activeStatusEffects.some(effect => effect.type === 'grace')
       if (hasGrace) {
-        console.log('🤞 GRACE TRIGGERED - Mine revealed with Grace protection!')
 
         // Mark the mine tile as grace-protected
         const newTiles = new Map(newBoard.tiles)
@@ -226,9 +200,7 @@ export function revealTileWithEquipmentEffects(
 
         // Remove the Grace status effect
         stateWithBoard = removeStatusEffect(stateWithBoard, 'grace')
-        console.log('🤞 GRACE PROTECTION CONSUMED - 1 Evidence added to discard, 1 to top of deck')
       } else {
-        console.log('💥 MINE REVEALED WITHOUT PROTECTION - Game should end')
       }
     }
   }
@@ -267,11 +239,6 @@ export function revealTileWithEquipmentEffects(
   // Track player tile reveals and award copper every 5th reveal
   stateWithBoard = trackPlayerTileReveal(stateWithBoard, position, revealResult.revealed)
 
-  console.log('🔚 REVEAL TILE WITH EQUIPMENT EFFECTS - FINAL STATE')
-  console.log('  - Final underwireProtection:', stateWithBoard.underwireProtection)
-  console.log('  - Final activeStatusEffects:', stateWithBoard.activeStatusEffects.map(e => ({ type: e.type, id: e.id })))
-  console.log('  - Final hand size:', stateWithBoard.hand.length)
-  console.log('  - Final deck size:', stateWithBoard.deck.length)
 
   return stateWithBoard
 }
@@ -360,7 +327,6 @@ export function addOwnerSubsetAnnotation(
       // Remove old player annotation and add updated one
       const withoutPlayerAnnotation = finalAnnotations.filter(a => a.type !== 'player_owner_possibility')
       if (intersected.size > 0) {
-        console.log(`🤖 AUTO-ANNOTATION: Updating player annotation at (${position.x}, ${position.y})`)
         withoutPlayerAnnotation.push({
           type: 'player_owner_possibility',
           playerOwnerPossibility: intersected
@@ -370,7 +336,6 @@ export function addOwnerSubsetAnnotation(
       finalAnnotations.push(...withoutPlayerAnnotation)
     } else {
       // No existing player annotation - add one with the owner subset (minus 'player')
-      console.log(`🤖 AUTO-ANNOTATION: Adding not-player annotation at (${position.x}, ${position.y})`)
       finalAnnotations.push({
         type: 'player_owner_possibility',
         playerOwnerPossibility: new Set(finalOwnerSubset)
@@ -546,7 +511,6 @@ export function updateNeighborAdjacencyInfo(state: GameState, changedPosition: P
 
     // Only update if the count changed
     if (newAdjacencyCount !== neighborTile.adjacencyCount) {
-      console.log(`📐 Updating adjacencyCount for revealed tile at (${neighborTile.position.x}, ${neighborTile.position.y}): ${neighborTile.adjacencyCount} → ${newAdjacencyCount}`)
 
       const newTiles = new Map(newState.board.tiles)
       const key = positionToKey(neighborTile.position)
@@ -683,7 +647,6 @@ export function checkGameStatus(state: GameState): GameStatusInfo {
   }
 
   if (hasFavor && unrevealedPlayerTiles === 1) {
-    console.log('🤝 FAVOR: Finishing floor with 1 player tile remaining')
     return {
       status: 'player_won',
       reason: 'all_player_tiles_revealed',
@@ -704,7 +667,6 @@ export function checkGameStatus(state: GameState): GameStatusInfo {
 
 
 export function executeCardEffect(state: GameState, effect: CardEffect, card?: import('../types').Card): GameState {
-  console.log('🎮 EXECUTE CARD EFFECT - Type:', effect.type, 'Effect:', effect, 'Card:', card?.name)
   switch (effect.type) {
     case 'scout':
       return executeScoutEffect(state, effect.target, card)
@@ -739,7 +701,6 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
     case 'underwire':
       return executeUnderwireEffect(state, card)
     case 'tryst':
-      console.log('🎯 CARD EFFECTS - About to call executeTrystEffect with target:', effect.target, 'card:', card?.name)
       return executeTrystEffect(state, effect.target, card)
     case 'canary':
       return executeCanaryEffect(state, effect.target, card)

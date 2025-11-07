@@ -12,7 +12,6 @@ import { getWeightedRewardCardPool, selectWeightedCard, createCard, applyDIYGel 
  */
 
 export function applyBootsEffect(state: GameState): GameState {
-  console.log('👢 BOOTS EFFECT: Entering card selection mode')
 
   // Set state to show deck selection for transformation
   return {
@@ -27,7 +26,6 @@ export function transformCardForBoots(state: GameState, cardId: string): GameSta
   // Find the original card for the "before" display
   const originalCard = state.persistentDeck.find(card => card.id === cardId)
   if (!originalCard) {
-    console.error(`👢 BOOTS: Card ${cardId} not found in persistentDeck`)
     return state
   }
 
@@ -46,7 +44,6 @@ export function transformCardForBoots(state: GameState, cardId: string): GameSta
     enhanced: true
   }))
 
-  console.log(`👢 BOOTS: Transformed ${originalCard.name} into double-upgraded ${upgradedCard.name}`)
 
   return {
     ...state,

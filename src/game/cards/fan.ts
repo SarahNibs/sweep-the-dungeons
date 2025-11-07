@@ -8,7 +8,6 @@ import { updateNeighborAdjacencyInfo } from '../cardEffects'
  * Enhanced: 3x3 area
  */
 export function executeFanEffect(state: GameState, target: Position, enhanced: boolean = false): GameState {
-  console.log(`🪭 FAN EFFECT - Target: (${target.x}, ${target.y}), Enhanced: ${enhanced}`)
 
   const tilesToFan: Position[] = []
 
@@ -71,13 +70,11 @@ export function executeFanEffect(state: GameState, target: Position, enhanced: b
 
     // If no adjacent unrevealed nonempty tiles, dirt/goblin/mine disappears
     if (unrevealedNeighbors.length === 0) {
-      console.log(`🪭 No adjacent unrevealed tiles - dirt/goblin/mine at (${pos.x}, ${pos.y}) will disappear`)
       continue
     }
 
     // Pick random adjacent neighbor
     const targetNeighbor = unrevealedNeighbors[Math.floor(Math.random() * unrevealedNeighbors.length)]
-    console.log(`🪭 Planning to blow from (${pos.x}, ${pos.y}) to adjacent (${targetNeighbor.pos.x}, ${targetNeighbor.pos.y})`)
 
     operations.push({
       sourcePos: pos,
@@ -115,7 +112,6 @@ export function executeFanEffect(state: GameState, target: Position, enhanced: b
     const destHasMine = newDestSpecialTiles.includes('surfaceMine')
 
     if (destHasGoblin && destHasMine) {
-      console.log(`💥 Goblin and mine collided at (${op.destPos.x}, ${op.destPos.y}) - EXPLOSION!`)
 
       // Remove both goblin and mine, change to empty
       const explodedSpecialTiles = newDestSpecialTiles.filter(

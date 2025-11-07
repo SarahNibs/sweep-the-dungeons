@@ -7,7 +7,6 @@ import { createCard } from '../gameRepository'
  * Also transforms future Instructions additions
  */
 export function applyNovelEffect(state: GameState): GameState {
-  console.log('📖 NOVEL EFFECT: Replacing all Instructions-like cards with doubly-upgraded Sarcastic Instructions')
 
   // Find all Instructions-like cards in persistent deck
   const instructionsLikeCards = state.persistentDeck.filter(card =>
@@ -21,7 +20,6 @@ export function applyNovelEffect(state: GameState): GameState {
     card.name !== 'Sarcastic Instructions'
   )
 
-  console.log(`  - Replacing ${instructionsLikeCards.length} Instructions-like cards`)
 
   // Create doubly-upgraded Sarcastic Instructions for each removed card
   const sarcasticCards: Card[] = instructionsLikeCards.map(() =>
@@ -60,7 +58,6 @@ export function transformInstructionsIfNovel(card: Card, hasNovel: boolean): Car
     card.name === 'Vague Instructions' ||
     card.name === 'Sarcastic Instructions'
   )) {
-    console.log(`📖 NOVEL: Transforming ${card.name} to doubly-upgraded Sarcastic Instructions`)
     return createCard('Sarcastic Instructions', { energyReduced: true, enhanced: true })
   }
   return card

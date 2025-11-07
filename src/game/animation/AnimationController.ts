@@ -109,7 +109,6 @@ export class AnimationController {
       const state = this.getState()
       // If animation was cleared, just return without doing anything
       if (!state.tingleAnimation || !state.tingleAnimation.isActive) {
-        console.warn('⚠️ Tingle animation was cleared during emphasis phase')
         return
       }
 
@@ -126,7 +125,6 @@ export class AnimationController {
         const finalState = this.getState()
         // If animation was cleared, just return without doing anything
         if (!finalState.tingleAnimation || !finalState.tingleAnimation.isActive) {
-          console.warn('⚠️ Tingle animation was cleared during fade phase')
           return
         }
 

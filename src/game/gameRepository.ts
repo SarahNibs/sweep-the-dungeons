@@ -1059,9 +1059,6 @@ export function addStatusEffect(state: GameState, effectType: StatusEffect['type
 }
 
 export function removeStatusEffect(state: GameState, effectType: StatusEffect['type']): GameState {
-  console.log('🗑️ REMOVE STATUS EFFECT DEBUG')
-  console.log('  - Removing effect type:', effectType)
-  console.log('  - Before removal:', state.activeStatusEffects.map(e => ({ type: e.type, id: e.id, count: e.count })))
 
   let filteredEffects: StatusEffect[]
 
@@ -1089,14 +1086,12 @@ export function removeStatusEffect(state: GameState, effectType: StatusEffect['t
     filteredEffects = state.activeStatusEffects.filter(effect => effect.type !== effectType)
   }
 
-  console.log('  - After filtering:', filteredEffects.map(e => ({ type: e.type, id: e.id, count: e.count })))
 
   const result = {
     ...state,
     activeStatusEffects: filteredEffects
   }
 
-  console.log('  - Final result activeStatusEffects:', result.activeStatusEffects.map(e => ({ type: e.type, id: e.id, count: e.count })))
 
   return result
 }

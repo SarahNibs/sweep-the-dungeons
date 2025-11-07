@@ -3,20 +3,16 @@ import { createCard } from '../gameRepository'
 import { getEligibleCardsForUpgrade, selectRandomCards } from './equipmentUtils'
 
 export function applyEstrogenEffect(state: GameState): GameState {
-  console.log('💉 ESTROGEN EFFECT - Applying energy reduction to 3 random cards')
 
   // Find eligible cards for energy reduction
   const eligibleCards = getEligibleCardsForUpgrade(state.persistentDeck, 'cost_reduction')
-  console.log('💉 ESTROGEN - Eligible cards for energy reduction:', eligibleCards.length)
 
   if (eligibleCards.length === 0) {
-    console.log('💉 ESTROGEN - No eligible cards, returning state unchanged')
     return state
   }
 
   // Select up to 3 random cards
   const selectedCards = selectRandomCards(eligibleCards, 3)
-  console.log('💉 ESTROGEN - Selected cards for upgrade:', selectedCards.map(c => c.name))
 
   // Apply energy reduction upgrades
   const upgradeResults: { before: Card; after: Card }[] = []
@@ -32,7 +28,6 @@ export function applyEstrogenEffect(state: GameState): GameState {
     }
   })
 
-  console.log('💉 ESTROGEN - Applied upgrades to', upgradeResults.length, 'cards')
 
   return {
     ...state,

@@ -12,11 +12,9 @@ export function executeGazeEffect(state: GameState, start: Position, card?: Card
   // Extract direction from card name
   const direction = extractDirection(card.name)
   if (!direction) {
-    console.error(`❌ Could not extract direction from Gaze card: ${card.name}`)
     return state
   }
 
-  console.log(`👀 GAZE EFFECT - Start: (${start.x}, ${start.y}), Direction: ${direction}, Enhanced: ${card.enhanced}`)
 
   const checked: Position[] = []
   let foundRival: Position | null = null
@@ -36,7 +34,6 @@ export function executeGazeEffect(state: GameState, start: Position, card?: Card
       foundRivalIndex = checked.length - 1
       if (!card.enhanced) {
         // Base version stops immediately if starting tile is rival
-        console.log(`👀 Checked 1 tile (starting tile), foundRival: yes`)
 
         // Annotate the found rival
         const rivalSet = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['rival'])
@@ -81,7 +78,6 @@ export function executeGazeEffect(state: GameState, start: Position, card?: Card
     }
   }
 
-  console.log(`👀 Checked ${checked.length} tiles, foundRival: ${foundRival ? 'yes' : 'no'}, foundMine: ${foundMine ? 'yes' : 'no'}`)
 
   let newState = state
 

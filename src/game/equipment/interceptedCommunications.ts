@@ -8,7 +8,6 @@ export function triggerInterceptedNoteEffect(state: GameState): GameState {
     return state
   }
 
-  console.log('🕵️ Triggering Intercepted Communications effect')
 
   // Find all unrevealed rival tiles
   const unrevealedRivalTiles = Array.from(state.board.tiles.values()).filter(tile =>
@@ -16,7 +15,6 @@ export function triggerInterceptedNoteEffect(state: GameState): GameState {
   )
 
   if (unrevealedRivalTiles.length === 0) {
-    console.log('  - No unrevealed rival tiles found')
     return state
   }
 
@@ -25,7 +23,6 @@ export function triggerInterceptedNoteEffect(state: GameState): GameState {
   const tileToReveal = unrevealedRivalTiles[randomIndex]
   const position = tileToReveal.position
 
-  console.log(`  - Revealing rival tile at (${position.x}, ${position.y})`)
 
   // Clean dirt first if present (like rivals do), then reveal with 'player' to get player adjacency info
   let currentState = state
@@ -46,6 +43,5 @@ export function triggerInterceptedNoteEffect(state: GameState): GameState {
   // Reveal the tile with 'player' to show player adjacency info (uncontrollable - random selection)
   const newState = revealTileWithEquipmentEffects(currentState, position, 'player', false)
 
-  console.log('  - Intercepted Communications effect completed')
   return newState
 }

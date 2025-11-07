@@ -77,17 +77,14 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
 
         // With Mop: always defuse
         if (hasMop) {
-          console.log(`💣 SWEEP + MOP: Defusing surface mine at (${x}, ${y})`)
           shouldDefuse = true
         }
         // Second cleaning (already cleaned once by Spritz or Sweep): defuse
         else if (currentTile.surfaceMineState?.cleanedOnce) {
-          console.log(`💣 SWEEP (2nd cleaning): Defusing surface mine at (${x}, ${y})`)
           shouldDefuse = true
         }
         // First cleaning without Mop: mark surface mine as cleanedOnce
         else {
-          console.log(`💣 SWEEP (1st cleaning): Marking surface mine at (${x}, ${y}) as cleanedOnce`)
           currentTile = { ...currentTile, surfaceMineState: { cleanedOnce: true } }
           newTiles.set(key, currentTile)
           finalState = {
@@ -121,7 +118,6 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
       ...finalState,
       copper: finalState.copper + copperFromDefusing
     }
-    console.log(`💣 SWEEP: Defused ${surfaceMinesDefused} surface mines, +${copperFromDefusing} copper`)
 
     // Count defused mines as cleaning for Mop effect (card draw)
     tilesCleanedCount += surfaceMinesDefused

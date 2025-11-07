@@ -51,18 +51,6 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
   
   // Debug logging for area targeting
   if (isAreaTargeting && areaHoverCenter) {
-    console.log('Area targeting debug:', {
-      selectedCardName,
-      selectedCardId,
-      selectedCard: selectedCard ? { id: selectedCard.id, name: selectedCard.name, enhanced: selectedCard.enhanced } : null,
-      areaInfo,
-      areaHoverCenter,
-      isAreaTargeting,
-      isBrushTargeting,
-      isSweepTargeting,
-      isCanaryTargeting,
-      isFanTargeting
-    })
   }
   
   const renderTiles = () => {

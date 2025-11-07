@@ -13,11 +13,9 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
   // Extract direction from card name
   const direction = extractDirection(card.name)
   if (!direction) {
-    console.error(`❌ Could not extract direction from Fetch card: ${card.name}`)
     return state
   }
 
-  console.log(`🎾 FETCH EFFECT - Start: (${start.x}, ${start.y}), Direction: ${direction}, Enhanced: ${card.enhanced}`)
 
   const checked: Position[] = []
   const ownerCounts = new Map<'player' | 'rival' | 'neutral' | 'mine', number>()
@@ -53,7 +51,6 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
     }
   }
 
-  console.log(`🎾 Checked ${checked.length} tiles, owner counts:`, Object.fromEntries(ownerCounts))
 
   // Find the most common owner, with tiebreaks to safest (player > neutral > rival > mine)
   const safetyOrder: Array<'player' | 'rival' | 'neutral' | 'mine'> = ['player', 'neutral', 'rival', 'mine']
@@ -68,7 +65,6 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
     }
   }
 
-  console.log(`🎾 Majority owner: ${majorityOwner} (count: ${maxCount})`)
 
   // Reveal all tiles with the majority owner
   let newState = state
@@ -88,20 +84,15 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
     return tile && tile.owner === 'mine'
   }).length
 
-  console.log(`🎾 Mine count in tiles to reveal: ${mineCount}`)
 
   // Check if we have enough protections for all mines
   const hasUnderwire = newState.underwireProtection?.active || false
   const hasGrace = newState.activeStatusEffects.some(e => e.type === 'grace')
   const totalProtections = (hasUnderwire ? 1 : 0) + (hasGrace ? 1 : 0)
 
-  console.log(`🎾 Protection check: ${totalProtections} protections available for ${mineCount} mines`)
-  console.log(`   - Underwire: ${hasUnderwire}`)
-  console.log(`   - Grace: ${hasGrace}`)
 
   // If we have mines but not enough protections, player loses
   if (mineCount > 0 && totalProtections < mineCount) {
-    console.log(`💥 FETCH REVEALED ${mineCount} MINES - Not enough protection (only ${totalProtections})`)
 
     // Consume all available protections and reveal the mines
     let protectionsLeft = totalProtections
@@ -129,7 +120,6 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
         }
 
         protectionsLeft--
-        console.log(`🛡️ Protected mine at (${pos.x}, ${pos.y}) - ${protectionsLeft} protections left`)
       } else {
         // Normal reveal
         const result = revealTileWithResult(boardState, pos, 'player')
@@ -142,7 +132,6 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
 
         if (!result.revealed) {
           partialRevealTiles.push(pos)
-          console.log(`🎾 Partial reveal at (${pos.x}, ${pos.y}) - goblin moved or dirt cleaned`)
         }
       }
     }
@@ -168,7 +157,6 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
         ...newState,
         activeStatusEffects: newState.activeStatusEffects.filter(e => e.type !== 'underwire_protection')
       }
-      console.log(`🛡️ Consumed Underwire protection`)
     }
     if (hasGrace && totalProtections >= 2) {
       // Remove grace status effect and add 1 Evidence to discard, 1 to top of draw pile
@@ -180,13 +168,11 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
         discard: [...newState.discard, evidenceCard1],
         deck: [...newState.deck, evidenceCard2] // Push to end = top of deck for drawing
       }
-      console.log(`🛡️ Consumed Grace protection - 1 Evidence added to discard, 1 to top of draw pile`)
     }
 
     newState = { ...newState, board: boardState }
 
     // Player loses because not all mines were protected
-    console.log(`💥 GAME OVER - Fetch revealed unprotected mines`)
     const gameStatus = checkGameStatus(newState)
     newState = { ...newState, gameStatus }
 
@@ -195,7 +181,6 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
       const tile = getTile(newState.board, pos)
       if (tile && !tile.revealed) {
         const ownerSet = new Set<'player' | 'rival' | 'neutral' | 'mine'>([tile.owner as 'player' | 'rival' | 'neutral' | 'mine'])
-        console.log(`🎾 Annotating partial reveal tile at (${pos.x}, ${pos.y}) as ${tile.owner}`)
         newState = addOwnerSubsetAnnotation(newState, pos, ownerSet)
       }
     }
@@ -205,7 +190,6 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
 
   // We have enough protections - mark all mines as protected before revealing
   if (mineCount > 0) {
-    console.log(`🛡️ FETCH: Enough protections available - marking ${mineCount} mines as protected`)
   }
 
   // Reveal all majority owner tiles, track which ones were actually revealed
@@ -234,20 +218,17 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
         })
         boardState = { ...boardState, tiles: newTiles }
         protectionsUsed++
-        console.log(`🛡️ Marked mine at (${pos.x}, ${pos.y}) as protected`)
       }
     }
 
     // If tile was not actually revealed (goblin moved or dirt cleaned), track it for annotation
     if (!result.revealed) {
       partialRevealTiles.push(pos)
-      console.log(`🎾 Partial reveal at (${pos.x}, ${pos.y}) - goblin moved or dirt cleaned`)
     }
   }
 
   // Consume the protections we used
   if (protectionsUsed > 0) {
-    console.log(`🛡️ Consuming ${protectionsUsed} protections`)
 
     if (hasUnderwire) {
       newState = {
@@ -260,7 +241,6 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
         ...newState,
         activeStatusEffects: newState.activeStatusEffects.filter(e => e.type !== 'underwire_protection')
       }
-      console.log(`🛡️ Consumed Underwire protection`)
     }
 
     if (protectionsUsed > 1 && hasGrace) {
@@ -273,7 +253,6 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
         discard: [...newState.discard, evidenceCard1],
         deck: [...newState.deck, evidenceCard2] // Push to end = top of deck for drawing
       }
-      console.log(`🛡️ Consumed Grace protection - 1 Evidence added to discard, 1 to top of draw pile`)
     }
   }
 
@@ -285,7 +264,6 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
     if (tile && !tile.revealed) {
       // We know the tile's owner from our earlier check - annotate it
       const ownerSet = new Set<'player' | 'rival' | 'neutral' | 'mine'>([tile.owner as 'player' | 'rival' | 'neutral' | 'mine'])
-      console.log(`🎾 Annotating partial reveal tile at (${pos.x}, ${pos.y}) as ${tile.owner}`)
       newState = addOwnerSubsetAnnotation(newState, pos, ownerSet)
     }
   }
@@ -319,17 +297,14 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
       const withinLimit = hasTea || newNeutralsCount <= 4
 
       if (!withinLimit) {
-        console.log(`🎾 Revealed ${neutralsRevealed} neutral tiles (total: ${newNeutralsCount}) - exceeded 4-neutral limit, turn should end`)
         newState = {
           ...newState,
           fetchRevealedNonPlayer: true
         }
       } else {
-        console.log(`🎾 Revealed ${neutralsRevealed} neutral tiles (total: ${newNeutralsCount}) - within 4-neutral limit, turn continues`)
       }
     } else {
       // Non-neutral or no Frilly Dress - always end turn
-      console.log(`🎾 Revealed ${majorityOwner} tiles - turn should end`)
       newState = {
         ...newState,
         fetchRevealedNonPlayer: true
@@ -355,7 +330,6 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
 
   // If enhanced, draw a card
   if (card.enhanced) {
-    console.log(`🎾 Enhanced Fetch - drawing a card`)
     // Draw from deck
     if (newState.deck.length > 0) {
       const drawnCard = newState.deck[0]

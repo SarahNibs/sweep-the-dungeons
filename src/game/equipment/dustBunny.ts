@@ -28,7 +28,6 @@ export function triggerDustBunnyEffect(state: GameState): GameState {
   let tileToReveal = randomTile
 
   if (randomTile.specialTiles.includes('surfaceMine')) {
-    console.log(`🐰 DUST BUNNY: Defusing surface mine at (${randomTile.position.x}, ${randomTile.position.y}) before revealing`)
     const newTiles = new Map(currentState.board.tiles)
     const defusedTile = removeSpecialTile(randomTile, 'surfaceMine')
     newTiles.set(key, defusedTile)
@@ -58,7 +57,6 @@ export function triggerDustBunnyEffect(state: GameState): GameState {
   })
 
   if (copperFromDefusing > 0) {
-    console.log(`🐰 DUST BUNNY: Defused surface mine, +${copperFromDefusing} copper`)
   }
 
   return {
@@ -104,7 +102,6 @@ export function triggerTemporaryBunnyBuffs(state: GameState): GameState {
     let tileToReveal = randomTile
 
     if (randomTile.specialTiles.includes('surfaceMine')) {
-      console.log(`🐰 TEMPORARY BUNNY BUFF: Defusing surface mine at (${randomTile.position.x}, ${randomTile.position.y}) before revealing`)
       const newTiles = new Map(currentState.board.tiles)
       const defusedTile = removeSpecialTile(randomTile, 'surfaceMine')
       newTiles.set(key, defusedTile)
@@ -145,7 +142,6 @@ export function triggerTemporaryBunnyBuffs(state: GameState): GameState {
   }
 
   if (totalCopperFromDefusing > 0) {
-    console.log(`🐰 TEMPORARY BUNNY BUFFS: Defused surface mines, +${totalCopperFromDefusing} copper`)
   }
 
   return {
@@ -180,7 +176,6 @@ export function triggerMatedPairEffect(state: GameState): GameState {
   let tileToReveal = randomTile
 
   if (randomTile.specialTiles.includes('surfaceMine')) {
-    console.log(`🍐 MATED PAIR: Defusing surface mine at (${randomTile.position.x}, ${randomTile.position.y}) before revealing`)
     const newTiles = new Map(currentState.board.tiles)
     const defusedTile = removeSpecialTile(randomTile, 'surfaceMine')
     newTiles.set(key, defusedTile)
@@ -210,7 +205,6 @@ export function triggerMatedPairEffect(state: GameState): GameState {
   })
 
   if (copperFromDefusing > 0) {
-    console.log(`🍐 MATED PAIR: Defused surface mine, +${copperFromDefusing} copper`)
   }
 
   return {
@@ -248,7 +242,6 @@ export function triggerBabyBunnyEffect(state: GameState): GameState {
   let tileToReveal = randomTile
 
   if (randomTile.specialTiles.includes('surfaceMine')) {
-    console.log(`🍼 BABY BUNNY: Defusing surface mine at (${randomTile.position.x}, ${randomTile.position.y}) before revealing`)
     const newTiles = new Map(currentState.board.tiles)
     const defusedTile = removeSpecialTile(randomTile, 'surfaceMine')
     newTiles.set(key, defusedTile)
@@ -278,7 +271,6 @@ export function triggerBabyBunnyEffect(state: GameState): GameState {
   })
 
   if (copperFromDefusing > 0) {
-    console.log(`🍼 BABY BUNNY: Defused surface mine, +${copperFromDefusing} copper`)
   }
 
   return {

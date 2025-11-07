@@ -76,8 +76,7 @@ export function getEffectiveCardCost(card: Card, activeStatusEffects: any[]): nu
 export function deductEnergy(
   state: GameState,
   card: Card,
-  statusEffectsForCost: any[],
-  context: string
+  statusEffectsForCost: any[]
 ): GameState {
   const cost = getEffectiveCardCost(card, statusEffectsForCost)
   let newEnergy = state.energy - cost
@@ -88,13 +87,6 @@ export function deductEnergy(
   }
 
   if (newEnergy < 0) {
-    console.error(`❌ ENERGY BUG DETECTED in ${context}:`)
-    console.error(`  - Current energy: ${state.energy}`)
-    console.error(`  - Card cost: ${cost}`)
-    console.error(`  - Card name: ${card.name}`)
-    console.error(`  - Energy-reduced: ${card.energyReduced}`)
-    console.error(`  - Would result in: ${newEnergy} energy`)
-    console.error(`  - This should have been caught by canPlayCard check!`)
 
     // Return state unchanged to prevent negative energy
     return state
@@ -161,7 +153,6 @@ export function createNewLevelCards(levelNumber: number): Card[] {
       // Pick random upgrade
       const upgradeType = possibleUpgrades[Math.floor(Math.random() * possibleUpgrades.length)]
 
-      console.log(`🎁 CARD REWARD UPGRADE (Level ${levelNumber}): Upgrading ${card.name} with ${upgradeType}`)
 
       // Apply the upgrade
       selectedCards[index] = createCard(card.name, {
@@ -187,11 +178,6 @@ export function shuffleDeck(cards: Card[]): Card[] {
 }
 
 export function drawCards(state: GameState, count: number): GameState {
-  console.log(`🃏 DRAW CARDS DEBUG - Attempting to draw ${count} cards`)
-  console.log('Before drawing:')
-  console.log('  - deck size:', state.deck.length)
-  console.log('  - hand size:', state.hand.length)
-  console.log('  - discard size:', state.discard.length)
   
   let { deck, hand, discard } = state
   const newHand = [...hand]
@@ -199,34 +185,22 @@ export function drawCards(state: GameState, count: number): GameState {
   let newDiscard = [...discard]
 
   for (let i = 0; i < count; i++) {
-    console.log(`  Drawing card ${i + 1}/${count}:`)
-    console.log(`    - deck size: ${newDeck.length}`)
-    console.log(`    - discard size: ${newDiscard.length}`)
     
     if (newDeck.length === 0) {
-      console.log('    - Deck empty, shuffling discard...')
       if (newDiscard.length === 0) {
-        console.log('    - No cards to shuffle, breaking')
         break
       }
       newDeck = shuffleDeck(newDiscard)
       newDiscard = []
-      console.log(`    - Shuffled ${newDeck.length} cards from discard`)
     }
     
     if (newDeck.length > 0) {
       const drawnCard = newDeck.pop()!
       newHand.push(drawnCard)
-      console.log(`    - Drew card: ${drawnCard.name}`)
     } else {
-      console.log('    - No cards available to draw!')
     }
   }
 
-  console.log('After drawing:')
-  console.log('  - deck size:', newDeck.length)
-  console.log('  - hand size:', newHand.length)
-  console.log('  - discard size:', newDiscard.length)
 
   return {
     ...state,
@@ -575,12 +549,11 @@ export function playCard(state: GameState, cardId: string): GameState {
 
       // If no valid cards, just exhaust Masking without entering masking mode
       if (!hasValidCards) {
-        console.log('🎭 MASKING: No valid cards in hand - exhausting without effect')
         const stateWithoutCard = {
           ...state,
           hand: handWithoutMasking
         }
-        const stateAfterEnergy = deductEnergy(stateWithoutCard, card, state.activeStatusEffects, 'playCard (Masking - no targets)')
+        const stateAfterEnergy = deductEnergy(stateWithoutCard, card, state.activeStatusEffects)
 
         // Exhaust Masking immediately
         return {
@@ -603,8 +576,7 @@ export function playCard(state: GameState, cardId: string): GameState {
           selectedCardName: card.name
         },
         card,
-        state.activeStatusEffects,
-        'playCard (Masking)'
+        state.activeStatusEffects
       )
       // Put Masking in discard for now (will be moved to exhaust later if not enhanced)
       return {
@@ -629,8 +601,7 @@ export function playCard(state: GameState, cardId: string): GameState {
           pileViewingType: 'exhaust'
         },
         card,
-        state.activeStatusEffects,
-        'playCard (Nap)'
+        state.activeStatusEffects
       )
       // Put Nap in discard for now (will be moved to exhaust later)
       return {
@@ -713,7 +684,7 @@ export function playCard(state: GameState, cardId: string): GameState {
   }
 
   // Use current status effects for cost (effects haven't changed yet for immediate cards)
-  return deductEnergy(finalState, card, finalState.activeStatusEffects, 'playCard (immediate effect)')
+  return deductEnergy(finalState, card, finalState.activeStatusEffects)
 }
 
 export function discardHand(state: GameState): GameState {
@@ -732,13 +703,11 @@ export function discardHand(state: GameState): GameState {
  * For special cards (Tingle, Masking, non-enhanced Tryst), leaves in hand for manual play
  */
 function triggerEspressoEffect(state: GameState): GameState {
-  console.log('☕ ESPRESSO: Drawing and immediately playing a card')
   let finalState = drawCards(state, 1)
 
   // Get the last card drawn (the one that was just added to hand)
   if (finalState.hand.length > 0) {
     const drawnCard = finalState.hand[finalState.hand.length - 1]
-    console.log(`☕ ESPRESSO: Auto-playing ${drawnCard.name}`)
 
     // Calculate effective cost
     const baseCost = drawnCard.cost
@@ -749,7 +718,6 @@ function triggerEspressoEffect(state: GameState): GameState {
     if (finalState.energy >= effectiveCost) {
       // Cards that require special handling (animation or card selection)
       if (drawnCard.name === 'Tingle') {
-        console.log(`☕ ESPRESSO: Tingle requires animation - setting up special handling`)
         return {
           ...finalState,
           espressoSpecialCard: {
@@ -762,7 +730,6 @@ function triggerEspressoEffect(state: GameState): GameState {
       }
 
       if (drawnCard.name === 'Masking') {
-        console.log(`☕ ESPRESSO: Masking requires card selection - setting up special handling`)
         return {
           ...finalState,
           espressoSpecialCard: {
@@ -775,7 +742,6 @@ function triggerEspressoEffect(state: GameState): GameState {
       }
 
       if (drawnCard.name === 'Nap') {
-        console.log(`☕ ESPRESSO: Nap requires card selection from exhaust - setting up special handling`)
         return {
           ...finalState,
           espressoSpecialCard: {
@@ -788,7 +754,6 @@ function triggerEspressoEffect(state: GameState): GameState {
       }
 
       if (drawnCard.name === 'Tryst' && !drawnCard.enhanced) {
-        console.log(`☕ ESPRESSO: Non-enhanced Tryst requires animation - setting up special handling`)
         return {
           ...finalState,
           espressoSpecialCard: {
@@ -805,7 +770,6 @@ function triggerEspressoEffect(state: GameState): GameState {
 
       if (needsTargeting) {
         // For targeting cards, set up special handling to play with forced targeting
-        console.log(`☕ ESPRESSO: ${drawnCard.name} requires targeting - setting up forced targeting mode`)
         return {
           ...finalState,
           espressoSpecialCard: {
@@ -849,10 +813,8 @@ function triggerEspressoEffect(state: GameState): GameState {
           }
         }
 
-        console.log(`☕ ESPRESSO: Played ${drawnCard.name}, cost ${effectiveCost} energy`)
       }
     } else {
-      console.log(`☕ ESPRESSO: Not enough energy to play ${drawnCard.name} (need ${effectiveCost}, have ${finalState.energy})`)
     }
   }
 
@@ -860,9 +822,6 @@ function triggerEspressoEffect(state: GameState): GameState {
 }
 
 export function startNewTurn(state: GameState): GameState {
-  console.log('🔄 START NEW TURN DEBUG')
-  console.log('  - Current queued card draws:', state.queuedCardDraws)
-  console.log('  - Has Caffeinated equipment:', hasEquipment(state, 'Caffeinated'))
 
   let currentState = state
   let hasGlasses = false
@@ -881,10 +840,6 @@ export function startNewTurn(state: GameState): GameState {
   const burgerBonus = burgerEffect ? 1 : 0 // Always +1 if Burger effect is active, regardless of stack count
   const totalCardsToDraw = baseCardDraw + state.queuedCardDraws + burgerBonus
 
-  console.log('  - Base card draw:', baseCardDraw)
-  console.log('  - Queued card draws:', state.queuedCardDraws)
-  console.log('  - Burger bonus:', burgerBonus)
-  console.log('  - Total cards to draw:', totalCardsToDraw)
 
   const drawnState = drawCards(discardedState, totalCardsToDraw)
   
@@ -1073,7 +1028,6 @@ export function createInitialState(
   // Trigger Carrots effect if present (reveals player tiles based on stacks)
   const carrotsEffect = finalState.activeStatusEffects.find(e => e.type === 'carrots')
   if (carrotsEffect && carrotsEffect.count) {
-    console.log(`🥕 CARROTS EFFECT - Revealing +1 player tile at floor start`)
     const unrevealedPlayerTiles = Array.from(finalState.board.tiles.values()).filter(
       tile => tile.owner === 'player' && !tile.revealed && !tile.specialTiles.includes('extraDirty')
     )
@@ -1275,7 +1229,6 @@ export function advanceToNextLevel(state: GameState): GameState {
   const copperAfterPenalty = Math.max(0, state.copper - copperPenalty)
 
   if (copperPenalty > 0) {
-    console.log(`🔍 EVIDENCE PENALTY: Found ${evidenceCards.length} Evidence cards, losing ${copperPenalty} copper (${state.copper} -> ${copperAfterPenalty})`)
   }
 
   // Decrement Burger stacks when advancing to next floor
@@ -1343,18 +1296,12 @@ export function getAllCardsInCollection(state: GameState): Card[] {
 
 // Queue card draws for dirt cleaning when revealing dirty tiles (for Mop equipment)
 export function queueCardDrawsFromDirtCleaning(state: GameState, tilesCleanedCount: number): GameState {
-  console.log('🧽 QUEUE CARD DRAWS DEBUG')
-  console.log('  - Has Mop equipment:', hasEquipment(state, 'Mop'))
-  console.log('  - Tiles cleaned count:', tilesCleanedCount)
-  console.log('  - Current queued draws:', state.queuedCardDraws)
   
   if (!hasEquipment(state, 'Mop') || tilesCleanedCount <= 0) {
-    console.log('  - Not queueing cards (no equipment or no tiles cleaned)')
     return state
   }
   
   const newQueuedDraws = state.queuedCardDraws + tilesCleanedCount
-  console.log(`  - Queueing ${tilesCleanedCount} additional card draws (total: ${newQueuedDraws})`)
   
   // Queue cards to be drawn at start of next turn
   return {

@@ -17,7 +17,6 @@ export function executeEmanationEffect(state: GameState, target: Position, card?
 
   // Check if target is a surface mine
   if (hasSpecialTile(targetTile, 'surfaceMine')) {
-    console.log('💣 EMANATION HIT SURFACE MINE - Triggering chain explosion')
 
     // Explode the target surface mine
     currentState = {
@@ -38,7 +37,6 @@ export function executeEmanationEffect(state: GameState, target: Position, card?
       const tile = getTile(currentState.board, pos)
       if (tile) {
         // Destroy ALL adjacent tiles, including empty tiles (lairs, holes, etc.)
-        console.log(`  - Exploding cardinal tile at (${pos.x}, ${pos.y}) [owner: ${tile.owner}]`)
         currentState = {
           ...currentState,
           board: destroyTile(currentState.board, pos)
@@ -57,7 +55,6 @@ export function executeEmanationEffect(state: GameState, target: Position, card?
 
   // Update adjacency_info annotations for neighbors of all destroyed tiles
   if (destroyedPositions.length > 0) {
-    console.log('💥 EMANATION: Updating neighbor adjacency info after tile destruction')
     for (const pos of destroyedPositions) {
       currentState = updateNeighborAdjacencyInfo(currentState, pos)
     }
@@ -71,7 +68,6 @@ export function executeEmanationEffect(state: GameState, target: Position, card?
       ...currentState,
       hand: [...currentState.hand, evidenceCard]
     }
-    console.log('🔍 EMANATION: Added Evidence card to hand')
   }
 
   // Check game status after destruction (destroying last player tile should end the level)

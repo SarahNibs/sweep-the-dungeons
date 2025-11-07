@@ -38,11 +38,7 @@ export class RandomAI implements RivalAI {
     // Shuffle tiles randomly
     const shuffled = [...availableTiles].sort(() => Math.random() - 0.5)
 
-    console.log('=== RANDOM AI SELECTION ===')
-    console.log(`Total unrevealed tiles: ${unrevealedTiles.length}`)
-    console.log(`Available tiles (after filtering mines): ${availableTiles.length}`)
     if (rivalNeverMines) {
-      console.log('SPECIAL BEHAVIOR: Rival will skip mine tiles')
     }
 
     // Return tiles in random order, stopping when we would reveal a non-rival tile
@@ -51,12 +47,9 @@ export class RandomAI implements RivalAI {
       tilesToReveal.push(tile)
       // Stop after adding a non-rival tile (this will be the last tile revealed)
       if (tile.owner !== 'rival') {
-        console.log(`Selected ${tilesToReveal.length} tile(s) randomly`)
-        console.log(`First tile: (${tilesToReveal[0].position.x},${tilesToReveal[0].position.y}) [${tilesToReveal[0].owner}]`)
         break
       }
     }
-    console.log('============================')
 
     return tilesToReveal
   }

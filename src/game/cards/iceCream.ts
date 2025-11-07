@@ -8,7 +8,6 @@ import { createStatusEffect } from '../gameRepository'
  * As long as there are any stacks, gain +1 energy when revealing player tiles grants copper
  */
 export function executeIceCreamEffect(state: GameState, card?: Card): GameState {
-  console.log(`🍦 ICE CREAM EFFECT - Enhanced: ${card?.enhanced}`)
 
   const stacksToAdd = card?.enhanced ? 3 : 2
 
@@ -20,7 +19,6 @@ export function executeIceCreamEffect(state: GameState, card?: Card): GameState 
   if (existingIceCream) {
     // Add more stacks
     const newCount = (existingIceCream.count || 0) + stacksToAdd
-    console.log(`🍦 Adding ${stacksToAdd} Ice Cream stacks: ${existingIceCream.count} → ${newCount}`)
 
     newState = {
       ...state,
@@ -64,7 +62,6 @@ export function decrementIceCreamStacks(state: GameState): GameState {
   }
 
   const newCount = (iceCreamEffect.count || 0) - 1
-  console.log(`🍦 Decrementing Ice Cream stacks: ${iceCreamEffect.count} → ${newCount}`)
 
   if (newCount <= 0) {
     // Remove the effect

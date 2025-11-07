@@ -8,7 +8,6 @@ import { createStatusEffect } from '../gameRepository'
  * As long as there are any stacks, reveal +1 player tile at start of floor
  */
 export function executeCarrotsEffect(state: GameState, card?: Card): GameState {
-  console.log(`🥕 CARROTS EFFECT - Enhanced: ${card?.enhanced}`)
 
   const stacksToAdd = card?.enhanced ? 3 : 2
 
@@ -20,7 +19,6 @@ export function executeCarrotsEffect(state: GameState, card?: Card): GameState {
   if (existingCarrots) {
     // Add more stacks
     const newCount = (existingCarrots.count || 0) + stacksToAdd
-    console.log(`🥕 Adding ${stacksToAdd} Carrots stacks: ${existingCarrots.count} → ${newCount}`)
 
     newState = {
       ...state,
@@ -64,7 +62,6 @@ export function decrementCarrotsStacks(state: GameState): GameState {
   }
 
   const newCount = (carrotsEffect.count || 0) - 1
-  console.log(`🥕 Decrementing Carrots stacks: ${carrotsEffect.count} → ${newCount}`)
 
   if (newCount <= 0) {
     // Remove the effect

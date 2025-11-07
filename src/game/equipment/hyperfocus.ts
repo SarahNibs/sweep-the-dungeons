@@ -7,13 +7,11 @@ export function triggerHyperfocusEffect(state: GameState): GameState {
     return state
   }
 
-  console.log('🎯 Triggering Hyperfocus effect')
 
   // Get all cards that exist from the reward pool
   const allRewardCards = getRewardCardPool()
 
   if (allRewardCards.length === 0) {
-    console.log('  - No reward cards available')
     return state
   }
 
@@ -81,7 +79,6 @@ export function triggerHyperfocusEffect(state: GameState): GameState {
   })
 
   if (zeroCostVariants.length === 0) {
-    console.log('  - No net-cost-0 card variants available')
     return state
   }
 
@@ -109,8 +106,6 @@ export function triggerHyperfocusEffect(state: GameState): GameState {
     enhanced: selectedVariant.enhanced
   })
 
-  console.log(`  - Adding ${selectedVariant.name} (energy-reduced: ${selectedVariant.energyReduced}, enhanced: ${selectedVariant.enhanced}) to hand`)
-  console.log(`  - Final card cost: ${hyperfocusCard.cost} (net: ${hyperfocusCard.energyReduced ? hyperfocusCard.cost - 1 : hyperfocusCard.cost})`)
 
   // Add to hand (not persistent deck)
   return {

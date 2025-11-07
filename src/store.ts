@@ -34,8 +34,8 @@ interface GameStore extends GameState {
   setUseDefaultAnnotations: (useDefault: boolean) => void
   toggleOwnerPossibility: (ownerCombo: string) => void
   cyclePlayerOwnerAnnotation: (position: Position) => void
-  toggleAnnotationButton: (buttonType: 'player' | 'rival' | 'neutral' | 'mine') => void
-  toggleFilteredAnnotation: (position: Position) => void
+  selectAnnotationTileType: (tileType: 'player' | 'rival' | 'neutral' | 'mine') => void
+  cycleAnnotationOnTile: (position: Position) => void
   startCardSelection: () => void
   selectNewCard: (card: CardType) => void
   skipCardSelection: () => void
@@ -658,12 +658,12 @@ export const useGameStore = create<GameStore>((set, get) => {
     annotationController.cyclePlayerOwnerAnnotation(position)
   },
 
-  toggleAnnotationButton: (buttonType: 'player' | 'rival' | 'neutral' | 'mine') => {
-    annotationController.toggleAnnotationButton(buttonType)
+  selectAnnotationTileType: (tileType: 'player' | 'rival' | 'neutral' | 'mine') => {
+    annotationController.selectAnnotationTileType(tileType)
   },
 
-  toggleFilteredAnnotation: (position: Position) => {
-    annotationController.toggleFilteredAnnotation(position)
+  cycleAnnotationOnTile: (position: Position) => {
+    annotationController.cycleAnnotationOnTile(position)
   },
 
   clearAdjacencyPatternAnimation: () => {

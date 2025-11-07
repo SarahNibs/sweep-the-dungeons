@@ -44,7 +44,7 @@ function App() {
     purchasedShopItems,
     pileViewingType,
     activeStatusEffects,
-    annotationButtons,
+    selectedAnnotationTileType,
     maskingState,
     napState,
     playCard,
@@ -73,7 +73,7 @@ function App() {
     debugWinLevel,
     debugGiveEquipment,
     debugGiveCard,
-    toggleAnnotationButton,
+    selectAnnotationTileType,
     glassesNeedsTingleAnimation,
     executeTingleWithAnimation,
     espressoForcedPlay,
@@ -168,19 +168,19 @@ function App() {
 
       switch (event.key.toLowerCase()) {
         case 'w':
-          toggleAnnotationButton('player')
+          selectAnnotationTileType('player')
           event.preventDefault()
           break
         case 'r':
-          toggleAnnotationButton('rival')
+          selectAnnotationTileType('rival')
           event.preventDefault()
           break
         case 'e':
-          toggleAnnotationButton('neutral')
+          selectAnnotationTileType('neutral')
           event.preventDefault()
           break
         case 'f':
-          toggleAnnotationButton('mine')
+          selectAnnotationTileType('mine')
           event.preventDefault()
           break
       }
@@ -188,7 +188,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [gamePhase, toggleAnnotationButton])
+  }, [gamePhase, selectAnnotationTileType])
 
   return (
     <div style={{
@@ -312,8 +312,8 @@ function App() {
             {/* Tile counts vertically */}
             <TileCountsVertical
               board={board}
-              annotationButtons={annotationButtons}
-              onToggleButton={toggleAnnotationButton}
+              selectedAnnotationTileType={selectedAnnotationTileType}
+              onSelectType={selectAnnotationTileType}
             />
 
             {/* Status effects */}

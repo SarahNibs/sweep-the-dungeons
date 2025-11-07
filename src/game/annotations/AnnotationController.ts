@@ -208,23 +208,23 @@ export class AnnotationController {
   }
 
   /**
-   * Toggle annotation button state
+   * Select which tile type is active for annotations
    */
-  toggleAnnotationButton(buttonType: 'player' | 'rival' | 'neutral' | 'mine'): void {
+  selectAnnotationTileType(tileType: 'player' | 'rival' | 'neutral' | 'mine'): void {
     const currentState = this.getState()
     this.setState({
       ...currentState,
-      annotationButtons: {
-        ...currentState.annotationButtons,
-        [buttonType]: !currentState.annotationButtons[buttonType]
-      }
+      selectedAnnotationTileType: tileType
     })
   }
 
   /**
-   * Toggle filtered annotation based on depressed buttons
+   * Cycle annotation on a tile through three states:
+   * 1. No annotation
+   * 2. "Not this type" - could be any type EXCEPT the selected one
+   * 3. "Only this type" - can ONLY be the selected type
    */
-  toggleFilteredAnnotation(position: Position): void {
+  cycleAnnotationOnTile(position: Position): void {
     const currentState = this.getState()
     const key = positionToKey(position)
     const tile = currentState.board.tiles.get(key)
@@ -233,28 +233,41 @@ export class AnnotationController {
     const newTiles = new Map(currentState.board.tiles)
     const updatedTile = { ...tile }
 
-    // Remove existing player owner possibility annotation
+    // Find existing player owner possibility annotation
     const existingAnnotation = updatedTile.annotations.find(a => a.type === 'player_owner_possibility')
     updatedTile.annotations = updatedTile.annotations.filter(a => a.type !== 'player_owner_possibility')
 
-    // If no existing annotation, add filtered annotation based on depressed buttons
+    const selectedType = currentState.selectedAnnotationTileType
+    const allTypes: ('player' | 'rival' | 'neutral' | 'mine')[] = ['player', 'rival', 'neutral', 'mine']
+
+    // Determine current state and transition to next
     if (!existingAnnotation) {
-      const depressedOwners: ('player' | 'rival' | 'neutral' | 'mine')[] = []
-
-      if (currentState.annotationButtons.player) depressedOwners.push('player')
-      if (currentState.annotationButtons.rival) depressedOwners.push('rival')
-      if (currentState.annotationButtons.neutral) depressedOwners.push('neutral')
-      if (currentState.annotationButtons.mine) depressedOwners.push('mine')
-
-      if (depressedOwners.length > 0) {
-        const ownerSet = new Set(depressedOwners)
+      // State 1 (no annotation) -> State 2 ("not this type")
+      const notThisType = allTypes.filter(t => t !== selectedType)
+      updatedTile.annotations.push({
+        type: 'player_owner_possibility',
+        playerOwnerPossibility: new Set(notThisType)
+      })
+    } else {
+      const possibilities = existingAnnotation.playerOwnerPossibility
+      if (!possibilities) {
+        // No possibilities set, start from "not this type"
+        const notThisType = allTypes.filter(t => t !== selectedType)
         updatedTile.annotations.push({
           type: 'player_owner_possibility',
-          playerOwnerPossibility: ownerSet
+          playerOwnerPossibility: new Set(notThisType)
         })
+      } else if (possibilities.size === 3 && !possibilities.has(selectedType)) {
+        // State 2 ("not this type") -> State 3 ("only this type")
+        updatedTile.annotations.push({
+          type: 'player_owner_possibility',
+          playerOwnerPossibility: new Set([selectedType])
+        })
+      } else {
+        // State 3 ("only this type") or any other state -> State 1 (no annotation)
+        // Don't add anything back - cleared above
       }
     }
-    // If annotation exists, remove it (toggle off)
 
     newTiles.set(key, updatedTile)
 

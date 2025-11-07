@@ -34,7 +34,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     setHoveredClueId,
     tingleAnimation,
     adjacencyPatternAnimation,
-    togglePlayerSlash,
+    cycleAnnotationOnTile,
     board
   } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
@@ -88,7 +88,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
   const handleRightClick = (e: React.MouseEvent) => {
     e.preventDefault() // Prevent browser context menu
     if (!tile.revealed) {
-      togglePlayerSlash(tile.position)
+      cycleAnnotationOnTile(tile.position)
     }
   }
 
@@ -217,17 +217,19 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     // Also show if there are special tiles that need rendering (goblins, dirty scribbles, etc.)
     const shouldShowAnnotations = !tile.revealed && (tile.annotations.length > 0 || tile.specialTiles.length > 0)
     const shouldShowAdjacencyOnRevealed = tile.revealed && tile.annotations.some(a => a.type === 'adjacency_info')
-    
+
+    // Calculate combined annotation once for use in multiple places
+    const combinedPossibility = getCombinedOwnerPossibility()
+
     if (shouldShowAnnotations || shouldShowAdjacencyOnRevealed) {
       // Note: Use the same elements array from above
-      
+
       // Group annotations by type
       const clueResultsAnnotation = tile.annotations.find(a => a.type === 'clue_results')
       const subsetAnnotations = tile.annotations.filter(a => a.type === 'owner_subset')
       // Legacy annotations - keeping for backward compatibility
       const safetyAnnotations = tile.annotations.filter(a => a.type === 'safe' || a.type === 'unsafe')
       const rivalAnnotations = tile.annotations.filter(a => a.type === 'rival')
-      const playerSlashAnnotation = tile.annotations.find(a => a.type === 'player_slash')
       const playerBigCheckmarkAnnotation = tile.annotations.find(a => a.type === 'player_big_checkmark')
       const playerSmallCheckmarkAnnotation = tile.annotations.find(a => a.type === 'player_small_checkmark')
       
@@ -421,12 +423,13 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         })
       }
       
-      // Render player slash annotation (always on top)
-      // Show slash if: 1) explicit player slash annotation, OR 2) player annotation exists but doesn't include 'player'
-      const playerOwnerAnnotation = tile.annotations.find(a => a.type === 'player_owner_possibility')
-      const shouldShowSlash = playerSlashAnnotation || 
-        (playerOwnerAnnotation?.playerOwnerPossibility && !playerOwnerAnnotation.playerOwnerPossibility.has('player'))
-      
+      // Render player slash and green circle based on combined annotations
+      // Black slash: player is NOT in the combined possibilities
+      // Green circle: player is the ONLY possibility in the combined annotation
+      const shouldShowSlash = combinedPossibility && !combinedPossibility.has('player')
+      const shouldShowGreenCircle = combinedPossibility && combinedPossibility.size === 1 && combinedPossibility.has('player')
+
+      // Render black slash if player is excluded
       if (shouldShowSlash) {
         elements.push(
           <div
@@ -453,6 +456,29 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
               }}
             />
           </div>
+        )
+      }
+
+      // Render green circle if player is the only possibility
+      if (shouldShowGreenCircle) {
+        elements.push(
+          <div
+            key="green-circle"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              backgroundColor: '#28a745',
+              border: '2px solid black',
+              pointerEvents: 'none',
+              zIndex: 999,
+              opacity: 0.7
+            }}
+          />
         )
       }
       
@@ -500,7 +526,6 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       }
       
       // Render combined player owner possibility annotation (upper-right corner)
-      const combinedPossibility = getCombinedOwnerPossibility()
       if (combinedPossibility) {
         // Use same 2x2 grid system as subset annotations but in upper-right
         const ownerInfo = [

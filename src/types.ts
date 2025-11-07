@@ -239,13 +239,8 @@ export interface GameState {
   // AI system override (for debugging/testing)
   aiTypeOverride?: string // If set, overrides the level's configured AI type
 
-  // Player annotation button states
-  annotationButtons: {
-    player: boolean // Whether player button is depressed
-    rival: boolean  // Whether rival button is depressed
-    neutral: boolean // Whether neutral button is depressed
-    mine: boolean   // Whether mine button is depressed
-  }
+  // Player annotation: which tile type is currently selected
+  selectedAnnotationTileType: 'player' | 'rival' | 'neutral' | 'mine'
 
   // Card processing guard (prevents race conditions from rapid clicking)
   isProcessingCard: boolean // True while a card is being played/animated

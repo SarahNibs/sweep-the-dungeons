@@ -4,16 +4,11 @@ import { Tooltip } from './Tooltip'
 
 interface TileCountsVerticalProps {
   board: Board
-  annotationButtons: {
-    player: boolean
-    rival: boolean
-    neutral: boolean
-    mine: boolean
-  }
-  onToggleButton: (buttonType: 'player' | 'rival' | 'neutral' | 'mine') => void
+  selectedAnnotationTileType: 'player' | 'rival' | 'neutral' | 'mine'
+  onSelectType: (tileType: 'player' | 'rival' | 'neutral' | 'mine') => void
 }
 
-export function TileCountsVertical({ board, annotationButtons, onToggleButton }: TileCountsVerticalProps) {
+export function TileCountsVertical({ board, selectedAnnotationTileType, onSelectType }: TileCountsVerticalProps) {
   const counts = getUnrevealedCounts(board)
 
   // Layout: upper left = mine, upper right = neutral, lower left = rival, lower right = player
@@ -34,7 +29,7 @@ export function TileCountsVertical({ board, annotationButtons, onToggleButton }:
       margin: '0 auto 8px auto'
     }}>
       {gridLayout.map(({ type, count, color, label }) => {
-        const isActive = annotationButtons[type]
+        const isSelected = selectedAnnotationTileType === type
         return (
           <Tooltip
             key={type}
@@ -42,7 +37,7 @@ export function TileCountsVertical({ board, annotationButtons, onToggleButton }:
             style={{ display: 'block' }}
           >
             <button
-              onClick={() => onToggleButton(type)}
+              onClick={() => onSelectType(type)}
               style={{
                 width: '24px',
                 height: '24px',
@@ -54,10 +49,12 @@ export function TileCountsVertical({ board, annotationButtons, onToggleButton }:
                 color: 'black',
                 fontSize: '11px',
                 fontWeight: 'bold',
-                border: isActive ? '2px solid #333' : '1px solid black',
+                border: '1px solid black',
                 cursor: 'pointer',
-                opacity: isActive ? 1 : 0.6,
-                padding: 0
+                padding: 0,
+                // White border with gap when selected
+                outline: isSelected ? '1px solid white' : 'none',
+                outlineOffset: isSelected ? '1px' : '0'
               }}
             >
               {count}

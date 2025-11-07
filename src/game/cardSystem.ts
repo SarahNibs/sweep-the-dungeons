@@ -983,12 +983,7 @@ export function createInitialState(
     enabledOwnerPossibilities: enabledOwnerPossibilities || new Set(['player', 'rival', 'neutral', 'mine']),
     currentOwnerPossibilityIndex: currentOwnerPossibilityIndex || 0,
     activeStatusEffects: preservedStatusEffects || [],
-    annotationButtons: {
-      player: false, // Start undepressed (no black slash)
-      rival: true,   // Start depressed
-      neutral: true, // Start depressed
-      mine: true     // Start depressed
-    },
+    selectedAnnotationTileType: 'player', // Default to player selected
     isProcessingCard: false,
     queuedCardDraws: 0,
     glassesNeedsTingleAnimation: false,

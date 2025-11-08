@@ -896,7 +896,8 @@ export function createInitialState(
   currentOwnerPossibilityIndex?: number,
   preservedStatusEffects?: import('../types').StatusEffect[],
   shopVisitCount: number = 0,
-  playerTilesRevealedCount: number = 0
+  playerTilesRevealedCount: number = 0,
+  debugFlags?: { adjacencyColor: boolean; easyMode: boolean }
 ): GameState {
   const startingPersistentDeck = persistentDeck || createStartingDeck()
   const startingEquipment = equipment || []
@@ -994,7 +995,7 @@ export function createInitialState(
     enabledOwnerPossibilities: enabledOwnerPossibilities || new Set(['player', 'rival', 'neutral', 'mine']),
     currentOwnerPossibilityIndex: currentOwnerPossibilityIndex || 0,
     activeStatusEffects: preservedStatusEffects || [],
-    debugFlags: {
+    debugFlags: debugFlags || {
       adjacencyColor: false, // Default: black text
       easyMode: false // Default: no easy mode
     },
@@ -1271,7 +1272,8 @@ export function advanceToNextLevel(state: GameState): GameState {
     state.currentOwnerPossibilityIndex,
     persistentEffects.length > 0 ? persistentEffects : undefined,
     state.shopVisitCount, // Preserve shop visit count across levels
-    state.playerTilesRevealedCount // Preserve player tile reveal counter across levels
+    state.playerTilesRevealedCount, // Preserve player tile reveal counter across levels
+    state.debugFlags // Preserve debug flags across levels
   )
 
   return newLevelState

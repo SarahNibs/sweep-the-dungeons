@@ -515,7 +515,7 @@ export const EQUIPMENT_DEFINITIONS: Record<string, EquipmentDefinition> = {
     category: 'rare',
     icon: '👑'
   },
-  'Intercepted Communications': {
+  'Mirrors': {
     name: 'Mirrors',
     description: 'reflect your rival\'s moves',
     hoverText: 'Mirrors: at the start of each floor, one random rival tile is revealed and you sense your own adjacent tiles',

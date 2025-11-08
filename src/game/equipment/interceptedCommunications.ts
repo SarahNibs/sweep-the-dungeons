@@ -4,7 +4,7 @@ import { revealTileWithEquipmentEffects } from '../cardEffects'
 import { hasEquipment } from './equipmentUtils'
 
 export function triggerInterceptedNoteEffect(state: GameState): GameState {
-  if (!hasEquipment(state, 'Intercepted Communications')) {
+  if (!hasEquipment(state, 'Mirrors')) {
     return state
   }
 

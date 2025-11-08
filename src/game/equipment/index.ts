@@ -152,13 +152,27 @@ export function startEquipmentSelection(state: GameState): GameState {
 }
 
 export function closeEquipmentUpgradeDisplay(state: GameState): GameState {
+  const context = state.equipmentUpgradeContext
 
-  // Simply pop the modal from the stack
-  // The underlying gamePhase is already set correctly by the calling code
-  return {
+  // Pop the modal and clear results
+  let updatedState: GameState = {
     ...state,
     modalStack: state.modalStack.slice(0, -1), // Pop the top modal
     equipmentUpgradeResults: undefined,
     equipmentUpgradeContext: undefined
   }
+
+  // If context is 'reward', we need to continue the flow
+  if (context === 'reward') {
+    // In reward flow: continue to shop or advance to next level
+    if (shouldShowShopReward(updatedState.currentLevelId)) {
+      return startShopSelection(updatedState)
+    } else {
+      return advanceToNextLevel(updatedState)
+    }
+  }
+
+  // For 'shop' or 'debug' context, just return the updated state
+  // (already at the correct phase)
+  return updatedState
 }

@@ -16,23 +16,6 @@ export function StatusEffects({ statusEffects }: StatusEffectsProps) {
     !(effect.type === 'rival_ai_type' && effect.name === 'NoGuess Rival')
   )
 
-  // Stop pulsing after 2 seconds
-  useEffect(() => {
-    if (pulsingStatusEffectIds && pulsingStatusEffectIds.length > 0) {
-      setIsPulsing(true)
-      const timeout = setTimeout(() => {
-        setIsPulsing(false)
-        // Clear the pulsing IDs from store
-        useGameStore.setState({ pulsingStatusEffectIds: [] })
-      }, 2000)
-      return () => clearTimeout(timeout)
-    }
-  }, [pulsingStatusEffectIds])
-
-  if (visibleEffects.length === 0) {
-    return null
-  }
-
   // Add CSS for pulse animation
   useEffect(() => {
     if (!document.getElementById('status-effect-pulse-animation')) {
@@ -57,6 +40,24 @@ export function StatusEffects({ statusEffects }: StatusEffectsProps) {
       document.head.appendChild(style)
     }
   }, [])
+
+  // Stop pulsing after 2 seconds
+  useEffect(() => {
+    if (pulsingStatusEffectIds && pulsingStatusEffectIds.length > 0) {
+      setIsPulsing(true)
+      const timeout = setTimeout(() => {
+        setIsPulsing(false)
+        // Clear the pulsing IDs from store
+        useGameStore.setState({ pulsingStatusEffectIds: [] })
+      }, 2000)
+      return () => clearTimeout(timeout)
+    }
+  }, [pulsingStatusEffectIds])
+
+  // Early return AFTER all hooks
+  if (visibleEffects.length === 0) {
+    return null
+  }
 
   return (
     <div style={{

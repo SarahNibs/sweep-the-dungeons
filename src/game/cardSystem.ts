@@ -241,13 +241,27 @@ export function selectCardForMasking(state: GameState, targetCardId: string): Ga
   // Check if target card needs animation (Tingle)
   // These cards need special handling - keep card in hand and let store handle animation
   if (targetCard.name === 'Tingle') {
-    // Set up state for animation handling, similar to targeting cards
+    // Clear maskingState and handle Masking exhaustion here
+    const shouldExhaustMasking = !state.maskingState.enhanced
+
+    let updatedDiscard = state.discard.filter(c => c.id !== state.maskingState!.maskingCardId)
+    let updatedExhaust = state.exhaust
+
+    if (shouldExhaustMasking) {
+      const maskingCard = state.discard.find(c => c.id === state.maskingState!.maskingCardId)
+      if (maskingCard) {
+        updatedExhaust = [...state.exhaust, maskingCard]
+      }
+    }
+
     return {
       ...state,
       selectedCardName: targetCard.name,
       selectedCardId: targetCard.id,
-      shouldExhaustLastCard: true // Force the masked card to exhaust
-      // maskingState stays active - we'll clear it after execution
+      shouldExhaustLastCard: true, // Force the masked card to exhaust
+      maskingState: null, // Clear masking state
+      discard: shouldExhaustMasking ? updatedDiscard : state.discard,
+      exhaust: updatedExhaust
       // hand stays - animation flow needs the card
     }
   }
@@ -305,16 +319,34 @@ export function selectCardForMasking(state: GameState, targetCardId: string): Ga
         }
     }
 
-    // Keep maskingState and DON'T remove card from hand yet
-    // The targeting flow will handle removing it after execution
-    // IMPORTANT: Set shouldExhaustLastCard to force exhaustion when played via Masking
+    // Clear maskingState so the targeting UI can appear
+    // shouldExhaustLastCard will force the masked card to exhaust
+    // We need to track whether to exhaust Masking itself based on enhanced status
+    const shouldExhaustMasking = !state.maskingState.enhanced
+
+    // Remove Masking from discard and exhaust it if not enhanced
+    let updatedDiscard = state.discard.filter(c => c.id !== state.maskingState!.maskingCardId)
+    let updatedExhaust = state.exhaust
+
+    if (shouldExhaustMasking) {
+      const maskingCard = state.discard.find(c => c.id === state.maskingState!.maskingCardId)
+      if (maskingCard) {
+        updatedExhaust = [...state.exhaust, maskingCard]
+      }
+    } else {
+      // Enhanced Masking doesn't exhaust - move it back to discard
+      // (it's already in discard, so no change needed)
+    }
+
     return {
       ...state,
       selectedCardName: targetCard.name,
       selectedCardId: targetCard.id,
       pendingCardEffect: { type: effectType as any },
-      shouldExhaustLastCard: true // Force the masked card to exhaust
-      // maskingState stays - we'll clear it after execution
+      shouldExhaustLastCard: true, // Force the masked card to exhaust
+      maskingState: null, // Clear masking state so targeting UI appears
+      discard: shouldExhaustMasking ? updatedDiscard : state.discard,
+      exhaust: updatedExhaust
       // hand stays - targeting flow needs the card
     }
   }

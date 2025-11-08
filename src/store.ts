@@ -155,31 +155,13 @@ export const useGameStore = create<GameStore>((set, get) => {
       // Check if the selected card is Tingle (needs animation)
       if (newState.selectedCardName === 'Tingle') {
         // Remove Tingle from hand and exhaust the target card
+        // (Masking exhaustion already handled in selectCardForMasking)
         const tingleCard = newState.hand.find(c => c.id === newState.selectedCardId)
         if (tingleCard) {
-          const stateWithoutTingle = {
+          const finalState = {
             ...newState,
             hand: newState.hand.filter(c => c.id !== newState.selectedCardId),
-            exhaust: [...newState.exhaust, tingleCard]
-          }
-
-          // Handle Masking card exhausting if not enhanced
-          let finalState = stateWithoutTingle
-          if (newState.maskingState && !newState.maskingState.enhanced) {
-            const maskingCard = finalState.discard.find(c => c.id === newState.maskingState!.maskingCardId)
-            if (maskingCard) {
-              finalState = {
-                ...finalState,
-                discard: finalState.discard.filter(c => c.id !== newState.maskingState!.maskingCardId),
-                exhaust: [...finalState.exhaust, maskingCard]
-              }
-            }
-          }
-
-          // Clear masking state and add processing flag before triggering animation
-          finalState = {
-            ...finalState,
-            maskingState: null,
+            exhaust: [...newState.exhaust, tingleCard],
             selectedCardName: null,
             selectedCardId: null,
             isProcessingCard: true

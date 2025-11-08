@@ -353,20 +353,28 @@ export class TargetingController {
 
     // Check for masking state first
     if (currentState.maskingState) {
-      // Cancel masking - return card to hand
+      // Cancel masking - return card to hand and clear all targeting state
       const maskingCard = currentState.discard.find(c => c.id === currentState.maskingState!.maskingCardId)
       if (maskingCard) {
         this.setState({
           ...currentState,
           hand: [...currentState.hand, maskingCard],
           discard: currentState.discard.filter(c => c.id !== currentState.maskingState!.maskingCardId),
-          maskingState: null
+          maskingState: null,
+          pendingCardEffect: null,
+          selectedCardName: null,
+          selectedCardId: null,
+          shouldExhaustLastCard: false
         })
       } else {
-        // Card not found, just clear masking state
+        // Card not found, just clear masking state and targeting state
         this.setState({
           ...currentState,
-          maskingState: null
+          maskingState: null,
+          pendingCardEffect: null,
+          selectedCardName: null,
+          selectedCardId: null,
+          shouldExhaustLastCard: false
         })
       }
       return

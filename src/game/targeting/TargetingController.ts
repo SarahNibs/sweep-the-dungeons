@@ -351,31 +351,37 @@ export class TargetingController {
   cancelCardTargeting(): void {
     const currentState = this.getState()
 
-    // Check for masking state first
+    // Check for masking state
     if (currentState.maskingState) {
-      // Cancel masking - return card to hand and clear all targeting state
-      const maskingCard = currentState.discard.find(c => c.id === currentState.maskingState!.maskingCardId)
-      if (maskingCard) {
+      // Check if we're canceling targeting for a masked card
+      if (currentState.pendingCardEffect) {
+        // Canceling targeting for a masked card - go back to masking card selection
+        // Clear targeting state but keep maskingState active
         this.setState({
           ...currentState,
-          hand: [...currentState.hand, maskingCard],
-          discard: currentState.discard.filter(c => c.id !== currentState.maskingState!.maskingCardId),
-          maskingState: null,
           pendingCardEffect: null,
           selectedCardName: null,
           selectedCardId: null,
           shouldExhaustLastCard: false
+          // maskingState stays active
         })
       } else {
-        // Card not found, just clear masking state and targeting state
-        this.setState({
-          ...currentState,
-          maskingState: null,
-          pendingCardEffect: null,
-          selectedCardName: null,
-          selectedCardId: null,
-          shouldExhaustLastCard: false
-        })
+        // Canceling masking itself - return Masking card to hand
+        const maskingCard = currentState.discard.find(c => c.id === currentState.maskingState!.maskingCardId)
+        if (maskingCard) {
+          this.setState({
+            ...currentState,
+            hand: [...currentState.hand, maskingCard],
+            discard: currentState.discard.filter(c => c.id !== currentState.maskingState!.maskingCardId),
+            maskingState: null
+          })
+        } else {
+          // Card not found, just clear masking state
+          this.setState({
+            ...currentState,
+            maskingState: null
+          })
+        }
       }
       return
     }

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { GameState, Tile, Position, Board, Card as CardType, PileType, Equipment } from './types'
-import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel, selectCardForMasking, selectCardForNap } from './game/cardSystem'
+import { createInitialState, playCard, startNewTurn, canPlayCard as canPlayCardUtil, discardHand, startCardSelection, selectNewCard, skipCardSelection, getAllCardsInCollection, advanceToNextLevel, selectCardForMasking, selectCardForNap, cleanupMaskingAfterExecution } from './game/cardSystem'
 import { AnimationController } from './game/animation/AnimationController'
 import { AnnotationController } from './game/annotations/AnnotationController'
 import { DebugController } from './game/debug/DebugController'
@@ -155,13 +155,25 @@ export const useGameStore = create<GameStore>((set, get) => {
       // Check if the selected card is Tingle (needs animation)
       if (newState.selectedCardName === 'Tingle') {
         // Remove Tingle from hand and exhaust the target card
-        // (Masking exhaustion already handled in selectCardForMasking)
         const tingleCard = newState.hand.find(c => c.id === newState.selectedCardId)
         if (tingleCard) {
-          const finalState = {
+          const stateWithoutTingle = {
             ...newState,
             hand: newState.hand.filter(c => c.id !== newState.selectedCardId),
-            exhaust: [...newState.exhaust, tingleCard],
+            exhaust: [...newState.exhaust, tingleCard]
+          }
+
+          // Handle Masking card exhausting if not enhanced
+          let finalState = stateWithoutTingle
+          if (newState.maskingState) {
+            // Use cleanupMaskingAfterExecution to handle Masking exhaustion
+            finalState = cleanupMaskingAfterExecution(stateWithoutTingle)
+          }
+
+          // Clear masking state and add processing flag before triggering animation
+          finalState = {
+            ...finalState,
+            maskingState: null,
             selectedCardName: null,
             selectedCardId: null,
             isProcessingCard: true
@@ -307,12 +319,19 @@ export const useGameStore = create<GameStore>((set, get) => {
   getTargetingInfo: () => {
     const currentState = get()
 
-    // Check for masking state first
+    // Check for masking state
     if (currentState.maskingState) {
-      return {
-        count: 1,
-        description: `🎭 Select a card from your hand to play for free! (Both cards will exhaust${currentState.maskingState.enhanced ? ', except Masking' : ''})`,
-        selected: []
+      // If there's also a pending card effect, we're in targeting mode for a masked card
+      // Show the targeting UI for the card, not the masking selection UI
+      if (currentState.pendingCardEffect && currentState.selectedCardName) {
+        // Fall through to show targeting info for the selected card
+      } else {
+        // No pending card effect - show masking selection UI
+        return {
+          count: 1,
+          description: `🎭 Select a card from your hand to play for free! (Both cards will exhaust${currentState.maskingState.enhanced ? ', except Masking' : ''})`,
+          selected: []
+        }
       }
     }
 

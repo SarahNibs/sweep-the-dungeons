@@ -419,8 +419,9 @@ export function selectCardForNap(state: GameState, targetCardId: string): GameSt
     return state
   }
 
-  if (targetCard.name === 'Nap') {
-    // Can't nap another Nap
+  // Can't retrieve the same Nap card you just played (check by ID, not name)
+  // This allows retrieving a different Nap card (e.g., base Nap retrieving Nap+)
+  if (targetCard.id === state.napState.napCardId) {
     return state
   }
 

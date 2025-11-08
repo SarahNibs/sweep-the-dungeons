@@ -34,7 +34,8 @@ export function executeBurgerEffect(state: GameState, card?: Card): GameState {
     }
   } else {
     // Create new burger status effect with stacks using centralized definition
-    const baseEffect = createStatusEffect('burger', card?.enhanced)
+    // Don't pass enhanced flag - the enhanced state is reflected in the count, not the UI indicator
+    const baseEffect = createStatusEffect('burger', false)
     const burgerEffect = {
       ...baseEffect,
       count: stacksToAdd,

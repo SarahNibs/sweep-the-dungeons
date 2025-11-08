@@ -35,7 +35,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     tingleAnimation,
     adjacencyPatternAnimation,
     cycleAnnotationOnTile,
-    board
+    board,
+    debugFlags
   } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
   
@@ -196,7 +197,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           left: '50%',
           transform: 'translate(-50%, -50%)',
           backgroundColor: getAdjacencyColor(),
-          color: 'black',
+          color: debugFlags.adjacencyColor ? 'white' : 'black',
           borderRadius: tile.revealedBy === 'player' ? '50%' : '3px',
           minWidth: '20px',
           height: '20px',

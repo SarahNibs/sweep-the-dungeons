@@ -239,6 +239,12 @@ export interface GameState {
   // AI system override (for debugging/testing)
   aiTypeOverride?: string // If set, overrides the level's configured AI type
 
+  // Debug flags (for testing and development)
+  debugFlags: {
+    adjacencyColor: boolean // If true, adjacency text is white; if false, black
+    easyMode: boolean // If true, reveal random tile owner at turn start
+  }
+
   // Player annotation: which tile type is currently selected
   selectedAnnotationTileType: 'player' | 'rival' | 'neutral' | 'mine'
 
@@ -265,6 +271,9 @@ export interface GameState {
 
   // Glasses Tingle animation (for Glasses equipment effect)
   glassesNeedsTingleAnimation: boolean // True if Glasses equipment should trigger Tingle animation
+
+  // Easy mode Tingle annotation (for debug flag)
+  easyModeTingleTile: Position | null // If set, triggers easy mode Tingle annotation for this tile
 
   // Rival mine protection (special behavior)
   rivalMineProtectionCount: number // Number of remaining protected mine reveals

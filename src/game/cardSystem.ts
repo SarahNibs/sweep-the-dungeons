@@ -846,6 +846,16 @@ export function startNewTurn(state: GameState): GameState {
   // Remove ramble status effect at start of new turn
   const stateWithoutRamble = removeStatusEffect(drawnState, 'ramble_active')
 
+  // Determine easy mode tile before creating finalState
+  let easyModeTile: import('../types').Position | null = null
+  if (stateWithoutRamble.debugFlags.easyMode) {
+    const unrevealedTiles = Array.from(stateWithoutRamble.board.tiles.values()).filter(tile => !tile.revealed)
+    if (unrevealedTiles.length > 0) {
+      const randomTile = unrevealedTiles[Math.floor(Math.random() * unrevealedTiles.length)]
+      easyModeTile = randomTile.position
+    }
+  }
+
   let finalState = {
     ...stateWithoutRamble,
     energy: stateWithoutRamble.maxEnergy,
@@ -858,7 +868,8 @@ export function startNewTurn(state: GameState): GameState {
     fetchRevealedNonPlayer: false, // Reset fetch turn ending tracking
     shouldExhaustLastCard: false, // Reset dynamic exhaust tracking
     queuedCardDraws: 0, // Clear queued card draws
-    glassesNeedsTingleAnimation: hasGlasses // Set flag if Glasses equipment is active
+    glassesNeedsTingleAnimation: hasGlasses, // Set flag if Glasses equipment is active
+    easyModeTingleTile: easyModeTile // Set easy mode tile (null or Position)
   }
 
   // Trigger Espresso effect if present (draw and immediately play a card)
@@ -983,10 +994,15 @@ export function createInitialState(
     enabledOwnerPossibilities: enabledOwnerPossibilities || new Set(['player', 'rival', 'neutral', 'mine']),
     currentOwnerPossibilityIndex: currentOwnerPossibilityIndex || 0,
     activeStatusEffects: preservedStatusEffects || [],
+    debugFlags: {
+      adjacencyColor: false, // Default: black text
+      easyMode: false // Default: no easy mode
+    },
     selectedAnnotationTileType: 'player', // Default to player selected
     isProcessingCard: false,
     queuedCardDraws: 0,
     glassesNeedsTingleAnimation: false,
+    easyModeTingleTile: null,
     rivalMineProtectionCount: levelConfig?.specialBehaviors.rivalMineProtection || 0,
     maskingState: null,
     napState: null

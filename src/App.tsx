@@ -73,8 +73,11 @@ function App() {
     debugWinLevel,
     debugGiveEquipment,
     debugGiveCard,
+    toggleDebugFlag,
+    debugFlags,
     selectAnnotationTileType,
     glassesNeedsTingleAnimation,
+    easyModeTingleTile,
     executeTingleWithAnimation,
     espressoForcedPlay,
     espressoSpecialCard,
@@ -87,6 +90,7 @@ function App() {
   // Debug UI state
   const [showEquipmentDebug, setShowEquipmentDebug] = useState(false)
   const [showCardDebug, setShowCardDebug] = useState(false)
+  const [showDebugFlags, setShowDebugFlags] = useState(false)
   const [cardUpgradeType, setCardUpgradeType] = useState<'normal' | 'cost-reduced' | 'enhanced'>('normal')
   const [debugButtonsVisible, setDebugButtonsVisible] = useState(false)
 
@@ -112,6 +116,70 @@ function App() {
       useGameStore.setState({ glassesNeedsTingleAnimation: false })
     }
   }, [glassesNeedsTingleAnimation, executeTingleWithAnimation])
+
+  // Check for Easy Mode Tingle annotation on turn start
+  useEffect(() => {
+    if (easyModeTingleTile) {
+      const state = useGameStore.getState()
+      const tileKey = `${easyModeTingleTile.x},${easyModeTingleTile.y}`
+      const tile = state.board.tiles.get(tileKey)
+
+      if (tile && !tile.revealed) {
+        // Add owner_subset annotation with just this tile's owner
+        const ownerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>([tile.owner as 'player' | 'rival' | 'neutral' | 'mine'])
+        const updatedTile = {
+          ...tile,
+          annotations: [
+            ...tile.annotations,
+            { type: 'owner_subset' as const, ownerSubset }
+          ]
+        }
+
+        // Update the board with the annotated tile
+        const updatedBoard = {
+          ...state.board,
+          tiles: new Map(state.board.tiles)
+        }
+        updatedBoard.tiles.set(tileKey, updatedTile)
+
+        // Set up Tingle animation for this one tile
+        useGameStore.setState({
+          ...state,
+          board: updatedBoard,
+          easyModeTingleTile: null, // Clear the flag
+          tingleAnimation: {
+            isActive: true,
+            targetTile: easyModeTingleTile,
+            isEmphasized: true,
+            tilesRemaining: [updatedTile],
+            currentTileIndex: 0,
+            isEnhanced: false
+          }
+        })
+
+        // Clear animation after emphasis duration (matching Tingle timing)
+        setTimeout(() => {
+          const currentState = useGameStore.getState()
+          if (currentState.tingleAnimation?.isActive) {
+            useGameStore.setState({
+              tingleAnimation: {
+                ...currentState.tingleAnimation,
+                isEmphasized: false
+              }
+            })
+
+            // Clear animation completely after fade
+            setTimeout(() => {
+              useGameStore.setState({ tingleAnimation: null })
+            }, 300)
+          }
+        }, 800)
+      } else {
+        // Tile not found or already revealed - just clear the flag
+        useGameStore.setState({ easyModeTingleTile: null })
+      }
+    }
+  }, [easyModeTingleTile])
 
   // Check for Espresso special card handling
   useEffect(() => {
@@ -377,10 +445,31 @@ function App() {
                       justifyContent: 'center',
                       cursor: 'pointer',
                       fontSize: '16px',
-                      color: 'white'
+                      color: 'white',
+                      marginBottom: '5px'
                     }}
                   >
                     🃏
+                  </div>
+                </Tooltip>
+
+                <Tooltip text="Debug: Toggle debug flags" style={{ display: 'block' }}>
+                  <div
+                    onClick={() => setShowDebugFlags(true)}
+                    style={{
+                      width: '30px',
+                      height: '30px',
+                      backgroundColor: '#17a2b8',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      color: 'white'
+                    }}
+                  >
+                    ⚙️
                   </div>
                 </Tooltip>
               </>
@@ -686,7 +775,7 @@ function App() {
             overflow: 'auto'
           }}>
             <h3 style={{ margin: '0 0 15px 0', textAlign: 'center' }}>Debug: Give Card</h3>
-            
+
             {/* Upgrade Type Selection */}
             <div style={{ marginBottom: '15px', textAlign: 'center' }}>
               <label style={{ marginRight: '10px' }}>
@@ -717,7 +806,7 @@ function App() {
                 Enhanced
               </label>
             </div>
-            
+
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
@@ -763,6 +852,90 @@ function App() {
               }}
             >
               Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Debug Flags Overlay */}
+      {showDebugFlags && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '10px',
+            maxWidth: '400px',
+            width: '90%'
+          }}>
+            <h3 style={{ margin: '0 0 15px 0', textAlign: 'center' }}>Debug Flags</h3>
+
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              marginBottom: '15px'
+            }}>
+              {/* Adjacency Color Toggle */}
+              <button
+                onClick={() => toggleDebugFlag('adjacencyColor')}
+                style={{
+                  padding: '12px',
+                  border: '2px solid #ccc',
+                  borderRadius: '5px',
+                  backgroundColor: debugFlags.adjacencyColor ? '#28a745' : '#f8f9fa',
+                  color: debugFlags.adjacencyColor ? 'white' : 'black',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  textAlign: 'left'
+                }}
+              >
+                Adjacency Color: {debugFlags.adjacencyColor ? 'White' : 'Black'}
+              </button>
+
+              {/* Easy Mode Toggle */}
+              <button
+                onClick={() => toggleDebugFlag('easyMode')}
+                style={{
+                  padding: '12px',
+                  border: '2px solid #ccc',
+                  borderRadius: '5px',
+                  backgroundColor: debugFlags.easyMode ? '#28a745' : '#f8f9fa',
+                  color: debugFlags.easyMode ? 'white' : 'black',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  textAlign: 'left'
+                }}
+              >
+                Easy Mode: {debugFlags.easyMode ? 'On' : 'Off'}
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowDebugFlags(false)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ccc',
+                borderRadius: '5px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                cursor: 'pointer'
+              }}
+            >
+              Close
             </button>
           </div>
         </div>

@@ -102,21 +102,15 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
           transform: isHovered ? 'translateY(-10px) scale(1.05)' : 'translateY(0) scale(1)'
         }}
         onMouseEnter={() => {
-          console.log('[Card] Mouse entered card:', card.name)
           onHover?.(true)
         }}
         onMouseLeave={() => {
-          console.log('[Card] Mouse left card:', card.name)
           onHover?.(false)
         }}
       >
         {/* Energy cost pips - positioned in top-left corner */}
         <Tooltip text={`Cost ${effectiveCost}`} position="right" style={{ position: 'absolute', top: '4px', left: '4px', display: 'inline-block', zIndex: 10001 }}>
-          <div
-            style={{ zIndex: 10001 }}
-            onMouseEnter={() => console.log('[Card] Mouse entered energy pips')}
-            onMouseLeave={() => console.log('[Card] Mouse left energy pips')}
-          >
+          <div style={{ zIndex: 10001 }}>
             {renderEnergyPips(effectiveCost, isPlayable)}
           </div>
         </Tooltip>
@@ -124,21 +118,13 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
       {/* Energy-reduced indicator - positioned on left side, above enhanced indicator */}
       {(showUpgradeIndicator === 'cost_reduction' || card.energyReduced) && (
         <Tooltip text="refunds 1 energy when played" position="left" style={{ position: 'absolute', bottom: '30px', left: '4px', display: 'inline-block', zIndex: 10002 }}>
-          <div
-            style={{
-              backgroundColor: '#00b894',
-              borderRadius: '50%',
-              width: '16px',
-              height: '16px',
-              zIndex: 10002
-            }}
-            onMouseEnter={() => {
-              console.log('[Card] Mouse entered GREEN CIRCLE - energy reduced indicator')
-            }}
-            onMouseLeave={() => {
-              console.log('[Card] Mouse left GREEN CIRCLE - energy reduced indicator')
-            }}
-          />
+          <div style={{
+            backgroundColor: '#00b894',
+            borderRadius: '50%',
+            width: '16px',
+            height: '16px',
+            zIndex: 10002
+          }} />
         </Tooltip>
       )}
 

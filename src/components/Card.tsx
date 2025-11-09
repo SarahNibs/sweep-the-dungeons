@@ -117,7 +117,7 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
 
       {/* Energy-reduced indicator - positioned on left side, above enhanced indicator */}
       {(showUpgradeIndicator === 'cost_reduction' || card.energyReduced) && (
-        <Tooltip text="Gain 1 energy when played" style={{ position: 'absolute', bottom: '30px', left: '4px', display: 'inline-block' }}>
+        <Tooltip text="refunds 1 energy when played" style={{ position: 'absolute', bottom: '30px', left: '4px', display: 'inline-block' }}>
           <div style={{
             backgroundColor: '#00b894',
             borderRadius: '50%',

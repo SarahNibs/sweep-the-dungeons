@@ -18,9 +18,11 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel
     if (gameStatus.status === 'player_won') {
       const rivalLeft = gameStatus.rivalTilesLeft || 0
       const isGameWon = levelConfig?.uponFinish?.winTheGame || false
-      
+
       if (isGameWon) {
         return `🎉 GAME WON! All floors complete! 🎉`
+      } else if (gameStatus.reason === 'rival_revealed_mine') {
+        return `🎉 Floor ${levelNumber} Complete! Your rival revealed a mine! ${rivalLeft} rival tiles left! 🎉`
       } else {
         return `🎉 Floor ${levelNumber} Complete! ${rivalLeft} rival tiles left! 🎉`
       }
@@ -33,7 +35,13 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel
       }
       return `💀 Failure!${floorInfo} 💀`
     } else if (targetingInfo) {
-      return `${targetingInfo.description} (${targetingInfo.selected.length}/${targetingInfo.count})`
+      // Only show count for multi-target cards (e.g., Scurry with 2 or 3 targets)
+      // Single-target cards shouldn't show "(0/1)"
+      if (targetingInfo.count > 1) {
+        return `${targetingInfo.description} (${targetingInfo.selected.length}/${targetingInfo.count})`
+      } else {
+        return targetingInfo.description
+      }
     } else {
       return `Floor ${levelNumber}: sweep, sweep`
     }

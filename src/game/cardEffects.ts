@@ -753,7 +753,7 @@ export function requiresTargeting(cardName: string, enhanced?: boolean): boolean
 export function getTargetingInfo(cardName: string, enhanced?: boolean): { count: number; description: string } | null {
   switch (cardName) {
     case 'Spritz':
-      return { count: 1, description: enhanced ? 'Click on an unrevealed tile to scout (also scouts adjacent tile)' : 'Click on an unrevealed tile to scout' }
+      return { count: 1, description: enhanced ? 'Click on an unrevealed tile to spritz (also spritzes adjacent tile)' : 'Click on an unrevealed tile to spritz' }
     case 'Scurry':
       return { count: enhanced ? 3 : 2, description: enhanced ? 'Click on three unrevealed tiles - the safest will be revealed' : 'Click on two unrevealed tiles - the safer will be revealed' }
     case 'Brush':

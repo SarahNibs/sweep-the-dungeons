@@ -176,8 +176,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     cost: 0,
     category: 'reward',
     description: {
-      base: 'A birb searches a burst 1 cross area for mines and exhausts if any are found',
-      enhanced: 'A birb searches a 3x3 area for mines and exhausts if any are found'
+      base: 'A birb searches a burst 1 cross area for mines, informing you where they are and exhausting if any are found',
+      enhanced: 'A birb searches a 3x3 area for mines, informing you where they are and exhausting if any are found'
     },
     icon: '🐦'
   },
@@ -381,8 +381,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     category: 'reward',
     exhaust: true,
     description: {
-      base: 'Draw a card every turn for 2 more floors',
-      enhanced: 'Draw a card every turn for 3 more floors'
+      base: 'Draw a card every turn for 2 more floors. Exhaust.',
+      enhanced: 'Draw a card every turn for 3 more floors. Exhaust.'
     },
     icon: '🍔'
   },
@@ -402,8 +402,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     category: 'reward',
     exhaust: true,
     description: {
-      base: 'Gaining copper from your tile reveals also gains 1 energy for 2 more floors',
-      enhanced: 'Gaining copper from your tile reveals also gains 1 energy for 3 more floors'
+      base: 'Gaining copper from your tile reveals also gains 1 energy for 2 more floors. Exhaust.',
+      enhanced: 'Gaining copper from your tile reveals also gains 1 energy for 3 more floors. Exhaust.'
     },
     icon: '🍦'
   },
@@ -413,8 +413,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     category: 'reward',
     exhaust: true,
     description: {
-      base: 'Reveal one of your tiles at the start of each floor for 2 more floors',
-      enhanced: 'Reveal one of your tiles at the start of each floor for 3 more floors'
+      base: 'Reveal one of your tiles at the start of each floor for 2 more floors. Exhaust.',
+      enhanced: 'Reveal one of your tiles at the start of each floor for 3 more floors. Exhaust.'
     },
     icon: '🥕'
   },
@@ -468,7 +468,7 @@ export const EQUIPMENT_DEFINITIONS: Record<string, EquipmentDefinition> = {
   },
   'Frilly Dress': {
     name: 'Frilly Dress',
-    description: 'your counterpart sometimes watches you clean rather than cleaning themselves',
+    description: 'your rival sometimes watches you clean rather than cleaning themselves',
     hoverText: 'Frilly Dress: revealing up to four neutral tiles on your first turn does not end your turn',
     category: 'common',
     icon: '👗'
@@ -490,7 +490,7 @@ export const EQUIPMENT_DEFINITIONS: Record<string, EquipmentDefinition> = {
   'Caffeinated': {
     name: 'Caffeinated',
     description: 'caffeine grants unimaginable energy with no downsides!',
-    hoverText: 'Caffeinated: get 4 energy per turn instead of 3 but draw 1 fewer card at the start of your turns',
+    hoverText: 'Caffeinated: get 4 energy per turn instead of 3 but draw 1 fewer card at the start of each of your turns except the first',
     category: 'common',
     icon: '🥤'
   },
@@ -517,7 +517,7 @@ export const EQUIPMENT_DEFINITIONS: Record<string, EquipmentDefinition> = {
   },
   'Mirrors': {
     name: 'Mirrors',
-    description: 'reflect your rival\'s moves',
+    description: 'who are you looking at?',
     hoverText: 'Mirrors: at the start of each floor, one random rival tile is revealed and you sense your own adjacent tiles',
     category: 'common',
     icon: '🪞'
@@ -919,7 +919,7 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
         type: 'underwire_protection',
         icon: '🛡️',
         name: 'Underwire',
-        description: 'Protects once from revealing mines',
+        description: 'Protects once from revealing mines this floor',
         enhanced,
         count: 1
       }

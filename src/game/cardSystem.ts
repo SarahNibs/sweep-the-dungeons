@@ -836,8 +836,10 @@ export function startNewTurn(state: GameState): GameState {
 
   const discardedState = discardHand(currentState)
 
-  // Draw regular 5 cards (or 4 with Caffeinated equipment) plus any queued card draws plus burger bonus
-  const baseCardDraw = hasEquipment(state, 'Caffeinated') ? 4 : 5
+  // Draw regular 5 cards (or 4 with Caffeinated equipment, except on first turn) plus any queued card draws plus burger bonus
+  // Caffeinated reduces draw by 1 on all turns EXCEPT the first turn of each floor
+  const hasCaffeinated = hasEquipment(state, 'Caffeinated')
+  const baseCardDraw = (hasCaffeinated && !state.isFirstTurn) ? 4 : 5
   const burgerEffect = state.activeStatusEffects.find(e => e.type === 'burger')
   const burgerBonus = burgerEffect ? 1 : 0 // Always +1 if Burger effect is active, regardless of stack count
   const totalCardsToDraw = baseCardDraw + state.queuedCardDraws + burgerBonus
@@ -1010,9 +1012,10 @@ export function createInitialState(
     maskingState: null,
     napState: null
   }
-  
-  // Draw initial cards (4 with Caffeinated equipment, 5 without) plus Burger bonus
-  const initialCardDraw = startingEquipment.some(equipment => equipment.name === 'Caffeinated') ? 4 : 5
+
+  // Draw initial cards (always 5, even with Caffeinated - it's the first turn) plus Burger bonus
+  // Caffeinated only reduces draw on turns AFTER the first turn of each floor
+  const initialCardDraw = 5
   const burgerEffect = preservedStatusEffects?.find(e => e.type === 'burger')
   const burgerBonus = burgerEffect ? 1 : 0
   let finalState = drawCards(initialState, initialCardDraw + burgerBonus)

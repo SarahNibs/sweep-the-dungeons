@@ -588,15 +588,15 @@
       }
     },
     {
-      "levelNumber": 14,
-      "levelId": "L14",
+      "levelNumber": 15,
+      "levelId": "L15",
       "uponFinish": {
         "cardReward": true,
-        "equipmentReward": true,
+        "equipmentReward": false,
         "upgradeReward": false,
-        "shopReward": false,
+        "shopReward": true,
         "winTheGame": false,
-        "nextLevel": ["L15"]
+        "nextLevel": ["L16"]
       },
       "description": "Mix it up",
       "dimensions": {
@@ -641,15 +641,15 @@
       }
     },
     {
-      "levelNumber": 15,
-      "levelId": "L15",
+      "levelNumber": 14,
+      "levelId": "L14",
       "uponFinish": {
         "cardReward": true,
-        "equipmentReward": false,
+        "equipmentReward": true,
         "upgradeReward": false,
-        "shopReward": true,
+        "shopReward": false,
         "winTheGame": false,
-        "nextLevel": ["L16"]
+        "nextLevel": ["L15"]
       },
       "description": "Strategic Lair Removal",
       "dimensions": {

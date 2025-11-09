@@ -187,11 +187,26 @@ export class TargetingController {
     // Handle quantum (multi-target) specially
     if (effect.type === 'quantum') {
       const existingTargets = 'targets' in effect ? effect.targets : []
-      const newTargets = [...existingTargets, position]
       const maxTargets = config.maxTargets(isEnhanced)
 
+      // Check if this position is already selected
+      const positionKey = positionToKey(position)
+      const targetIndex = existingTargets.findIndex(
+        target => positionToKey(target) === positionKey
+      )
+
+      let newTargets: Position[]
+      if (targetIndex !== -1) {
+        // Position already selected - remove it (toggle off)
+        newTargets = existingTargets.filter((_, index) => index !== targetIndex)
+      } else {
+        // Position not selected - add it (toggle on)
+        newTargets = [...existingTargets, position]
+      }
+
       const newEffect: CardEffect = { type: 'quantum', targets: newTargets }
-      const shouldExecute = newTargets.length >= maxTargets
+      // Only execute when we have exactly the right number of targets
+      const shouldExecute = newTargets.length === maxTargets
 
       return { newEffect, shouldExecute }
     }

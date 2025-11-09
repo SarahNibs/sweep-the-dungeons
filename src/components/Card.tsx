@@ -132,13 +132,11 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
               height: '16px',
               zIndex: 10002
             }}
-            onMouseEnter={(e) => {
+            onMouseEnter={() => {
               console.log('[Card] Mouse entered GREEN CIRCLE - energy reduced indicator')
-              e.stopPropagation()
             }}
-            onMouseLeave={(e) => {
+            onMouseLeave={() => {
               console.log('[Card] Mouse left GREEN CIRCLE - energy reduced indicator')
-              e.stopPropagation()
             }}
           />
         </Tooltip>

@@ -78,9 +78,9 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
   const cardOverlap = customOverlap !== undefined ? customOverlap : (totalCards > 1 ? 15 : 0)
   const baseZIndex = 10
   const zIndex = isHovered ? baseZIndex + 100 : baseZIndex + index
-  
+
   return (
-    <Tooltip text={getCardDescription(card)} style={{ display: 'inline-block', pointerEvents: 'none' }}>
+    <div style={{ display: 'inline-block', position: 'relative' }}>
       <div
         onClick={handleClick}
         style={{
@@ -99,8 +99,7 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
           alignItems: 'center',
           transition: 'transform 0.2s, box-shadow 0.2s, z-index 0.1s',
           zIndex: zIndex,
-          transform: isHovered ? 'translateY(-10px) scale(1.05)' : 'translateY(0) scale(1)',
-          pointerEvents: 'auto'
+          transform: isHovered ? 'translateY(-10px) scale(1.05)' : 'translateY(0) scale(1)'
         }}
         onMouseEnter={() => {
           onHover?.(true)
@@ -110,22 +109,21 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
         }}
       >
         {/* Energy cost pips - positioned in top-left corner */}
-        <Tooltip text={`Cost ${effectiveCost}`} position="right" style={{ position: 'absolute', top: '4px', left: '4px', display: 'inline-block', pointerEvents: 'auto' }}>
-          <div style={{ zIndex: 1, pointerEvents: 'auto' }}>
+        <Tooltip text={`Cost ${effectiveCost}`} position="right" style={{ position: 'absolute', top: '4px', left: '4px', display: 'inline-block' }}>
+          <div style={{ zIndex: 1 }}>
             {renderEnergyPips(effectiveCost, isPlayable)}
           </div>
         </Tooltip>
 
       {/* Energy-reduced indicator - positioned on left side, above enhanced indicator */}
       {(showUpgradeIndicator === 'cost_reduction' || card.energyReduced) && (
-        <Tooltip text="refunds 1 energy when played" style={{ position: 'absolute', bottom: '30px', left: '4px', display: 'inline-block', pointerEvents: 'auto' }}>
+        <Tooltip text="refunds 1 energy when played" position="left" style={{ position: 'absolute', bottom: '30px', left: '4px', display: 'inline-block' }}>
           <div style={{
             backgroundColor: '#00b894',
             borderRadius: '50%',
             width: '16px',
             height: '16px',
-            zIndex: 1,
-            pointerEvents: 'auto'
+            zIndex: 1
           }} />
         </Tooltip>
       )}
@@ -151,39 +149,41 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
           +
         </div>
       )}
-      
-      {/* Card content */}
-      <div style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%'
-      }}>
-        {/* Card name at top */}
-        <h3 style={{
-          margin: '26px 4px 0 4px',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          lineHeight: '1.1',
-          color: isPlayable ? '#2d3436' : '#636e72',
-          textAlign: 'center'
-        }}>
-          {card.name}
-        </h3>
 
-        {/* Card icon positioned from bottom */}
+      {/* Card content with tooltip */}
+      <Tooltip text={getCardDescription(card)} style={{ position: 'relative', width: '100%', height: '100%', display: 'block' }}>
         <div style={{
-          position: 'absolute',
-          bottom: '10px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          fontSize: '28px',
-          lineHeight: '1',
-          userSelect: 'none'
+          position: 'relative',
+          width: '100%',
+          height: '100%'
         }}>
-          {getCardIcon(card.name)}
+          {/* Card name at top */}
+          <h3 style={{
+            margin: '26px 4px 0 4px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            lineHeight: '1.1',
+            color: isPlayable ? '#2d3436' : '#636e72',
+            textAlign: 'center'
+          }}>
+            {card.name}
+          </h3>
+
+          {/* Card icon positioned from bottom */}
+          <div style={{
+            position: 'absolute',
+            bottom: '10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            fontSize: '28px',
+            lineHeight: '1',
+            userSelect: 'none'
+          }}>
+            {getCardIcon(card.name)}
+          </div>
         </div>
-      </div>
+      </Tooltip>
     </div>
-    </Tooltip>
+    </div>
   )
 }

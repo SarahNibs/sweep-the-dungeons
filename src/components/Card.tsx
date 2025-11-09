@@ -80,7 +80,7 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
   const zIndex = isHovered ? baseZIndex + 100 : baseZIndex + index
 
   return (
-    <div style={{ display: 'inline-block', position: 'relative' }}>
+    <Tooltip text={getCardDescription(card)} style={{ display: 'inline-block' }}>
       <div
         onClick={handleClick}
         style={{
@@ -102,29 +102,45 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
           transform: isHovered ? 'translateY(-10px) scale(1.05)' : 'translateY(0) scale(1)'
         }}
         onMouseEnter={() => {
+          console.log('[Card] Mouse entered card:', card.name)
           onHover?.(true)
         }}
         onMouseLeave={() => {
+          console.log('[Card] Mouse left card:', card.name)
           onHover?.(false)
         }}
       >
         {/* Energy cost pips - positioned in top-left corner */}
-        <Tooltip text={`Cost ${effectiveCost}`} position="right" style={{ position: 'absolute', top: '4px', left: '4px', display: 'inline-block' }}>
-          <div style={{ zIndex: 1 }}>
+        <Tooltip text={`Cost ${effectiveCost}`} position="right" style={{ position: 'absolute', top: '4px', left: '4px', display: 'inline-block', zIndex: 10001 }}>
+          <div
+            style={{ zIndex: 10001 }}
+            onMouseEnter={() => console.log('[Card] Mouse entered energy pips')}
+            onMouseLeave={() => console.log('[Card] Mouse left energy pips')}
+          >
             {renderEnergyPips(effectiveCost, isPlayable)}
           </div>
         </Tooltip>
 
       {/* Energy-reduced indicator - positioned on left side, above enhanced indicator */}
       {(showUpgradeIndicator === 'cost_reduction' || card.energyReduced) && (
-        <Tooltip text="refunds 1 energy when played" position="left" style={{ position: 'absolute', bottom: '30px', left: '4px', display: 'inline-block' }}>
-          <div style={{
-            backgroundColor: '#00b894',
-            borderRadius: '50%',
-            width: '16px',
-            height: '16px',
-            zIndex: 1
-          }} />
+        <Tooltip text="refunds 1 energy when played" position="left" style={{ position: 'absolute', bottom: '30px', left: '4px', display: 'inline-block', zIndex: 10002 }}>
+          <div
+            style={{
+              backgroundColor: '#00b894',
+              borderRadius: '50%',
+              width: '16px',
+              height: '16px',
+              zIndex: 10002
+            }}
+            onMouseEnter={(e) => {
+              console.log('[Card] Mouse entered GREEN CIRCLE - energy reduced indicator')
+              e.stopPropagation()
+            }}
+            onMouseLeave={(e) => {
+              console.log('[Card] Mouse left GREEN CIRCLE - energy reduced indicator')
+              e.stopPropagation()
+            }}
+          />
         </Tooltip>
       )}
 
@@ -150,40 +166,38 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
         </div>
       )}
 
-      {/* Card content with tooltip */}
-      <Tooltip text={getCardDescription(card)} style={{ position: 'relative', width: '100%', height: '100%', display: 'block' }}>
-        <div style={{
-          position: 'relative',
-          width: '100%',
-          height: '100%'
+      {/* Card content */}
+      <div style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%'
+      }}>
+        {/* Card name at top */}
+        <h3 style={{
+          margin: '26px 4px 0 4px',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          lineHeight: '1.1',
+          color: isPlayable ? '#2d3436' : '#636e72',
+          textAlign: 'center'
         }}>
-          {/* Card name at top */}
-          <h3 style={{
-            margin: '26px 4px 0 4px',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            lineHeight: '1.1',
-            color: isPlayable ? '#2d3436' : '#636e72',
-            textAlign: 'center'
-          }}>
-            {card.name}
-          </h3>
+          {card.name}
+        </h3>
 
-          {/* Card icon positioned from bottom */}
-          <div style={{
-            position: 'absolute',
-            bottom: '10px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            fontSize: '28px',
-            lineHeight: '1',
-            userSelect: 'none'
-          }}>
-            {getCardIcon(card.name)}
-          </div>
+        {/* Card icon positioned from bottom */}
+        <div style={{
+          position: 'absolute',
+          bottom: '10px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          fontSize: '28px',
+          lineHeight: '1',
+          userSelect: 'none'
+        }}>
+          {getCardIcon(card.name)}
         </div>
-      </Tooltip>
+      </div>
     </div>
-    </div>
+    </Tooltip>
   )
 }

@@ -80,7 +80,7 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
   const zIndex = isHovered ? baseZIndex + 100 : baseZIndex + index
   
   return (
-    <Tooltip text={getCardDescription(card)} style={{ display: 'inline-block' }}>
+    <Tooltip text={getCardDescription(card)} style={{ display: 'inline-block', pointerEvents: 'none' }}>
       <div
         onClick={handleClick}
         style={{
@@ -99,7 +99,8 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
           alignItems: 'center',
           transition: 'transform 0.2s, box-shadow 0.2s, z-index 0.1s',
           zIndex: zIndex,
-          transform: isHovered ? 'translateY(-10px) scale(1.05)' : 'translateY(0) scale(1)'
+          transform: isHovered ? 'translateY(-10px) scale(1.05)' : 'translateY(0) scale(1)',
+          pointerEvents: 'auto'
         }}
         onMouseEnter={() => {
           onHover?.(true)
@@ -109,21 +110,22 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
         }}
       >
         {/* Energy cost pips - positioned in top-left corner */}
-        <Tooltip text={`Cost ${effectiveCost}`} position="right" style={{ position: 'absolute', top: '4px', left: '4px', display: 'inline-block' }}>
-          <div style={{ zIndex: 1 }}>
+        <Tooltip text={`Cost ${effectiveCost}`} position="right" style={{ position: 'absolute', top: '4px', left: '4px', display: 'inline-block', pointerEvents: 'auto' }}>
+          <div style={{ zIndex: 1, pointerEvents: 'auto' }}>
             {renderEnergyPips(effectiveCost, isPlayable)}
           </div>
         </Tooltip>
 
       {/* Energy-reduced indicator - positioned on left side, above enhanced indicator */}
       {(showUpgradeIndicator === 'cost_reduction' || card.energyReduced) && (
-        <Tooltip text="refunds 1 energy when played" style={{ position: 'absolute', bottom: '30px', left: '4px', display: 'inline-block' }}>
+        <Tooltip text="refunds 1 energy when played" style={{ position: 'absolute', bottom: '30px', left: '4px', display: 'inline-block', pointerEvents: 'auto' }}>
           <div style={{
             backgroundColor: '#00b894',
             borderRadius: '50%',
             width: '16px',
             height: '16px',
-            zIndex: 1
+            zIndex: 1,
+            pointerEvents: 'auto'
           }} />
         </Tooltip>
       )}

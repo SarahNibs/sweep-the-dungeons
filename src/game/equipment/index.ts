@@ -176,7 +176,16 @@ export function closeEquipmentUpgradeDisplay(state: GameState): GameState {
     }
   }
 
-  // For 'shop' or 'debug' context, just return the updated state
-  // (already at the correct phase)
+  // For 'shop' context, stay at shop
+  // For 'debug' context, return to playing phase
+  if (context === 'debug') {
+    return {
+      ...updatedState,
+      gamePhase: 'playing',
+      equipmentOptions: undefined // Clear equipment options
+    }
+  }
+
+  // For 'shop' context, just return the updated state (already at correct phase)
   return updatedState
 }

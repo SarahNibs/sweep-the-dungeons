@@ -105,11 +105,20 @@ export class DebugController {
 
 
       // Add the equipment to the collection first, and mark as debug addition
-      // Keep the current gamePhase ('playing') so the modal will overlay it correctly
       let newState = {
         ...currentState,
         equipment: [...currentState.equipment, equipment],
         equipmentUpgradeContext: 'debug' as const // Mark as debug context
+      }
+
+      // For Boots, we need to change to equipment_selection phase so the card removal UI can display
+      // (card removal UI only renders on upgrade_selection, equipment_selection, or shop_selection screens)
+      if (equipment.name === 'Boots') {
+        newState = {
+          ...newState,
+          gamePhase: 'equipment_selection',
+          equipmentOptions: [] // Empty array so screen renders but shows no equipment choices
+        }
       }
 
       // Apply special equipment effects for equipment that modify the deck

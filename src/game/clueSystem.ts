@@ -1,4 +1,5 @@
-import { GameState, Position, Tile, ClueResult } from '../types'
+import { GameState, Position, Tile, ClueResult, Board } from '../types'
+import { getNeighbors, positionToKey } from './boardSystem'
 
 export interface ClueParams {
   cardType: 'solid_clue' | 'stretch_clue' | 'rival_clue' | 'sarcastic_orders'
@@ -39,9 +40,42 @@ export function calculateStrengthForTile(
   bagDraws: Tile[]
 ): number {
   // Simple counting: how many times this tile was drawn from the bag
-  return bagDraws.filter(drawnTile => 
+  return bagDraws.filter(drawnTile =>
     drawnTile.position.x === tile.position.x && drawnTile.position.y === tile.position.y
   ).length
+}
+
+/**
+ * Get positions that should be excluded from clues based on revealed adjacency information.
+ * When a revealed tile shows adjacencyCount=0, all adjacent tiles are definitively NOT
+ * of the revealer's type.
+ */
+export function getExcludedPositionsByAdjacency(
+  board: Board,
+  targetType: 'player' | 'rival'
+): Set<string> {
+  const excludedKeys = new Set<string>()
+
+  // Iterate through all revealed tiles
+  for (const tile of board.tiles.values()) {
+    if (!tile.revealed || tile.adjacencyCount !== 0) {
+      continue
+    }
+
+    // If this tile shows 0 adjacent of the revealer's type, all neighbors are NOT that type
+    const shouldExclude =
+      (targetType === 'player' && tile.revealedBy === 'player') ||
+      (targetType === 'rival' && tile.revealedBy === 'rival')
+
+    if (shouldExclude) {
+      const neighbors = getNeighbors(board, tile.position)
+      for (const neighborPos of neighbors) {
+        excludedKeys.add(positionToKey(neighborPos))
+      }
+    }
+  }
+
+  return excludedKeys
 }
 
 function buildBagWithAdjustments(
@@ -168,8 +202,12 @@ export function generatePlayerSolidClue(
   clueRowPosition: number,
   enhanced: boolean = false
 ): ClueGenerationResult {
+  // Get positions to exclude based on adjacency info
+  const excludedPositions = getExcludedPositionsByAdjacency(state.board, 'player')
+
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
+    .filter(tile => !excludedPositions.has(positionToKey(tile.position)))
   const playerTiles = unrevealedTiles.filter(tile => tile.owner === 'player')
 
   // Choose 2 player tiles
@@ -218,8 +256,12 @@ export function generatePlayerStretchClue(
   clueRowPosition: number,
   enhanced: boolean = false
 ): ClueGenerationResult {
+  // Get positions to exclude based on adjacency info
+  const excludedPositions = getExcludedPositionsByAdjacency(state.board, 'player')
+
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
+    .filter(tile => !excludedPositions.has(positionToKey(tile.position)))
   const playerTiles = unrevealedTiles.filter(tile => tile.owner === 'player')
   
   // Choose 5 player tiles
@@ -286,8 +328,12 @@ export function prepareRivalClueSetup(state: GameState): {
   chosenRivalTiles: Tile[]
   chosenRandomTiles: Tile[]
 } {
+  // Get positions to exclude based on adjacency info
+  const excludedPositions = getExcludedPositionsByAdjacency(state.board, 'rival')
+
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
+    .filter(tile => !excludedPositions.has(positionToKey(tile.position)))
   const rivalTiles = unrevealedTiles.filter(tile => tile.owner === 'rival')
   
   // Choose 2 rival tiles

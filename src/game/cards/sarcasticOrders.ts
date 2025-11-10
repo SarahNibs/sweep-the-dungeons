@@ -1,7 +1,7 @@
 import { GameState, Card, Tile, Position, ClueResult } from '../../types'
 import { addClueResult } from '../cardEffects'
-import { getTile, getNeighbors } from '../boardSystem'
-import { selectTilesForClue } from '../clueSystem'
+import { getTile, getNeighbors, positionToKey } from '../boardSystem'
+import { selectTilesForClue, getExcludedPositionsByAdjacency } from '../clueSystem'
 
 interface Method1Result {
   exists: boolean
@@ -312,10 +312,14 @@ function generateMethod1(state: GameState): Method1Result {
 
   // === GENERATE GREEN PIPS USING BAG SYSTEM ===
 
-  // Exclude: candidate tiles and tiles getting red pips
+  // Get positions to exclude based on player adjacency info
+  const playerExcludedPositions = getExcludedPositionsByAdjacency(state.board, 'player')
+
+  // Exclude: candidate tiles, tiles getting red pips, and positions ruled out by adjacency
   const excludedPositions = new Set([
     ...candidatePositions,
-    ...redTargetPositions
+    ...redTargetPositions,
+    ...playerExcludedPositions
   ])
 
   const greenBag: Tile[] = []
@@ -373,10 +377,15 @@ function generateMethod1(state: GameState): Method1Result {
  * Uses bag-based generation for both red (anti) and green (positive) clues
  */
 function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
+  // Get positions to exclude based on adjacency info
+  const playerExcludedPositions = getExcludedPositionsByAdjacency(state.board, 'player')
+  const rivalExcludedPositions = getExcludedPositionsByAdjacency(state.board, 'rival')
 
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
+    .filter(tile => !playerExcludedPositions.has(positionToKey(tile.position)))
   const nonPlayerTiles = unrevealedTiles.filter(t => t.owner !== 'player')
+    .filter(tile => !rivalExcludedPositions.has(positionToKey(tile.position)))
 
 
   // === RED CLUES GENERATION ===

@@ -96,12 +96,16 @@ export function selectEquipment(state: GameState, selectedEquipment: Equipment):
     }
   }
 
+  // For Boots, keep gamePhase as equipment_selection so card removal screen can display
+  // After card transformation, the flow will continue to shop or next level
+  const gamePhase = shouldPreserveEquipmentOptions ? 'equipment_selection' : targetPhase
+
   let updatedState: GameState = {
     ...state,
     equipment: newEquipment,
     equipmentOptions: shouldPreserveEquipmentOptions ? state.equipmentOptions : undefined,
     equipmentUpgradeContext: context, // Set context for upgrade display
-    gamePhase: targetPhase // Set target phase before showing modal
+    gamePhase // Set appropriate phase
   }
 
   // Apply special equipment effects for Estrogen, Progesterone, Boots, Crystal, Broom Closet, Novel, Cocktail, Disco Ball, and Bleach

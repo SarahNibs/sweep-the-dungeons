@@ -12,6 +12,7 @@ import { PileViewingScreen } from './components/PileViewingScreen'
 import { TileCountsVertical } from './components/TileCountsVertical'
 import { StatusEffects } from './components/StatusEffects'
 import { Tooltip } from './components/Tooltip'
+import { ItemHelpModal } from './components/ItemHelpModal'
 import { useEffect, useState, useMemo } from 'react'
 
 // Helper to get all card names from the repository
@@ -74,6 +75,7 @@ function App() {
     debugGiveEquipment,
     debugGiveCard,
     toggleDebugFlag,
+    cycleAdjacencyStyle,
     debugFlags,
     selectAnnotationTileType,
     glassesNeedsTingleAnimation,
@@ -81,11 +83,13 @@ function App() {
     executeTingleWithAnimation,
     espressoForcedPlay,
     espressoSpecialCard,
-    executeTrystWithAnimation
+    executeTrystWithAnimation,
+    itemHelpModal,
+    closeItemHelp
   } = useGameStore()
 
   // Determine current screen: check modal stack first, then fall back to gamePhase
-  const currentScreen = modalStack.length > 0 ? modalStack[modalStack.length - 1] : gamePhase
+  const currentScreen = modalStack.length > 0 ? modalStack[modalStack.length - 1].modalType : gamePhase
 
   // Debug UI state
   const [showEquipmentDebug, setShowEquipmentDebug] = useState(false)
@@ -904,6 +908,24 @@ function App() {
                 Adjacency Color: {debugFlags.adjacencyColor ? 'White' : 'Black'}
               </button>
 
+              {/* Adjacency Style Cycle */}
+              <button
+                onClick={() => cycleAdjacencyStyle()}
+                style={{
+                  padding: '12px',
+                  border: '2px solid #ccc',
+                  borderRadius: '5px',
+                  backgroundColor: debugFlags.adjacencyStyle === 'palette' ? '#007bff' : '#ffc107',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  textAlign: 'left'
+                }}
+              >
+                Adjacency Style: {debugFlags.adjacencyStyle === 'palette' ? 'Two Palettes' : 'Dark + Colored Text'}
+              </button>
+
               {/* Easy Mode Toggle */}
               <button
                 onClick={() => toggleDebugFlag('easyMode')}
@@ -920,6 +942,24 @@ function App() {
                 }}
               >
                 Easy Mode: {debugFlags.easyMode ? 'On' : 'Off'}
+              </button>
+
+              {/* Sarcastic Orders Alternate Toggle */}
+              <button
+                onClick={() => toggleDebugFlag('sarcasticOrdersAlternate')}
+                style={{
+                  padding: '12px',
+                  border: '2px solid #ccc',
+                  borderRadius: '5px',
+                  backgroundColor: debugFlags.sarcasticOrdersAlternate ? '#28a745' : '#f8f9fa',
+                  color: debugFlags.sarcasticOrdersAlternate ? 'white' : 'black',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  textAlign: 'left'
+                }}
+              >
+                Sarcastic Instructions: {debugFlags.sarcasticOrdersAlternate ? 'Alternate' : 'Original'}
               </button>
             </div>
 
@@ -939,6 +979,15 @@ function App() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Item Help Modal */}
+      {itemHelpModal && (
+        <ItemHelpModal
+          itemName={itemHelpModal.itemName}
+          itemType={itemHelpModal.itemType}
+          onClose={closeItemHelp}
+        />
       )}
     </div>
   )

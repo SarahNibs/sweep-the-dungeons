@@ -1,4 +1,4 @@
-import { GameState } from '../../types'
+import { GameState, Card } from '../../types'
 import { getWeightedRewardCardPool, selectWeightedCard, createCard, applyDIYGel } from '../gameRepository'
 
 /**
@@ -11,22 +11,24 @@ import { getWeightedRewardCardPool, selectWeightedCard, createCard, applyDIYGel 
  * 4. A random reward card is chosen and added as double-upgraded (or just enhanced if cost 0)
  */
 
-export function applyBootsEffect(state: GameState): GameState {
+export function applyBootsEffect(state: GameState): { state: GameState; results?: { before: Card; after: Card }[] } {
 
   // Set state to show deck selection for transformation
-  return {
+  const newState = {
     ...state,
     waitingForCardRemoval: true,
     // We'll use a special flag to indicate this is for Boots transformation, not removal
     bootsTransformMode: true
   }
+
+  return { state: newState }
 }
 
-export function transformCardForBoots(state: GameState, cardId: string): GameState {
+export function transformCardForBoots(state: GameState, cardId: string): { state: GameState; results?: { before: Card; after: Card }[] } {
   // Find the original card for the "before" display
   const originalCard = state.persistentDeck.find(card => card.id === cardId)
   if (!originalCard) {
-    return state
+    return { state }
   }
 
   // Remove the selected card from persistent deck
@@ -44,14 +46,15 @@ export function transformCardForBoots(state: GameState, cardId: string): GameSta
     enhanced: true
   }))
 
-
-  return {
+  const newState = {
     ...state,
     persistentDeck: [...newPersistentDeck, upgradedCard],
-    modalStack: [...state.modalStack, 'equipment_upgrade_display'], // Push modal to stack
-    equipmentUpgradeResults: [{ before: originalCard, after: upgradedCard }],
     waitingForCardRemoval: false,
     bootsTransformMode: false,
     equipmentOptions: undefined // Clear equipment options after transformation
   }
+
+  const results = [{ before: originalCard, after: upgradedCard }]
+
+  return { state: newState, results }
 }

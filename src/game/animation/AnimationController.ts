@@ -2,7 +2,7 @@ import { GameState, Position, Tile } from '../../types'
 import { getUnrevealedTilesByOwner, revealTileWithEquipmentEffects } from '../cardEffects'
 import { executeTingleEffect } from '../cards/report'
 import { selectTrystTiles } from '../cards/tryst'
-import { queueCardDrawsFromDirtCleaning } from '../cardSystem'
+import { queueCardDrawsFromDirtCleaning, drawCards } from '../cardSystem'
 import { isTestMode } from '../utils/testMode'
 
 /**
@@ -19,9 +19,15 @@ export class AnimationController {
    * Execute Tingle animation - marks rival/mine tiles with a pulsing effect
    */
   executeTingleWithAnimation(state: GameState, isEnhanced: boolean): void {
+    // Geode effect: Draw a card immediately when Tingle is played (before animation)
+    let currentState = state
+    if (currentState.equipment.some(r => r.name === 'Geode')) {
+      currentState = drawCards(currentState, 1)
+    }
+
     // Find random rival or mine tiles to target (1 for both versions)
-    const rivalTiles = getUnrevealedTilesByOwner(state, 'rival')
-    const mineTiles = getUnrevealedTilesByOwner(state, 'mine')
+    const rivalTiles = getUnrevealedTilesByOwner(currentState, 'rival')
+    const mineTiles = getUnrevealedTilesByOwner(currentState, 'mine')
     const candidateTiles = [...rivalTiles, ...mineTiles]
 
     if (candidateTiles.length === 0) return

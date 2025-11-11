@@ -1,6 +1,6 @@
 import { Board as BoardType, Tile as TileType, Position } from '../types'
 import { Tile } from './Tile'
-import { positionToKey } from '../game/boardSystem'
+import { positionToKey, getNeighbors } from '../game/boardSystem'
 import { useGameStore } from '../store'
 import { useState, useEffect } from 'react'
 
@@ -13,6 +13,7 @@ interface BoardProps {
 export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
   const { rivalAnimation, trystAnimation, selectedCardName, selectedCardId, pendingCardEffect, hand, adjacencyPatternAnimation, clearAdjacencyPatternAnimation } = useGameStore()
   const [areaHoverCenter, setAreaHoverCenter] = useState<Position | null>(null)
+  const [hoveredRevealedTile, setHoveredRevealedTile] = useState<Position | null>(null)
 
   // Clear adjacency pattern animation after 1 second
   useEffect(() => {
@@ -30,8 +31,7 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
   const isCanaryTargeting = selectedCardName === 'Canary' && pendingCardEffect?.type === 'canary'
   const isArgumentTargeting = selectedCardName === 'Argument' && pendingCardEffect?.type === 'argument'
   const isHorseTargeting = selectedCardName === 'Horse' && pendingCardEffect?.type === 'horse'
-  const isFanTargeting = selectedCardName === 'Fan' && pendingCardEffect?.type === 'fan'
-  const isAreaTargeting = isBrushTargeting || isSweepTargeting || isCanaryTargeting || isArgumentTargeting || isHorseTargeting || isFanTargeting
+  const isAreaTargeting = isBrushTargeting || isSweepTargeting || isCanaryTargeting || isArgumentTargeting || isHorseTargeting
 
   // Find the current selected card to check if enhanced - use ID to find exact card, not name
   const selectedCard = selectedCardId ? hand.find(card => card.id === selectedCardId) : hand.find(card => card.name === selectedCardName)
@@ -43,7 +43,6 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
     if (cardName === 'Canary') return { size: isEnhanced ? 1 : 1, pattern: isEnhanced ? 'square' : 'manhattan' } // Enhanced: 3x3, Normal: star
     if (cardName === 'Argument') return { size: 1, pattern: 'square' } // Always 3x3 for Argument (range = 1)
     if (cardName === 'Horse') return { size: 1, pattern: 'manhattan' } // Manhattan distance 1 (cross shape)
-    if (cardName === 'Fan') return { size: isEnhanced ? 1 : 1, pattern: isEnhanced ? 'square' : 'manhattan' } // Enhanced: 3x3, Normal: star (same as Canary)
     return { size: 1, pattern: 'square' } // Default
   }
   
@@ -55,12 +54,15 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
   
   const renderTiles = () => {
     const tiles: JSX.Element[] = []
-    
+
+    // Precompute neighbors of hovered revealed tile using the board's adjacency rule
+    const hoveredRevealedNeighbors = hoveredRevealedTile ? getNeighbors(board, hoveredRevealedTile) : []
+
     for (let y = 0; y < board.height; y++) {
       for (let x = 0; x < board.width; x++) {
         const key = `${x},${y}`
         const tile = board.tiles.get(key)
-        
+
         // Check if this position is in the area effect zone for hover highlighting
         const isInAreaEffect = isAreaTargeting && areaHoverCenter && (() => {
           if (areaInfo.pattern === 'manhattan') {
@@ -69,12 +71,16 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
             return manhattanDistance <= areaInfo.size
           } else {
             // Square pattern (default)
-            return Math.abs(x - areaHoverCenter.x) <= areaInfo.size && 
+            return Math.abs(x - areaHoverCenter.x) <= areaInfo.size &&
                    Math.abs(y - areaHoverCenter.y) <= areaInfo.size
           }
         })()
-        
-        
+
+        // Check if this tile is adjacent to a hovered revealed tile (using board's adjacency rule)
+        const isAdjacentToHoveredRevealed = hoveredRevealedNeighbors.some(
+          neighborPos => neighborPos.x === x && neighborPos.y === y
+        )
+
         if (tile) {
           const isTargeting = targetingInfo !== null
           const isSelected = targetingInfo?.selected.some(pos => 
@@ -99,14 +105,21 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
               isEnemyHighlighted={isRivalHighlighted}
               isTrystHighlighted={isTrystHighlighted}
               isBrushHighlighted={isInAreaEffect || false}
+              isAdjacentToHoveredRevealed={isAdjacentToHoveredRevealed && !tile.revealed}
               onMouseEnter={() => {
                 if (isAreaTargeting) {
                   setAreaHoverCenter({ x, y })
+                }
+                if (tile.revealed) {
+                  setHoveredRevealedTile({ x, y })
                 }
               }}
               onMouseLeave={() => {
                 if (isAreaTargeting) {
                   setAreaHoverCenter(null)
+                }
+                if (tile.revealed) {
+                  setHoveredRevealedTile(null)
                 }
               }}
             />

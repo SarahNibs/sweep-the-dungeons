@@ -28,7 +28,7 @@ When a tile is revealed, you get adjacency info. When you reveal it, that
 info tells you the number of tiles adjacent (diagonal counts too!) to this
 one which are yours to clean, whether already revealed or still unrevealed.
 When your rival reveals it, the adjacency info is about how many nearby
-tiles are theirs to clean, not yours. There are many other ways to gain
+tiles are hers to clean, not yours. There are many other ways to gain
 information, via cards and equipment. Some of this information will be
 denoted on the lower right corner of tiles in the form of small colored
 squares; if, for example, a green square and a yellow square are present,
@@ -60,6 +60,24 @@ your rival will take a turn, usually but not always revealing around two of
 their tiles and one other tile. If you reveal a mined tile, you immediately
 lose the game. Unless you still have Grace for this floor. You may also choose
 to end your turn by clicking on the arrow to the right of your cards.
+
+## Rival
+After each of your turns, your rival will take a turn. She receives information
+very similar to the information you get when playing an Imperious Instructions
+card; strong evidence of around two of their tiles, but mixed with often
+spurious evidence of other tiles. You will also see information about which tiles
+she had clued for her; strong evidence of the same two she got strong evidence
+for, mixed with often-spurious evidence of the same other tiles she got
+spoiler evidence for, but the exact strength of the evidence you two see will
+come from different RNG. At first, your rival will only use these instructions'
+evidence to reveal her tiles. Later, she'll get smarter; taking into account
+obvious deductions ("only three unrevealed tiles around my tile which says there
+are three more of my tiles around it, must all be mine!") first, later making
+sophisticated deductions, and finally incorporating educated guesses along with
+her instructions' evidence ("three out of the four of these tiles are mine,
+I'll guess them before any other guesses, 75% is pretty good"). Your rival DOES
+NOT see any of the information you've gained from cards and equipment, or your
+annotations. She only see revealed tiles and the adjacency info on them.
 
 ## Status Effects
 To the right of the tiles are status effects. These change how your turns

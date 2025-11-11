@@ -33,7 +33,6 @@ export type CardEffect =
   | { type: 'brat'; target: Position }
   | { type: 'snip_snip'; target: Position }
   | { type: 'nap'; targetCardId: string }
-  | { type: 'fan'; target: Position }
   | { type: 'gaze'; target: Position }
   | { type: 'fetch'; target: Position }
   | { type: 'burger' }
@@ -141,6 +140,24 @@ export interface LevelConfig {
   }
 }
 
+export interface ScreenContinuation {
+  returnTo: 'shop' | 'reward_flow' | 'playing'
+  preservedState: {
+    // For shop returns
+    shopOptions?: ShopOption[]
+    purchasedShopItems?: Set<number>
+    copper?: number
+    // For debug returns
+    debugReturnPhase?: 'playing' | 'card_selection' | 'viewing_pile' | 'upgrade_selection' | 'equipment_selection' | 'shop_selection' | 'equipment_upgrade_display'
+    // Add more as needed
+  }
+}
+
+export interface ModalEntry {
+  modalType: 'equipment_upgrade_display' | 'viewing_pile'
+  continuation?: ScreenContinuation  // How to navigate when closed
+}
+
 export interface GameState {
   // Persistent deck - all cards the player owns across levels
   persistentDeck: Card[]
@@ -165,7 +182,7 @@ export interface GameState {
   instructionsPlayedThisFloor: Set<string> // Names of Instructions cards played this floor (for enhanced Instructions energy refund)
   currentLevelId: string
   gamePhase: 'playing' | 'card_selection' | 'viewing_pile' | 'upgrade_selection' | 'equipment_selection' | 'shop_selection' | 'equipment_upgrade_display'
-  modalStack: Array<'equipment_upgrade_display' | 'viewing_pile'> // Stack of modal/overlay screens - top of stack is currently displayed
+  modalStack: ModalEntry[] // Stack of modal/overlay screens - top of stack is currently displayed
   pileViewingType?: PileType
   cardSelectionOptions?: Card[] // Three cards to choose from when advancing level
   upgradeOptions?: UpgradeOption[] // Three upgrade options to choose from
@@ -242,7 +259,9 @@ export interface GameState {
   // Debug flags (for testing and development)
   debugFlags: {
     adjacencyColor: boolean // If true, adjacency text is white; if false, black
+    adjacencyStyle: 'palette' | 'dark' // 'palette' = darker/desaturated bg + white text, 'dark' = dark bg + colored text
     easyMode: boolean // If true, reveal random tile owner at turn start
+    sarcasticOrdersAlternate: boolean // If true, use alternate Sarcastic Instructions implementation
   }
 
   // Player annotation: which tile type is currently selected
@@ -277,9 +296,6 @@ export interface GameState {
 
   // Rival mine protection (special behavior)
   rivalMineProtectionCount: number // Number of remaining protected mine reveals
-
-  // Equipment upgrade context (tracks where the equipment upgrade came from)
-  equipmentUpgradeContext?: 'debug' | 'reward' | 'shop' // Context for how we entered equipment upgrade display
 
   // Masking card state (for selecting which card to play with Masking)
   maskingState: {

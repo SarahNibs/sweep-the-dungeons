@@ -104,11 +104,10 @@ export class DebugController {
       }
 
 
-      // Add the equipment to the collection first, and mark as debug addition
+      // Add the equipment to the collection first
       let newState = {
         ...currentState,
-        equipment: [...currentState.equipment, equipment],
-        equipmentUpgradeContext: 'debug' as const // Mark as debug context
+        equipment: [...currentState.equipment, equipment]
       }
 
       // For Boots, we need to change to equipment_selection phase so the card removal UI can display
@@ -123,32 +122,55 @@ export class DebugController {
 
       // Apply special equipment effects for equipment that modify the deck
       // These will push the equipment_upgrade_display modal on top of 'playing' phase
-      import('../equipment').then(({ applyEstrogenEffect, applyProgesteroneEffect, applyBootsEffect, applyCrystalEffect, applyBroomClosetEffect, applyNovelEffect, applyCocktailEffect, applyDiscoBallEffect, applyBleachEffect }) => {
-        let effectState: any = newState
+      Promise.all([
+        import('../equipment'),
+        import('../modalManager')
+      ]).then(([
+        { applyEstrogenEffect, applyProgesteroneEffect, applyBootsEffect, applyCrystalEffect, applyBroomClosetEffect, applyNovelEffect, applyCocktailEffect, applyDiscoBallEffect, applyBleachEffect },
+        { pushEquipmentUpgradeModal }
+      ]) => {
+        let effectResult: { state: any; results?: { before: any; after: any }[] } | null = null
 
         if (equipment.name === 'Estrogen') {
-          effectState = applyEstrogenEffect(newState)
+          effectResult = applyEstrogenEffect(newState)
         } else if (equipment.name === 'Progesterone') {
-          effectState = applyProgesteroneEffect(newState)
+          effectResult = applyProgesteroneEffect(newState)
         } else if (equipment.name === 'Boots') {
-          effectState = applyBootsEffect(newState)
+          effectResult = applyBootsEffect(newState)
         } else if (equipment.name === 'Crystal') {
-          effectState = applyCrystalEffect(newState)
+          effectResult = applyCrystalEffect(newState)
         } else if (equipment.name === 'Broom Closet') {
-          effectState = applyBroomClosetEffect(newState)
+          effectResult = applyBroomClosetEffect(newState)
         } else if (equipment.name === 'Novel') {
-          effectState = applyNovelEffect(newState)
+          effectResult = applyNovelEffect(newState)
         } else if (equipment.name === 'Cocktail') {
-          effectState = applyCocktailEffect(newState)
+          effectResult = applyCocktailEffect(newState)
         } else if (equipment.name === 'Disco Ball') {
-          effectState = applyDiscoBallEffect(newState)
+          effectResult = applyDiscoBallEffect(newState)
         } else if (equipment.name === 'Bleach') {
-          effectState = applyBleachEffect(newState)
-        } else {
-          effectState = newState
+          effectResult = applyBleachEffect(newState)
         }
 
-        this.setState(effectState)
+        if (effectResult) {
+          const { state: equipmentState, results } = effectResult
+
+          // If equipment has upgrade results, show modal with debug continuation
+          if (results && results.length > 0) {
+            const finalState = pushEquipmentUpgradeModal(equipmentState, results, {
+              returnTo: 'playing',
+              preservedState: {
+                debugReturnPhase: currentState.gamePhase
+              }
+            })
+            this.setState(finalState)
+          } else {
+            // Boots: no results yet, will show modal after card selection
+            this.setState(equipmentState)
+          }
+        } else {
+          // Equipment doesn't modify deck
+          this.setState(newState)
+        }
       }).catch(() => {
       })
     }).catch(() => {

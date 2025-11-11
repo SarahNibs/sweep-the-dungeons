@@ -4,6 +4,7 @@ import { getEquipmentIcon } from '../game/gameRepository'
 import { PileViewingScreen } from './PileViewingScreen'
 import { Tooltip } from './Tooltip'
 import { Card } from './Card'
+import { useGameStore } from '../store'
 
 interface EquipmentSelectionScreenProps {
   equipmentOptions: EquipmentOption[]
@@ -23,6 +24,7 @@ export function EquipmentSelectionScreen({
   onCardRemovalSelect
 }: EquipmentSelectionScreenProps) {
   const [viewingDeck, setViewingDeck] = useState(false)
+  const { showItemHelp } = useGameStore()
 
   // Show card removal UI if Boots equipment was selected
   if (waitingForCardRemoval) {
@@ -203,6 +205,11 @@ export function EquipmentSelectionScreen({
                 textAlign: 'center'
               }}
               onClick={() => onEquipmentSelect(option.equipment)}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                showItemHelp(option.equipment.name, 'equipment')
+              }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = '#74b9ff'
                 e.currentTarget.style.backgroundColor = 'rgba(116, 185, 255, 0.1)'

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ShopOption, Card } from '../types'
 import { PileViewingScreen } from './PileViewingScreen'
 import { getEquipmentIcon, getCardDescription, getCardIcon } from '../game/gameRepository'
+import { useGameStore } from '../store'
 
 interface ShopSelectionScreenProps {
   shopOptions: ShopOption[]
@@ -28,6 +29,7 @@ export function ShopSelectionScreen({
 }: ShopSelectionScreenProps) {
   const [viewingDeck, setViewingDeck] = useState(false)
   const [hoveredItem, setHoveredItem] = useState<number | null>(null)
+  const { showItemHelp } = useGameStore()
 
   if (waitingForCardRemoval && currentDeck && onCardRemovalSelect) {
     return (
@@ -220,15 +222,15 @@ export function ShopSelectionScreen({
             gap: '8px'
           }}>
             <div style={{
-              width: '24px',
-              height: '24px',
+              width: '30px',
+              height: '30px',
               backgroundColor: '#b8860b',
-              color: 'white',
+              color: 'black',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '12px',
+              fontSize: '15px',
               fontWeight: 'bold'
             }}>
               {currentCopper}
@@ -328,6 +330,16 @@ export function ShopSelectionScreen({
                 opacity: isAvailable ? 1 : 0.6
               }}
               onClick={() => isAvailable && onPurchase(index)}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                // Show help for card or equipment in shop
+                if (option.card) {
+                  showItemHelp(option.card.name, 'card')
+                } else if (option.equipment) {
+                  showItemHelp(option.equipment.name, 'equipment')
+                }
+              }}
               onMouseEnter={(e) => {
                 setHoveredItem(index)
                 if (isAvailable) {
@@ -419,15 +431,15 @@ export function ShopSelectionScreen({
                 gap: '6px'
               }}>
                 <div style={{
-                  width: '18px',
-                  height: '18px',
+                  width: '23px',
+                  height: '23px',
                   backgroundColor: '#b8860b',
-                  color: 'white',
+                  color: 'black',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '10px',
+                  fontSize: '13px',
                   fontWeight: 'bold'
                 }}>
                   {option.cost}

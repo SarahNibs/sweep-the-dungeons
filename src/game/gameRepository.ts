@@ -285,16 +285,6 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     },
     icon: '🔍'
   },
-  'Fan': {
-    name: 'Fan',
-    cost: 1,
-    category: 'reward',
-    description: {
-      base: 'Blow dirt, goblins, and surface mines in a burst 1 cross area to adjacent tiles',
-      enhanced: 'Blow dirt, goblins, and surface mines in a 3x3 area to adjacent tiles'
-    },
-    icon: '🪭'
-  },
   'Gaze ↑': {
     name: 'Gaze ↑',
     cost: 1,
@@ -388,7 +378,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   },
   'Donut': {
     name: 'Donut',
-    cost: 1,
+    cost: 0,
     category: 'reward',
     description: {
       base: 'Summon a goblin on one of your tiles at random',
@@ -838,7 +828,6 @@ export function getWeightedRewardCardPool(): CardPoolEntry[] {
     { baseName: 'Brat', weight: 1.0 },
     { baseName: 'Snip, Snip', weight: 1.0 },
     { baseName: 'Nap', weight: 1.0 },
-    { baseName: 'Fan', weight: 1.0 },
     { baseName: 'Gaze', weight: 1.0, variants: ['Gaze ↑', 'Gaze ↓', 'Gaze ←', 'Gaze →'] },
     { baseName: 'Fetch', weight: 1.0, variants: ['Fetch ↑', 'Fetch ↓', 'Fetch ←', 'Fetch →'] },
     { baseName: 'Burger', weight: 2/3 }, // Rare - appears 2/3 as often

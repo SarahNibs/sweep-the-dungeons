@@ -1,6 +1,6 @@
 import { GameState, Position } from '../../types'
-import { positionToKey, addSpecialTile, getNeighbors, getTile } from '../boardSystem'
-import { addOwnerSubsetAnnotation } from '../cardEffects'
+import { positionToKey, addSpecialTile, hasSpecialTile } from '../boardSystem'
+import { addOwnerSubsetAnnotation, updateNeighborAdjacencyInfo } from '../cardEffects'
 
 function getUnrevealedPlayerTiles(state: GameState): { position: Position; tile: import('../../types').Tile }[] {
   const unrevealed: { position: Position; tile: import('../../types').Tile }[] = []
@@ -35,9 +35,12 @@ export function executeDonutEffect(state: GameState, enhanced: boolean = false):
   let currentState = state
 
   for (const { position, tile } of selectedTiles) {
+    // Check if tile has a surface mine before adding goblin
+    const hasMine = hasSpecialTile(tile, 'surfaceMine')
+
     // Add goblin to the tile
     const key = positionToKey(position)
-    const newTiles = new Map(currentState.board.tiles)
+    let newTiles = new Map(currentState.board.tiles)
     const tileWithGoblin = addSpecialTile(tile, 'goblin')
     newTiles.set(key, tileWithGoblin)
 
@@ -49,45 +52,23 @@ export function executeDonutEffect(state: GameState, enhanced: boolean = false):
       }
     }
 
+    // Check if goblin + surface mine collision
+    if (hasMine) {
+      // Explosion: remove goblin and mine, add destroyed, change to empty
+      newTiles = new Map(currentState.board.tiles)
+      const currentTile = newTiles.get(key)!
+      const explodedSpecialTiles = currentTile.specialTiles.filter(
+        s => s !== 'goblin' && s !== 'surfaceMine'
+      )
+      explodedSpecialTiles.push('destroyed')
 
-    // Annotate the tile as player
-    const playerOwnerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player'])
-    currentState = addOwnerSubsetAnnotation(currentState, position, playerOwnerSubset)
+      const originalOwner = currentTile.owner
 
-    // Add player adjacency info
-    const neighborPositions = getNeighbors(currentState.board, position)
-    let playerCount = 0
-
-    for (const neighborPos of neighborPositions) {
-      const neighborTile = getTile(currentState.board, neighborPos)
-      if (neighborTile && neighborTile.owner === 'player') {
-        playerCount++
-      }
-    }
-
-    const adjacencyInfo = { player: playerCount }
-
-    // Get the current tile with updated annotations
-    const tileWithAnnotations = getTile(currentState.board, position)
-    if (tileWithAnnotations) {
-      // Remove any existing adjacency info annotation
-      const existingAnnotations = tileWithAnnotations.annotations.filter(a => a.type !== 'adjacency_info')
-
-      // Add the new adjacency info annotation
-      const newAnnotations = [
-        ...existingAnnotations,
-        {
-          type: 'adjacency_info' as const,
-          adjacencyInfo
-        }
-      ]
-
-      // Update the tile with the new annotation
-      const newTiles = new Map(currentState.board.tiles)
-      const key = positionToKey(position)
       newTiles.set(key, {
-        ...tileWithAnnotations,
-        annotations: newAnnotations
+        ...currentTile,
+        owner: 'empty',
+        specialTiles: explodedSpecialTiles,
+        surfaceMineState: undefined // Clear surface mine state
       })
 
       currentState = {
@@ -98,7 +79,18 @@ export function executeDonutEffect(state: GameState, enhanced: boolean = false):
         }
       }
 
+      // Update adjacency for neighbors if owner changed
+      if (originalOwner !== 'empty') {
+        currentState = updateNeighborAdjacencyInfo(currentState, position)
+      }
+
+      // Skip annotation logic for exploded tiles
+      continue
     }
+
+    // Annotate the tile as player
+    const playerOwnerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player'])
+    currentState = addOwnerSubsetAnnotation(currentState, position, playerOwnerSubset)
   }
 
   return currentState

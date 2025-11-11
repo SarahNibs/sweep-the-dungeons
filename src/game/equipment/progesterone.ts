@@ -2,13 +2,17 @@ import { GameState, Card } from '../../types'
 import { createCard } from '../gameRepository'
 import { getEligibleCardsForUpgrade, selectRandomCards } from './equipmentUtils'
 
-export function applyProgesteroneEffect(state: GameState): GameState {
+/**
+ * Apply Progesterone effect: enhance up to 3 random cards
+ * Returns state with updated deck AND the upgrade results so caller can push modal with continuation
+ */
+export function applyProgesteroneEffect(state: GameState): { state: GameState; results?: { before: Card; after: Card }[] } {
 
   // Find eligible cards for enhancement
   const eligibleCards = getEligibleCardsForUpgrade(state.persistentDeck, 'enhance_effect')
 
   if (eligibleCards.length === 0) {
-    return state
+    return { state }
   }
 
   // Select up to 3 random cards
@@ -28,11 +32,10 @@ export function applyProgesteroneEffect(state: GameState): GameState {
     }
   })
 
-
-  return {
+  const newState = {
     ...state,
-    persistentDeck: newPersistentDeck,
-    modalStack: [...state.modalStack, 'equipment_upgrade_display'], // Push modal to stack
-    equipmentUpgradeResults: upgradeResults
+    persistentDeck: newPersistentDeck
   }
+
+  return { state: newState, results: upgradeResults }
 }

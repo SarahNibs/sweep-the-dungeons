@@ -6,7 +6,7 @@ import { createCard } from '../gameRepository'
  * (Imperious Instructions, Vague Instructions, Sarcastic Instructions)
  * Also transforms future Instructions additions
  */
-export function applyNovelEffect(state: GameState): GameState {
+export function applyNovelEffect(state: GameState): { state: GameState; results?: { before: Card; after: Card }[] } {
 
   // Find all Instructions-like cards in persistent deck
   const instructionsLikeCards = state.persistentDeck.filter(card =>
@@ -37,15 +37,17 @@ export function applyNovelEffect(state: GameState): GameState {
     after: sarcasticAfter
   }))
 
-  return {
+  const newState = {
     ...state,
-    persistentDeck: newDeck,
-    modalStack: [...state.modalStack, 'equipment_upgrade_display'], // Push modal to stack
-    equipmentUpgradeResults: equipmentUpgradeResults.length > 0 ? equipmentUpgradeResults : [
-      // If no Instructions to replace, show what would happen with Imperious Instructions as example
-      { before: createCard('Imperious Instructions', {}), after: sarcasticAfter }
-    ]
+    persistentDeck: newDeck
   }
+
+  const results = equipmentUpgradeResults.length > 0 ? equipmentUpgradeResults : [
+    // If no Instructions to replace, show what would happen with Imperious Instructions as example
+    { before: createCard('Imperious Instructions', {}), after: sarcasticAfter }
+  ]
+
+  return { state: newState, results }
 }
 
 /**

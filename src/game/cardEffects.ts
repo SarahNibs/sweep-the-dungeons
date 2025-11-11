@@ -23,7 +23,6 @@ import { executeEavesdroppingEffect } from './cards/eavesdropping'
 import { executeEmanationEffect } from './cards/emanation'
 import { executeBratEffect } from './cards/brat'
 import { executeSnipSnipEffect } from './cards/snipSnip'
-import { executeFanEffect } from './cards/fan'
 import { executeGazeEffect } from './cards/gaze'
 import { executeFetchEffect } from './cards/fetch'
 import { executeBurgerEffect } from './cards/burger'
@@ -718,8 +717,6 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
       return executeBratEffect(state, effect.target, card)
     case 'snip_snip':
       return executeSnipSnipEffect(state, effect.target, card)
-    case 'fan':
-      return executeFanEffect(state, effect.target, card?.enhanced)
     case 'gaze':
       return executeGazeEffect(state, effect.target, card)
     case 'fetch':
@@ -747,7 +744,7 @@ export function requiresTargeting(cardName: string, enhanced?: boolean): boolean
   // Gaze and Fetch cards all start with their base name
   if (cardName.startsWith('Gaze')) return true
   if (cardName.startsWith('Fetch')) return true
-  return cardName === 'Spritz' || cardName === 'Scurry' || cardName === 'Brush' || cardName === 'Sweep' || cardName === 'Canary' || cardName === 'Argument' || cardName === 'Horse' || cardName === 'Eavesdropping' || cardName === 'Emanation' || cardName === 'Brat' || cardName === 'Snip, Snip' || cardName === 'Fan'
+  return cardName === 'Spritz' || cardName === 'Scurry' || cardName === 'Brush' || cardName === 'Sweep' || cardName === 'Canary' || cardName === 'Argument' || cardName === 'Horse' || cardName === 'Eavesdropping' || cardName === 'Emanation' || cardName === 'Brat' || cardName === 'Snip, Snip'
 }
 
 export function getTargetingInfo(cardName: string, enhanced?: boolean): { count: number; description: string } | null {
@@ -778,8 +775,6 @@ export function getTargetingInfo(cardName: string, enhanced?: boolean): { count:
       return { count: 1, description: enhanced ? 'Click a revealed tile to unreveal it (adjacency info remains). Gain 2 copper' : 'Click a revealed tile to unreveal it (adjacency info remains)' }
     case 'Snip, Snip':
       return { count: 1, description: enhanced ? 'Click a tile to defuse mines and get mine adjacency info. Defusing grants 2 copper' : 'Click a tile to defuse mines. Defusing grants 2 copper' }
-    case 'Fan':
-      return { count: 1, description: enhanced ? 'Click center of 3x3 area - blow dirt, goblins, and mines to random adjacent tiles' : 'Click center of star area - blow dirt, goblins, and mines to random adjacent tiles' }
     case 'Gaze ↑':
     case 'Gaze ↓':
     case 'Gaze ←':

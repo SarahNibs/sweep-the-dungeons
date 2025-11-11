@@ -11,6 +11,7 @@ interface TileProps {
   isEnemyHighlighted?: boolean
   isTrystHighlighted?: boolean
   isBrushHighlighted?: boolean
+  isAdjacentToHoveredRevealed?: boolean
   onMouseEnter?: () => void
   onMouseLeave?: () => void
 }
@@ -28,7 +29,7 @@ const getClueHoverText = (clueResult: ClueResult): string => {
   return 'Rival Clue'
 }
 
-export function Tile({ tile, onClick, isTargeting = false, isSelected = false, isEnemyHighlighted = false, isTrystHighlighted = false, isBrushHighlighted = false, onMouseEnter, onMouseLeave }: TileProps) {
+export function Tile({ tile, onClick, isTargeting = false, isSelected = false, isEnemyHighlighted = false, isTrystHighlighted = false, isBrushHighlighted = false, isAdjacentToHoveredRevealed = false, onMouseEnter, onMouseLeave }: TileProps) {
   const {
     hoveredClueId,
     setHoveredClueId,
@@ -36,7 +37,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     adjacencyPatternAnimation,
     cycleAnnotationOnTile,
     board,
-    debugFlags
+    debugFlags,
+    gameStatus
   } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
   
@@ -161,6 +163,18 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     const highlighted = isClueHighlighted()
 
     if (!tile.revealed) {
+      // Post-game: show owner colors for unrevealed tiles
+      const isGameComplete = gameStatus.status !== 'playing'
+      if (isGameComplete) {
+        const ownerColors = {
+          player: '#81b366',
+          rival: '#c65757',
+          neutral: '#d4aa5a',
+          mine: '#8b6ba8',
+          empty: 'transparent'
+        }
+        return ownerColors[tile.owner as keyof typeof ownerColors] || '#9ca3af'
+      }
       // Unrevealed tiles: darker gray when highlighted
       return highlighted ? '#6c757d' : '#9ca3af'
     }
@@ -181,23 +195,38 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     
     // Show adjacency info if revealed
     if (tile.revealed && tile.adjacencyCount !== null) {
-      const getAdjacencyColor = () => {
-        if (tile.revealedBy === 'player') {
-          return '#40c057'
-        } else if (tile.revealedBy === 'rival') {
-          return '#dc3545'
+      const getAdjacencyColors = (): { background: string; textColor: string; borderColor: string; borderWidth: string; fontWeight: string } => {
+        const style = debugFlags.adjacencyStyle || 'palette'
+
+        if (style === 'palette') {
+          // Option A: Two color palettes - saturated medium-tone backgrounds with white text
+          if (tile.revealedBy === 'player') {
+            return { background: '#5a8a45', textColor: '#ffffff', borderColor: 'black', borderWidth: '1px', fontWeight: 'bold' }
+          } else if (tile.revealedBy === 'rival') {
+            return { background: '#a84545', textColor: '#ffffff', borderColor: 'black', borderWidth: '1px', fontWeight: 'bold' }
+          }
+          return { background: '#6a6a6a', textColor: '#ffffff', borderColor: 'black', borderWidth: '1px', fontWeight: 'bold' }
+        } else {
+          // Option B: Linear gradient from light to desaturated + dark border and text
+          if (tile.revealedBy === 'player') {
+            return { background: 'linear-gradient(135deg, #86efac 0%, #4d7c3f 100%)', textColor: '#2d3436', borderColor: '#2d3436', borderWidth: '2px', fontWeight: 'bold' }
+          } else if (tile.revealedBy === 'rival') {
+            return { background: 'linear-gradient(135deg, #fca5a5 0%, #8b3a3a 100%)', textColor: '#2d3436', borderColor: '#2d3436', borderWidth: '2px', fontWeight: 'bold' }
+          }
+          return { background: 'linear-gradient(135deg, #9ca3af 0%, #4b5563 100%)', textColor: '#2d3436', borderColor: '#2d3436', borderWidth: '2px', fontWeight: 'bold' }
         }
-        return '#6c757d'
       }
-      
+
+      const colors = getAdjacencyColors()
+
       elements.push(
         <div key="adjacency-count" style={{
           position: 'absolute',
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          backgroundColor: getAdjacencyColor(),
-          color: debugFlags.adjacencyColor ? 'white' : 'black',
+          background: colors.background,
+          color: colors.textColor,
           borderRadius: tile.revealedBy === 'player' ? '50%' : '3px',
           minWidth: '20px',
           height: '20px',
@@ -205,8 +234,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '12px',
-          fontWeight: 'bold',
-          border: '1px solid black',
+          fontWeight: colors.fontWeight,
+          border: `${colors.borderWidth} solid ${colors.borderColor}`,
           zIndex: 1000
         }}>
           {tile.adjacencyCount}
@@ -936,14 +965,15 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         color: tile.revealed ? 'white' : '#ddd',
         transition: 'all 0.2s ease',
         userSelect: 'none',
-        transform: (isHovered && !tile.revealed) ? 'scale(1.05)' : 'scale(1)',
-        boxShadow: isAdjacencyHighlighted() === 'green' ? '0 0 12px rgba(34, 197, 94, 0.6)' :
+        transform: ((isHovered && !tile.revealed) || isAdjacentToHoveredRevealed) ? 'scale(1.05)' : 'scale(1)',
+        boxShadow: (gameStatus.status !== 'playing' && !tile.revealed) ? 'inset 0 0 0 6px #c8ccd4' :
+                   isAdjacencyHighlighted() === 'green' ? '0 0 12px rgba(34, 197, 94, 0.6)' :
                    isAdjacencyHighlighted() === 'red' ? '0 0 12px rgba(220, 53, 69, 0.6)' :
                    isEnemyHighlighted || isTingleEmphasized() ? '0 0 12px rgba(220, 53, 69, 0.6)' :
                    isTrystHighlighted ? '0 0 12px rgba(155, 89, 182, 0.6)' :
                    isBrushHighlighted ? '0 0 12px rgba(0, 123, 255, 0.8)' :
                    isClueHighlighted() ? '0 0 8px rgba(64, 192, 87, 0.4)' :
-                   (isHovered && !tile.revealed) ? '0 2px 4px rgba(0,0,0,0.3)' :
+                   ((isHovered && !tile.revealed) || isAdjacentToHoveredRevealed) ? '0 2px 4px rgba(0,0,0,0.3)' :
                    'none',
         animation: isAdjacencyHighlighted() ? 'pulse 1s ease-in-out infinite' :
                    isEnemyHighlighted || isTingleEmphasized() ? 'pulse 1s ease-in-out infinite' :

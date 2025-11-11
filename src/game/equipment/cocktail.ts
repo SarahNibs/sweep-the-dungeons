@@ -1,10 +1,10 @@
-import { GameState } from '../../types'
+import { GameState, Card } from '../../types'
 import { createCard, getRewardCardPool, applyDIYGel } from '../gameRepository'
 
 /**
  * Cocktail equipment: when gained, remove all Scurry cards and add 2 random energy-upgraded cards
  */
-export function applyCocktailEffect(state: GameState): GameState {
+export function applyCocktailEffect(state: GameState): { state: GameState; results?: { before: Card; after: Card }[] } {
   // Filter out all Scurry cards from persistent deck
   const deckWithoutScurry = state.persistentDeck.filter(card => card.name !== 'Scurry')
 
@@ -24,15 +24,15 @@ export function applyCocktailEffect(state: GameState): GameState {
 
   // Create upgrade results showing the transformations (use Scurry as "before" state)
   const scurryBefore = createCard('Scurry', {})
-  const equipmentUpgradeResults = [
+  const results = [
     { before: scurryBefore, after: randomCard1 },
     { before: scurryBefore, after: randomCard2 }
   ]
 
-  return {
+  const newState = {
     ...state,
-    persistentDeck: newDeck,
-    modalStack: [...state.modalStack, 'equipment_upgrade_display'], // Push modal to stack
-    equipmentUpgradeResults
+    persistentDeck: newDeck
   }
+
+  return { state: newState, results }
 }

@@ -23,7 +23,7 @@ interface Method2Result {
  * Method 1: "Don't reveal these tiles, reveal everything adjacent to them"
  * Finds tiles with mostly player-owned neighbors and marks them with red dots
  */
-function generateMethod1(state: GameState): Method1Result {
+function generateMethod1(state: GameState, useAlternate: boolean = false): Method1Result {
 
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
@@ -161,10 +161,17 @@ function generateMethod1(state: GameState): Method1Result {
 
   // === GENERATE RED PIPS USING BAG SYSTEM ===
 
-  // Create RedClues bag: 10x instances distributed evenly among candidate tiles
+  // Alternate: 20 instances + 10 from spoilers (2 each), draw 10
+  // Original: 10 instances + 5 from spoilers (1 each), draw 5
+  const candidateInstances = useAlternate ? 20 : 10
+  const spoilerDrawCount = useAlternate ? 5 : 5
+  const copiesPerSpoiler = useAlternate ? 2 : 1
+  const finalDrawCount = useAlternate ? 10 : 5
+
+  // Create RedClues bag: instances distributed evenly among candidate tiles
   const redCluesBag: Tile[] = []
-  const instancesPerCandidate = Math.floor(10 / selectedTiles.length)
-  const extraInstances = 10 % selectedTiles.length
+  const instancesPerCandidate = Math.floor(candidateInstances / selectedTiles.length)
+  const extraInstances = candidateInstances % selectedTiles.length
 
 
   for (let i = 0; i < selectedTiles.length; i++) {
@@ -175,7 +182,7 @@ function generateMethod1(state: GameState): Method1Result {
     }
   }
 
-  // Add 5 spoiler tiles from rest of board
+  // Add spoiler tiles from rest of board
   const candidatePositions = new Set(selectedTiles.map(t => `${t.position.x},${t.position.y}`))
   const spoilerTiles = unrevealedTiles.filter(tile => {
     const posKey = `${tile.position.x},${tile.position.y}`
@@ -192,20 +199,52 @@ function generateMethod1(state: GameState): Method1Result {
   }
 
   const spoilersBagCopy = [...spoilersBag]
-  for (let i = 0; i < Math.min(5, spoilersBagCopy.length); i++) {
+  for (let i = 0; i < Math.min(spoilerDrawCount, spoilersBagCopy.length); i++) {
     const randomIndex = Math.floor(Math.random() * spoilersBagCopy.length)
-    redCluesBag.push(spoilersBagCopy[randomIndex])
+    const drawnSpoiler = spoilersBagCopy[randomIndex]
+    // Add each spoiler copiesPerSpoiler times (1 for original, 2 for alternate)
+    for (let j = 0; j < copiesPerSpoiler; j++) {
+      redCluesBag.push(drawnSpoiler)
+    }
     spoilersBagCopy.splice(randomIndex, 1)
   }
 
 
-  // Draw 5 from RedClues bag → red pips
+  // Draw from RedClues bag → red pips
   const redPipTargets: Tile[] = []
   const redCluesBagCopy = [...redCluesBag]
-  for (let i = 0; i < Math.min(5, redCluesBagCopy.length); i++) {
-    const randomIndex = Math.floor(Math.random() * redCluesBagCopy.length)
-    redPipTargets.push(redCluesBagCopy[randomIndex])
-    redCluesBagCopy.splice(randomIndex, 1)
+
+  if (useAlternate) {
+    // Alternate: Skip duplicate player tiles (they should only get 1 red pip max)
+    const drawnPlayerTiles = new Set<string>()
+    let validDraws = 0
+
+    while (validDraws < finalDrawCount && redCluesBagCopy.length > 0) {
+      const randomIndex = Math.floor(Math.random() * redCluesBagCopy.length)
+      const drawnTile = redCluesBagCopy[randomIndex]
+      redCluesBagCopy.splice(randomIndex, 1)
+
+      // Check if this is a player tile we've already drawn
+      if (drawnTile.owner === 'player') {
+        const posKey = `${drawnTile.position.x},${drawnTile.position.y}`
+        if (drawnPlayerTiles.has(posKey)) {
+          // Skip this draw, don't count it
+          continue
+        }
+        drawnPlayerTiles.add(posKey)
+      }
+
+      // Valid draw - add to targets
+      redPipTargets.push(drawnTile)
+      validDraws++
+    }
+  } else {
+    // Original: Simple draw without deduplication
+    for (let i = 0; i < Math.min(finalDrawCount, redCluesBagCopy.length); i++) {
+      const randomIndex = Math.floor(Math.random() * redCluesBagCopy.length)
+      redPipTargets.push(redCluesBagCopy[randomIndex])
+      redCluesBagCopy.splice(randomIndex, 1)
+    }
   }
 
 
@@ -276,34 +315,39 @@ function generateMethod1(state: GameState): Method1Result {
       const chosenTile = candidates[0]
       const chosenPosKey = `${chosenTile.position.x},${chosenTile.position.y}`
 
-      // Find a tile to steal a pip from (pick one with highest pip count)
-      const tilesWithPips = Array.from(redPipCounts.entries())
-        .filter(([_, count]) => count > 0)
-        .sort((a, b) => b[1] - a[1])
+      // Redistribute pips: 1 for original, 2 for alternate
+      const pipsToRedistribute = useAlternate ? 2 : 1
 
-      if (tilesWithPips.length > 0) {
-        const [sourcePosKey, sourceCount] = tilesWithPips[0]
+      for (let pipIndex = 0; pipIndex < pipsToRedistribute; pipIndex++) {
+        // Find a tile to steal a pip from (pick one with highest pip count)
+        const tilesWithPips = Array.from(redPipCounts.entries())
+          .filter(([_, count]) => count > 0)
+          .sort((a, b) => b[1] - a[1])
 
-        // Update pip counts
-        redPipCounts.set(sourcePosKey, sourceCount - 1)
-        redPipCounts.set(chosenPosKey, (redPipCounts.get(chosenPosKey) || 0) + 1)
+        if (tilesWithPips.length > 0) {
+          const [sourcePosKey, sourceCount] = tilesWithPips[0]
 
-        // Remove source tile if it now has 0 pips
-        if (sourceCount - 1 === 0) {
-          redPipCounts.delete(sourcePosKey)
-          const sourceIndex = redTargets.findIndex(t =>
-            `${t.position.x},${t.position.y}` === sourcePosKey
-          )
-          if (sourceIndex !== -1) {
-            redTargets.splice(sourceIndex, 1)
-            redTargetPositions.delete(sourcePosKey)
+          // Update pip counts
+          redPipCounts.set(sourcePosKey, sourceCount - 1)
+          redPipCounts.set(chosenPosKey, (redPipCounts.get(chosenPosKey) || 0) + 1)
+
+          // Remove source tile if it now has 0 pips
+          if (sourceCount - 1 === 0) {
+            redPipCounts.delete(sourcePosKey)
+            const sourceIndex = redTargets.findIndex(t =>
+              `${t.position.x},${t.position.y}` === sourcePosKey
+            )
+            if (sourceIndex !== -1) {
+              redTargets.splice(sourceIndex, 1)
+              redTargetPositions.delete(sourcePosKey)
+            }
           }
-        }
 
-        // Add chosen tile to red targets if not already there
-        if (!redTargetPositions.has(chosenPosKey)) {
-          redTargets.push(chosenTile)
-          redTargetPositions.add(chosenPosKey)
+          // Add chosen tile to red targets if not already there (only on first pip)
+          if (pipIndex === 0 && !redTargetPositions.has(chosenPosKey)) {
+            redTargets.push(chosenTile)
+            redTargetPositions.add(chosenPosKey)
+          }
         }
       }
     }
@@ -311,54 +355,58 @@ function generateMethod1(state: GameState): Method1Result {
 
 
   // === GENERATE GREEN PIPS USING BAG SYSTEM ===
+  // Note: Alternate version skips green pip generation entirely (only red pips)
 
-  // Get positions to exclude based on player adjacency info
-  const playerExcludedPositions = getExcludedPositionsByAdjacency(state.board, 'player')
+  let greenClueTargets = new Map<Position, number>()
 
-  // Exclude: candidate tiles, tiles getting red pips, and positions ruled out by adjacency
-  const excludedPositions = new Set([
-    ...candidatePositions,
-    ...redTargetPositions,
-    ...playerExcludedPositions
-  ])
+  if (!useAlternate) {
+    // Get positions to exclude based on player adjacency info
+    const playerExcludedPositions = getExcludedPositionsByAdjacency(state.board, 'player')
 
-  const greenBag: Tile[] = []
-  for (const tile of unrevealedTiles) {
-    const posKey = `${tile.position.x},${tile.position.y}`
-    if (!excludedPositions.has(posKey)) {
-      const copies = tile.owner === 'player' ? 3
-                   : (tile.owner === 'rival' || tile.owner === 'neutral') ? 2
-                   : 1 // mine
-      for (let i = 0; i < copies; i++) {
-        greenBag.push(tile)
+    // Exclude: candidate tiles, tiles getting red pips, and positions ruled out by adjacency
+    const excludedPositions = new Set([
+      ...candidatePositions,
+      ...redTargetPositions,
+      ...playerExcludedPositions
+    ])
+
+    const greenBag: Tile[] = []
+    for (const tile of unrevealedTiles) {
+      const posKey = `${tile.position.x},${tile.position.y}`
+      if (!excludedPositions.has(posKey)) {
+        const copies = tile.owner === 'player' ? 3
+                     : (tile.owner === 'rival' || tile.owner === 'neutral') ? 2
+                     : 1 // mine
+        for (let i = 0; i < copies; i++) {
+          greenBag.push(tile)
+        }
       }
     }
-  }
 
 
-  // Draw 5 from green bag
-  const greenDraws: Tile[] = []
-  const greenBagCopy = [...greenBag]
-  for (let i = 0; i < Math.min(5, greenBagCopy.length); i++) {
-    const randomIndex = Math.floor(Math.random() * greenBagCopy.length)
-    greenDraws.push(greenBagCopy[randomIndex])
-    greenBagCopy.splice(randomIndex, 1)
-  }
+    // Draw 5 from green bag
+    const greenDraws: Tile[] = []
+    const greenBagCopy = [...greenBag]
+    for (let i = 0; i < Math.min(5, greenBagCopy.length); i++) {
+      const randomIndex = Math.floor(Math.random() * greenBagCopy.length)
+      greenDraws.push(greenBagCopy[randomIndex])
+      greenBagCopy.splice(randomIndex, 1)
+    }
 
 
-  // Count green pips per tile
-  const greenPipCounts = new Map<string, number>()
-  for (const tile of greenDraws) {
-    const key = `${tile.position.x},${tile.position.y}`
-    greenPipCounts.set(key, (greenPipCounts.get(key) || 0) + 1)
-  }
+    // Count green pips per tile
+    const greenPipCounts = new Map<string, number>()
+    for (const tile of greenDraws) {
+      const key = `${tile.position.x},${tile.position.y}`
+      greenPipCounts.set(key, (greenPipCounts.get(key) || 0) + 1)
+    }
 
 
-  // Convert to Position map
-  const greenClueTargets = new Map<Position, number>()
-  for (const [posKey, count] of greenPipCounts) {
-    const [x, y] = posKey.split(',').map(Number)
-    greenClueTargets.set({ x, y }, count)
+    // Convert to Position map
+    for (const [posKey, count] of greenPipCounts) {
+      const [x, y] = posKey.split(',').map(Number)
+      greenClueTargets.set({ x, y }, count)
+    }
   }
 
 
@@ -376,91 +424,153 @@ function generateMethod1(state: GameState): Method1Result {
  * Method 2: "Green clues and red anti-clues"
  * Uses bag-based generation for both red (anti) and green (positive) clues
  */
-function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
+function generateMethod2(state: GameState, _enhanced: boolean, useAlternate: boolean = false): Method2Result {
   // Get positions to exclude based on adjacency info
   const playerExcludedPositions = getExcludedPositionsByAdjacency(state.board, 'player')
   const rivalExcludedPositions = getExcludedPositionsByAdjacency(state.board, 'rival')
 
-  const unrevealedTiles = Array.from(state.board.tiles.values())
+  let unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
     .filter(tile => !playerExcludedPositions.has(positionToKey(tile.position)))
+
+  // Alternate: Filter out tiles adjacent to revealed tiles with "0 player adjacency"
+  if (useAlternate) {
+    const revealedTilesWithZeroPlayer = Array.from(state.board.tiles.values())
+      .filter(tile => tile.revealed && tile.adjacencyCount === 0 && tile.revealedBy === 'player')
+
+    const adjacentToZeroPlayer = new Set<string>()
+    for (const revealedTile of revealedTilesWithZeroPlayer) {
+      const neighbors = getNeighbors(state.board, revealedTile.position)
+      for (const neighborPos of neighbors) {
+        adjacentToZeroPlayer.add(positionToKey(neighborPos))
+      }
+    }
+
+    unrevealedTiles = unrevealedTiles.filter(tile =>
+      !adjacentToZeroPlayer.has(positionToKey(tile.position))
+    )
+  }
+
   const nonPlayerTiles = unrevealedTiles.filter(t => t.owner !== 'player')
     .filter(tile => !rivalExcludedPositions.has(positionToKey(tile.position)))
 
 
   // === RED CLUES GENERATION ===
 
-  // Create NotThese bag: 1x neutral, 2x rival, 3x mine
-  const notTheseBag: Tile[] = []
-  for (const tile of nonPlayerTiles) {
-    const copies = tile.owner === 'neutral' ? 1 : tile.owner === 'rival' ? 2 : 3
-    for (let i = 0; i < copies; i++) {
-      notTheseBag.push(tile)
-    }
-  }
+  let redPipTargets: Tile[] = []
 
-
-  // Draw from NotThese bag
-  const drawnNotThese: Tile[] = []
-  const drawCount = Math.random() < 0.75 ? 1 : 2
-  const copiesPerDrawn = drawCount === 1 ? 10 : 5
-
-
-  const notTheseBagCopy = [...notTheseBag]
-  for (let i = 0; i < Math.min(drawCount, notTheseBagCopy.length); i++) {
-    const randomIndex = Math.floor(Math.random() * notTheseBagCopy.length)
-    const drawn = notTheseBagCopy[randomIndex]
-    drawnNotThese.push(drawn)
-    // Remove all instances of this tile from the bag
-    const posKey = `${drawn.position.x},${drawn.position.y}`
-    for (let j = notTheseBagCopy.length - 1; j >= 0; j--) {
-      const tile = notTheseBagCopy[j]
-      if (`${tile.position.x},${tile.position.y}` === posKey) {
-        notTheseBagCopy.splice(j, 1)
-      }
-    }
-  }
-
-
-  // Create RedClues bag: add drawn tiles with their multipliers
-  const redCluesBag: Tile[] = []
-  for (const drawn of drawnNotThese) {
-    for (let i = 0; i < copiesPerDrawn; i++) {
-      redCluesBag.push(drawn)
-    }
-  }
-
-  // Create SpoilersForNotThese bag: all tiles except those drawn (3x each, 2x for player)
-  const drawnPositions = new Set(drawnNotThese.map(t => `${t.position.x},${t.position.y}`))
-  const spoilersBag: Tile[] = []
-  for (const tile of unrevealedTiles) {
-    const posKey = `${tile.position.x},${tile.position.y}`
-    if (!drawnPositions.has(posKey)) {
-      const copies = tile.owner === 'player' ? 2 : 3
+  if (useAlternate) {
+    // Alternate Method 2: Simple bag with 2x player, 3x neutral, 4x rival, 5x mine
+    // Draw 10 pips (all red, no green)
+    const redCluesBag: Tile[] = []
+    for (const tile of unrevealedTiles) {
+      const copies = tile.owner === 'player' ? 2
+                   : tile.owner === 'neutral' ? 3
+                   : tile.owner === 'rival' ? 4
+                   : 5 // mine
       for (let i = 0; i < copies; i++) {
-        spoilersBag.push(tile)
+        redCluesBag.push(tile)
       }
     }
-  }
+
+    // Draw 10 from bag, skipping duplicate player tiles
+    const redCluesBagCopy = [...redCluesBag]
+    const drawnPlayerTiles = new Set<string>()
+    let validDraws = 0
+
+    while (validDraws < 10 && redCluesBagCopy.length > 0) {
+      const randomIndex = Math.floor(Math.random() * redCluesBagCopy.length)
+      const drawnTile = redCluesBagCopy[randomIndex]
+      redCluesBagCopy.splice(randomIndex, 1)
+
+      // Check if this is a player tile we've already drawn
+      if (drawnTile.owner === 'player') {
+        const posKey = `${drawnTile.position.x},${drawnTile.position.y}`
+        if (drawnPlayerTiles.has(posKey)) {
+          // Skip this draw, don't count it
+          continue
+        }
+        drawnPlayerTiles.add(posKey)
+      }
+
+      // Valid draw - add to targets
+      redPipTargets.push(drawnTile)
+      validDraws++
+    }
+  } else {
+    // Original Method 2: NotThese bag system
+
+    // Create NotThese bag: 1x neutral, 2x rival, 3x mine
+    const notTheseBag: Tile[] = []
+    for (const tile of nonPlayerTiles) {
+      const copies = tile.owner === 'neutral' ? 1 : tile.owner === 'rival' ? 2 : 3
+      for (let i = 0; i < copies; i++) {
+        notTheseBag.push(tile)
+      }
+    }
 
 
-  // Draw 10 from spoilers bag and add to RedClues bag
-  const spoilersBagCopy = [...spoilersBag]
-  for (let i = 0; i < Math.min(10, spoilersBagCopy.length); i++) {
-    const randomIndex = Math.floor(Math.random() * spoilersBagCopy.length)
-    const drawn = spoilersBagCopy[randomIndex]
-    redCluesBag.push(drawn)
-    spoilersBagCopy.splice(randomIndex, 1)
-  }
+    // Draw from NotThese bag
+    const drawnNotThese: Tile[] = []
+    const drawCount = Math.random() < 0.75 ? 1 : 2
+    const copiesPerDrawn = drawCount === 1 ? 10 : 5
 
 
-  // Draw 5 from RedClues bag → these get red pips
-  const redPipTargets: Tile[] = []
-  const redCluesBagCopy = [...redCluesBag]
-  for (let i = 0; i < Math.min(5, redCluesBagCopy.length); i++) {
-    const randomIndex = Math.floor(Math.random() * redCluesBagCopy.length)
-    redPipTargets.push(redCluesBagCopy[randomIndex])
-    redCluesBagCopy.splice(randomIndex, 1)
+    const notTheseBagCopy = [...notTheseBag]
+    for (let i = 0; i < Math.min(drawCount, notTheseBagCopy.length); i++) {
+      const randomIndex = Math.floor(Math.random() * notTheseBagCopy.length)
+      const drawn = notTheseBagCopy[randomIndex]
+      drawnNotThese.push(drawn)
+      // Remove all instances of this tile from the bag
+      const posKey = `${drawn.position.x},${drawn.position.y}`
+      for (let j = notTheseBagCopy.length - 1; j >= 0; j--) {
+        const tile = notTheseBagCopy[j]
+        if (`${tile.position.x},${tile.position.y}` === posKey) {
+          notTheseBagCopy.splice(j, 1)
+        }
+      }
+    }
+
+
+    // Create RedClues bag: add drawn tiles with their multipliers
+    const redCluesBag: Tile[] = []
+    for (const drawn of drawnNotThese) {
+      for (let i = 0; i < copiesPerDrawn; i++) {
+        redCluesBag.push(drawn)
+      }
+    }
+
+    // Create SpoilersForNotThese bag: all tiles except those drawn (3x each, 2x for player)
+    const drawnPositions = new Set(drawnNotThese.map(t => `${t.position.x},${t.position.y}`))
+    const spoilersBag: Tile[] = []
+    for (const tile of unrevealedTiles) {
+      const posKey = `${tile.position.x},${tile.position.y}`
+      if (!drawnPositions.has(posKey)) {
+        const copies = tile.owner === 'player' ? 2 : 3
+        for (let i = 0; i < copies; i++) {
+          spoilersBag.push(tile)
+        }
+      }
+    }
+
+
+    // Draw 10 from spoilers bag and add to RedClues bag
+    const spoilersBagCopy = [...spoilersBag]
+    for (let i = 0; i < Math.min(10, spoilersBagCopy.length); i++) {
+      const randomIndex = Math.floor(Math.random() * spoilersBagCopy.length)
+      const drawn = spoilersBagCopy[randomIndex]
+      redCluesBag.push(drawn)
+      spoilersBagCopy.splice(randomIndex, 1)
+    }
+
+
+    // Draw 5 from RedClues bag → these get red pips
+    const redCluesBagCopy = [...redCluesBag]
+    for (let i = 0; i < Math.min(5, redCluesBagCopy.length); i++) {
+      const randomIndex = Math.floor(Math.random() * redCluesBagCopy.length)
+      redPipTargets.push(redCluesBagCopy[randomIndex])
+      redCluesBagCopy.splice(randomIndex, 1)
+    }
   }
 
 
@@ -485,95 +595,100 @@ function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
 
   // === GREEN CLUES GENERATION ===
   // Same as enhanced Imperious Instructions (solid clue) but only 5 draws instead of 10
+  // Note: Alternate version skips green pip generation entirely (only red pips)
 
-  const playerTiles = unrevealedTiles.filter(t => t.owner === 'player')
-  const chosenPlayerTiles = selectTilesForClue(playerTiles, 2)
-  const remainingTiles = unrevealedTiles.filter(tile =>
-    !chosenPlayerTiles.some(chosen =>
-      chosen.position.x === tile.position.x && chosen.position.y === tile.position.y
+  let greenClueTargets = new Map<Position, number>()
+  let score = 0
+
+  if (!useAlternate) {
+    const playerTiles = unrevealedTiles.filter(t => t.owner === 'player')
+    const chosenPlayerTiles = selectTilesForClue(playerTiles, 2)
+    const remainingTiles = unrevealedTiles.filter(tile =>
+      !chosenPlayerTiles.some(chosen =>
+        chosen.position.x === tile.position.x && chosen.position.y === tile.position.y
+      )
     )
-  )
-  const chosenRandomTiles = selectTilesForClue(remainingTiles, 5)
+    const chosenRandomTiles = selectTilesForClue(remainingTiles, 5)
 
 
-  // Build bag with adjustments (12 copies of player, 4 copies of spoilers)
-  const buildBagWithAdjustmentsLocal = (
-    tiles: Tile[],
-    copiesPerTile: number,
-    targetOwner: 'player' | 'rival',
-    targetTiles: Tile[]
-  ): Tile[] => {
-    const bag: Tile[] = []
-    const targetTilePositions = new Set(
-      targetTiles.map(tile => `${tile.position.x},${tile.position.y}`)
-    )
+    // Build bag with adjustments (12 copies of player, 4 copies of spoilers)
+    const buildBagWithAdjustmentsLocal = (
+      tiles: Tile[],
+      copiesPerTile: number,
+      targetOwner: 'player' | 'rival',
+      targetTiles: Tile[]
+    ): Tile[] => {
+      const bag: Tile[] = []
+      const targetTilePositions = new Set(
+        targetTiles.map(tile => `${tile.position.x},${tile.position.y}`)
+      )
 
-    for (const tile of tiles) {
-      let actualCopies = copiesPerTile
-      const tileKey = `${tile.position.x},${tile.position.y}`
-      const isTargetTile = targetTilePositions.has(tileKey)
+      for (const tile of tiles) {
+        let actualCopies = copiesPerTile
+        const tileKey = `${tile.position.x},${tile.position.y}`
+        const isTargetTile = targetTilePositions.has(tileKey)
 
-      if (!isTargetTile) {
-        if (tile.owner === 'mine') {
-          actualCopies -= 1
+        if (!isTargetTile) {
+          if (tile.owner === 'mine') {
+            actualCopies -= 1
+          }
+          if (tile.owner === targetOwner) {
+            actualCopies -= 1
+          }
         }
-        if (tile.owner === targetOwner) {
-          actualCopies -= 1
+
+        actualCopies = Math.max(0, actualCopies)
+
+        for (let i = 0; i < actualCopies; i++) {
+          bag.push(tile)
         }
       }
-
-      actualCopies = Math.max(0, actualCopies)
-
-      for (let i = 0; i < actualCopies; i++) {
-        bag.push(tile)
-      }
+      return bag
     }
-    return bag
-  }
 
-  const greenBag: Tile[] = [
-    ...buildBagWithAdjustmentsLocal(chosenPlayerTiles, 12, 'player', chosenPlayerTiles),
-    ...buildBagWithAdjustmentsLocal(chosenRandomTiles, 4, 'player', chosenPlayerTiles)
-  ]
+    const greenBag: Tile[] = [
+      ...buildBagWithAdjustmentsLocal(chosenPlayerTiles, 12, 'player', chosenPlayerTiles),
+      ...buildBagWithAdjustmentsLocal(chosenRandomTiles, 4, 'player', chosenPlayerTiles)
+    ]
 
 
-  // Guarantee first 2 draws are player tiles, then draw 3 more (total 5)
-  const greenDraws: Tile[] = [...chosenPlayerTiles]
-  const greenBagCopy = [...greenBag]
-  for (let i = 0; i < Math.min(3, greenBagCopy.length); i++) {
-    const randomIndex = Math.floor(Math.random() * greenBagCopy.length)
-    greenDraws.push(greenBagCopy[randomIndex])
-    greenBagCopy.splice(randomIndex, 1)
-  }
+    // Guarantee first 2 draws are player tiles, then draw 3 more (total 5)
+    const greenDraws: Tile[] = [...chosenPlayerTiles]
+    const greenBagCopy = [...greenBag]
+    for (let i = 0; i < Math.min(3, greenBagCopy.length); i++) {
+      const randomIndex = Math.floor(Math.random() * greenBagCopy.length)
+      greenDraws.push(greenBagCopy[randomIndex])
+      greenBagCopy.splice(randomIndex, 1)
+    }
 
 
-  // Count green pips per tile
-  const greenPipCounts = new Map<string, number>()
-  for (const tile of greenDraws) {
-    const key = `${tile.position.x},${tile.position.y}`
-    greenPipCounts.set(key, (greenPipCounts.get(key) || 0) + 1)
-  }
+    // Count green pips per tile
+    const greenPipCounts = new Map<string, number>()
+    for (const tile of greenDraws) {
+      const key = `${tile.position.x},${tile.position.y}`
+      greenPipCounts.set(key, (greenPipCounts.get(key) || 0) + 1)
+    }
 
 
-  // Convert to Position map
-  const greenClueTargets = new Map<Position, number>()
-  for (const [posKey, count] of greenPipCounts) {
-    const [x, y] = posKey.split(',').map(Number)
-    greenClueTargets.set({ x, y }, count)
-  }
-
-  // Calculate score: number of player tiles with at least one green dot + 1
-  let playerTilesWithGreenDots = 0
-  for (const [posKey, count] of greenPipCounts) {
-    if (count > 0) {
+    // Convert to Position map
+    for (const [posKey, count] of greenPipCounts) {
       const [x, y] = posKey.split(',').map(Number)
-      const tile = getTile(state.board, { x, y })
-      if (tile && tile.owner === 'player') {
-        playerTilesWithGreenDots++
+      greenClueTargets.set({ x, y }, count)
+    }
+
+    // Calculate score: number of player tiles with at least one green dot + 1
+    let playerTilesWithGreenDots = 0
+    for (const [posKey, count] of greenPipCounts) {
+      if (count > 0) {
+        const [x, y] = posKey.split(',').map(Number)
+        const tile = getTile(state.board, { x, y })
+        if (tile && tile.owner === 'player') {
+          playerTilesWithGreenDots++
+        }
       }
     }
+    score = playerTilesWithGreenDots + 1
   }
-  const score = playerTilesWithGreenDots + 1
 
 
   return {
@@ -587,10 +702,11 @@ function generateMethod2(state: GameState, _enhanced: boolean): Method2Result {
 export function executeSarcasticOrdersEffect(state: GameState, card?: Card): GameState {
 
   const enhanced = card?.enhanced || false
+  const useAlternate = state.debugFlags.sarcasticOrdersAlternate
 
   // Generate both methods
-  const method1 = generateMethod1(state)
-  const method2 = generateMethod2(state, enhanced)
+  const method1 = generateMethod1(state, useAlternate)
+  const method2 = generateMethod2(state, enhanced, useAlternate)
 
 
   // Choose best method

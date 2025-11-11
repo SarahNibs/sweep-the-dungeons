@@ -3,7 +3,7 @@ import { GameState, Card } from '../../types'
 /**
  * Bleach equipment: when gained, apply enhance-upgrade to all Spritz and Sweep cards (that aren't already enhanced)
  */
-export function applyBleachEffect(state: GameState): GameState {
+export function applyBleachEffect(state: GameState): { state: GameState; results?: { before: Card; after: Card }[] } {
 
   // Find all Spritz and Sweep cards in persistent deck that aren't already enhanced
   const targetCards = state.persistentDeck.filter(card =>
@@ -43,10 +43,10 @@ export function applyBleachEffect(state: GameState): GameState {
     })
   }
 
-  return {
+  const newState = {
     ...state,
-    persistentDeck: newDeck,
-    modalStack: [...state.modalStack, 'equipment_upgrade_display'], // Push modal to stack
-    equipmentUpgradeResults
+    persistentDeck: newDeck
   }
+
+  return { state: newState, results: equipmentUpgradeResults }
 }

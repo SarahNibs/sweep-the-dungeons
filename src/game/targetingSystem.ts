@@ -154,44 +154,6 @@ export function hasValidArgumentTargets(board: Board, center: Position): boolean
 }
 
 /**
- * Check if Fan's area contains at least one unrevealed tile
- * Basic: cross pattern (5 tiles) - center + manhattan distance 1
- * Enhanced: 3x3 area (9 tiles)
- */
-export function hasValidFanTargets(board: Board, center: Position, enhanced: boolean): boolean {
-  if (enhanced) {
-    // Enhanced Fan: 3x3 area
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dy = -1; dy <= 1; dy++) {
-        const pos = { x: center.x + dx, y: center.y + dy }
-        const tile = getTile(board, pos)
-        if (tile && !tile.revealed) {
-          return true
-        }
-      }
-    }
-    return false
-  }
-
-  // Base Fan: cross pattern (center + manhattan distance 1)
-  const area: Position[] = [
-    center,
-    { x: center.x - 1, y: center.y },
-    { x: center.x + 1, y: center.y },
-    { x: center.x, y: center.y - 1 },
-    { x: center.x, y: center.y + 1 }
-  ]
-
-  for (const pos of area) {
-    const tile = getTile(board, pos)
-    if (tile && !tile.revealed) {
-      return true
-    }
-  }
-  return false
-}
-
-/**
  * Validate if a tile can be targeted by a specific card
  */
 export function canTargetTile(
@@ -241,15 +203,6 @@ export function canTargetTile(
   if (cardName === 'Argument') {
     // Argument can target any position (including empty) as long as 3x3 area has unrevealed non-empty tiles
     if (!hasValidArgumentTargets(board, position)) {
-      return { isValid: false, reason: 'No unrevealed tiles in area' }
-    }
-    return { isValid: true }
-  }
-
-  if (cardName === 'Fan') {
-    // Fan can target any position (including revealed/empty) as long as area has unrevealed tiles
-    // Base: cross pattern (5 tiles), Enhanced: 3x3 area (9 tiles)
-    if (!hasValidFanTargets(board, position, cardEnhanced)) {
       return { isValid: false, reason: 'No unrevealed tiles in area' }
     }
     return { isValid: true }

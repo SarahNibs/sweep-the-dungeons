@@ -3,6 +3,7 @@ import { advanceToNextLevel } from '../cardSystem'
 import { shouldShowShopReward } from '../levelSystem'
 import { startShopSelection } from '../shopSystem'
 import { getAllEquipment } from '../gameRepository'
+import { pushEquipmentUpgradeModal } from '../modalManager'
 import { applyEstrogenEffect } from './estrogen'
 import { applyProgesteroneEffect } from './progesterone'
 import { applyBootsEffect } from './boots'
@@ -104,34 +105,64 @@ export function selectEquipment(state: GameState, selectedEquipment: Equipment):
     ...state,
     equipment: newEquipment,
     equipmentOptions: shouldPreserveEquipmentOptions ? state.equipmentOptions : undefined,
-    equipmentUpgradeContext: context, // Set context for upgrade display
     gamePhase // Set appropriate phase
   }
 
   // Apply special equipment effects for Estrogen, Progesterone, Boots, Crystal, Broom Closet, Novel, Cocktail, Disco Ball, and Bleach
   // These will push the equipment_upgrade_display modal on top of the target phase
+  let effectResult: { state: GameState; results?: { before: import('../../types').Card; after: import('../../types').Card }[] } | null = null
+
   if (selectedEquipment.name === 'Estrogen') {
-    return applyEstrogenEffect(updatedState)
+    effectResult = applyEstrogenEffect(updatedState)
   } else if (selectedEquipment.name === 'Progesterone') {
-    return applyProgesteroneEffect(updatedState)
+    effectResult = applyProgesteroneEffect(updatedState)
   } else if (selectedEquipment.name === 'Boots') {
-    return applyBootsEffect(updatedState)
+    effectResult = applyBootsEffect(updatedState)
   } else if (selectedEquipment.name === 'Crystal') {
-    return applyCrystalEffect(updatedState)
+    effectResult = applyCrystalEffect(updatedState)
   } else if (selectedEquipment.name === 'Broom Closet') {
-    return applyBroomClosetEffect(updatedState)
+    effectResult = applyBroomClosetEffect(updatedState)
   } else if (selectedEquipment.name === 'Novel') {
-    return applyNovelEffect(updatedState)
+    effectResult = applyNovelEffect(updatedState)
   } else if (selectedEquipment.name === 'Cocktail') {
-    return applyCocktailEffect(updatedState)
+    effectResult = applyCocktailEffect(updatedState)
   } else if (selectedEquipment.name === 'Disco Ball') {
-    return applyDiscoBallEffect(updatedState)
+    effectResult = applyDiscoBallEffect(updatedState)
   } else if (selectedEquipment.name === 'Bleach') {
-    return applyBleachEffect(updatedState)
+    effectResult = applyBleachEffect(updatedState)
+  }
+
+  // If an equipment effect was applied, handle the modal display with proper continuation
+  if (effectResult) {
+    const { state: newState, results } = effectResult
+
+    // If equipment has upgrade results, show modal with continuation
+    if (results && results.length > 0) {
+      // Build continuation based on context
+      if (context === 'shop') {
+        return pushEquipmentUpgradeModal(newState, results, {
+          returnTo: 'shop',
+          preservedState: {
+            shopOptions: state.shopOptions,
+            purchasedShopItems: state.purchasedShopItems,
+            copper: state.copper
+          }
+        })
+      } else {
+        // In reward flow - continuation is 'reward_flow'
+        return pushEquipmentUpgradeModal(newState, results, {
+          returnTo: 'reward_flow',
+          preservedState: {}
+        })
+      }
+    }
+
+    // For Boots: applyBootsEffect returns waitingForCardRemoval state, which shows card selection
+    // The transformCardForBoots function (called later) will handle the modal display
+    return newState
   }
 
   // Equipment doesn't modify deck - continue to next phase
-  delete updatedState.equipmentUpgradeContext // Clear context
 
   // If in shop, just return to shop (already set above)
   if (context === 'shop') {
@@ -155,37 +186,3 @@ export function startEquipmentSelection(state: GameState): GameState {
   }
 }
 
-export function closeEquipmentUpgradeDisplay(state: GameState): GameState {
-  const context = state.equipmentUpgradeContext
-
-  // Pop the modal and clear results
-  let updatedState: GameState = {
-    ...state,
-    modalStack: state.modalStack.slice(0, -1), // Pop the top modal
-    equipmentUpgradeResults: undefined,
-    equipmentUpgradeContext: undefined
-  }
-
-  // If context is 'reward', we need to continue the flow
-  if (context === 'reward') {
-    // In reward flow: continue to shop or advance to next level
-    if (shouldShowShopReward(updatedState.currentLevelId)) {
-      return startShopSelection(updatedState)
-    } else {
-      return advanceToNextLevel(updatedState)
-    }
-  }
-
-  // For 'shop' context, stay at shop
-  // For 'debug' context, return to playing phase
-  if (context === 'debug') {
-    return {
-      ...updatedState,
-      gamePhase: 'playing',
-      equipmentOptions: undefined // Clear equipment options
-    }
-  }
-
-  // For 'shop' context, just return the updated state (already at correct phase)
-  return updatedState
-}

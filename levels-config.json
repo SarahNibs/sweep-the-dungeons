@@ -52,7 +52,13 @@
         "mine": 1
       },
       "unusedLocations": [],
-      "specialTiles": [],
+      "specialTiles": [
+        {
+          "type": "extraDirty",
+          "count": 1,
+          "placement": {"owner": ["player", "neutral"]}
+        }
+      ],
       "specialBehaviors": {
       }
     },
@@ -82,7 +88,7 @@
       "specialTiles": [
         {
           "type": "extraDirty",
-          "count": 2,
+          "count": 3,
           "placement": {"owner": ["player", "neutral"]}
         }
       ],
@@ -94,8 +100,8 @@
       "levelId": "firstHoles",
       "uponFinish": {
         "cardReward": true,
-        "equipmentReward": false,
-        "upgradeReward": true,
+        "equipmentReward": true,
+        "upgradeReward": false,
         "shopReward": false,
         "winTheGame": false,
         "nextLevel": ["L4a"]
@@ -125,8 +131,8 @@
       "levelId": "L4a",
       "uponFinish": {
         "cardReward": true,
-        "equipmentReward": true,
-        "upgradeReward": false,
+        "equipmentReward": false,
+        "upgradeReward": true,
         "shopReward": false,
         "winTheGame": false,
         "nextLevel": ["L5"]
@@ -183,39 +189,6 @@
                         [3, 5]
       ],
       "specialTiles": [
-      ],
-      "specialBehaviors": {
-      }
-    },
-    {
-      "levelNumber": 5,
-      "levelId": "L5",
-      "uponFinish": {
-        "cardReward": true,
-        "equipmentReward": false,
-        "upgradeReward": false,
-        "shopReward": true,
-        "winTheGame": false,
-        "nextLevel": ["L6"]
-      },
-      "description": "Level 5 is 7x6 with half a dozen dirty tiles but nothing else special, except of course we get a shop after it.",
-      "dimensions": {
-        "columns": 7,
-        "rows": 6
-      },
-      "tileCounts": {
-        "player": 15,
-        "rival": 13,
-        "neutral": 11,
-        "mine": 3
-      },
-      "unusedLocations": [],
-      "specialTiles": [
-        {
-          "type": "extraDirty",
-          "count": 6,
-          "placement": "random"
-        }
       ],
       "specialBehaviors": {
       }

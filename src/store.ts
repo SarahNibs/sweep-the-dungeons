@@ -7,7 +7,8 @@ import { DebugController } from './game/debug/DebugController'
 import { TargetingController } from './game/targeting/TargetingController'
 import { isTestMode } from './game/utils/testMode'
 import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
-import { startEquipmentSelection, selectEquipment, closeEquipmentUpgradeDisplay, transformCardForBoots } from './game/equipment'
+import { startEquipmentSelection, selectEquipment, transformCardForBoots } from './game/equipment'
+import { closeTopModal, pushEquipmentUpgradeModal } from './game/modalManager'
 import { revealTileWithResult, shouldRevealEndTurn, getTile } from './game/boardSystem'
 import { getTargetingInfo, revealTileWithEquipmentEffects } from './game/cardEffects'
 import { AIController } from './game/ai/AIController'
@@ -55,7 +56,8 @@ interface GameStore extends GameState {
   debugGiveCard: (cardName: string, upgrades?: { energyReduced?: boolean; enhanced?: boolean }) => void
   debugSetAIType: (aiType: string) => void
   debugSkipToLevel: (levelId: string) => void
-  toggleDebugFlag: (flagName: 'adjacencyColor' | 'easyMode') => void
+  toggleDebugFlag: (flagName: 'adjacencyColor' | 'easyMode' | 'sarcasticOrdersAlternate') => void
+  cycleAdjacencyStyle: () => void
   startEquipmentSelection: () => void
   selectEquipment: (equipmentItem: Equipment) => void
   closeEquipmentUpgradeDisplay: () => void
@@ -64,6 +66,10 @@ interface GameStore extends GameState {
   removeSelectedCard: (cardId: string) => void
   exitShop: () => void
   clearAdjacencyPatternAnimation: () => void
+  // Item help modal
+  itemHelpModal: { itemName: string; itemType: 'card' | 'equipment' } | null
+  showItemHelp: (itemName: string, itemType: 'card' | 'equipment') => void
+  closeItemHelp: () => void
 }
 
 /**
@@ -564,13 +570,25 @@ export const useGameStore = create<GameStore>((set, get) => {
     debugController.debugSkipToLevel(levelId)
   },
 
-  toggleDebugFlag: (flagName: 'adjacencyColor' | 'easyMode') => {
+  toggleDebugFlag: (flagName: 'adjacencyColor' | 'easyMode' | 'sarcasticOrdersAlternate') => {
     const currentState = get()
     set({
       ...currentState,
       debugFlags: {
         ...currentState.debugFlags,
         [flagName]: !currentState.debugFlags[flagName]
+      }
+    })
+  },
+
+  cycleAdjacencyStyle: () => {
+    const currentState = get()
+    const newStyle = currentState.debugFlags.adjacencyStyle === 'palette' ? 'dark' : 'palette'
+    set({
+      ...currentState,
+      debugFlags: {
+        ...currentState.debugFlags,
+        adjacencyStyle: newStyle
       }
     })
   },
@@ -603,10 +621,33 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     // Check if this is Boots transformation mode
     if (currentState.bootsTransformMode) {
-      // transformCardForBoots sets gamePhase to 'equipment_upgrade_display'
-      // The closeEquipmentUpgradeDisplay will handle shop/level advancement
-      const transformedState = transformCardForBoots(currentState, cardId)
-      set(transformedState)
+      const { state: newState, results } = transformCardForBoots(currentState, cardId)
+
+      // If Boots transformation has results, show modal with appropriate continuation
+      if (results && results.length > 0) {
+        // Determine continuation based on context
+        if (currentState.shopOptions) {
+          // In shop context
+          const finalState = pushEquipmentUpgradeModal(newState, results, {
+            returnTo: 'shop',
+            preservedState: {
+              shopOptions: currentState.shopOptions,
+              purchasedShopItems: currentState.purchasedShopItems,
+              copper: currentState.copper
+            }
+          })
+          set(finalState)
+        } else {
+          // In reward flow
+          const finalState = pushEquipmentUpgradeModal(newState, results, {
+            returnTo: 'reward_flow',
+            preservedState: {}
+          })
+          set(finalState)
+        }
+      } else {
+        set(newState)
+      }
       return
     }
 
@@ -631,7 +672,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
   closeEquipmentUpgradeDisplay: () => {
     const currentState = get()
-    const nextState = closeEquipmentUpgradeDisplay(currentState)
+    const nextState = closeTopModal(currentState)
     set(nextState)
   },
 
@@ -681,5 +722,16 @@ export const useGameStore = create<GameStore>((set, get) => {
 
   clearAdjacencyPatternAnimation: () => {
     animationController.clearAdjacencyPatternAnimation()
+  },
+
+  // Item help modal state and methods
+  itemHelpModal: null,
+
+  showItemHelp: (itemName: string, itemType: 'card' | 'equipment') => {
+    set({ itemHelpModal: { itemName, itemType } })
+  },
+
+  closeItemHelp: () => {
+    set({ itemHelpModal: null })
   }
 }})

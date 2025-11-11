@@ -48,7 +48,7 @@ interface CardProps {
 }
 
 export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isHovered = false, onHover, customOverlap, showUpgradeIndicator, applyStatusEffects = true }: CardProps) {
-  const { activeStatusEffects } = useGameStore()
+  const { activeStatusEffects, showItemHelp } = useGameStore()
   
   // Calculate effective cost considering status effects
   const getEffectiveCost = (card: CardType): number => {
@@ -74,6 +74,12 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
     }
   }
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    showItemHelp(card.name, 'card')
+  }
+
   // Use custom overlap if provided, otherwise calculate based on totalCards
   const cardOverlap = customOverlap !== undefined ? customOverlap : (totalCards > 1 ? 15 : 0)
   const baseZIndex = 10
@@ -83,6 +89,7 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
     <Tooltip text={getCardDescription(card)} style={{ display: 'inline-block' }}>
       <div
         onClick={handleClick}
+        onContextMenu={handleContextMenu}
         style={{
           position: 'relative',
           width: '80px',

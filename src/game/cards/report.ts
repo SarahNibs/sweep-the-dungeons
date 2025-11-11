@@ -1,7 +1,6 @@
 import { GameState, Position } from '../../types'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
 import { getTile, getNeighbors } from '../boardSystem'
-import { drawCards } from '../cardSystem'
 
 function getUnrevealedTilesByOwner(state: GameState, owner: 'player' | 'rival' | 'neutral' | 'mine'): import('../../types').Tile[] {
   const unrevealed: import('../../types').Tile[] = []
@@ -93,10 +92,6 @@ export function executeTingleEffect(state: GameState, targetPosition: Position, 
 
   // For enhanced Tingle, also add player adjacency information
   if (!isEnhanced) {
-    // Geode effect: Draw a card when Tingle is played
-    if (stateWithOwnerAnnotation.equipment.some(r => r.name === 'Geode')) {
-      stateWithOwnerAnnotation = drawCards(stateWithOwnerAnnotation, 1)
-    }
     return stateWithOwnerAnnotation
   }
 
@@ -136,18 +131,11 @@ export function executeTingleEffect(state: GameState, targetPosition: Position, 
     annotations: newAnnotations
   })
 
-  let finalState = {
+  return {
     ...stateWithOwnerAnnotation,
     board: {
       ...stateWithOwnerAnnotation.board,
       tiles: newTiles
     }
   }
-
-  // Geode effect: Draw a card when Tingle is played
-  if (finalState.equipment.some(r => r.name === 'Geode')) {
-    finalState = drawCards(finalState, 1)
-  }
-
-  return finalState
 }

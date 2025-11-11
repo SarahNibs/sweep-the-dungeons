@@ -1,7 +1,8 @@
-import { ShopOption, GameState } from '../types'
+import { ShopOption, GameState, Card } from '../types'
 import { createCard, getRewardCardPool, getAllEquipment, addCardToPersistentDeck } from './gameRepository'
 import { advanceToNextLevel } from './cardSystem'
 import { applyEstrogenEffect, applyProgesteroneEffect, applyBootsEffect, transformCardForBoots, applyCrystalEffect, applyBroomClosetEffect, applyNovelEffect, transformInstructionsIfNovel, applyCocktailEffect, applyDiscoBallEffect, applyBleachEffect } from './equipment'
+import { pushEquipmentUpgradeModal } from './modalManager'
 
 export function createShopOptions(state: GameState): ShopOption[] {
   const options: ShopOption[] = []
@@ -211,92 +212,53 @@ export function purchaseShopItem(state: GameState, optionIndex: number): GameSta
         }
         
         // Apply special equipment effects for Estrogen, Progesterone, Boots, Crystal, Broom Closet, Novel, Cocktail, and Disco Ball
-        // Set shop context before calling effect so closeEquipmentUpgradeDisplay knows to return to shop
-        const stateWithShopContext = {
-          ...newState,
-          equipmentUpgradeContext: 'shop' as const
-        }
+        // Apply equipment effects and show modal with shop continuation
+        let effectResult: { state: GameState; results?: { before: Card; after: Card }[] } | null = null
 
         if (option.equipment.name === 'Estrogen') {
-          const equipmentEffectState = applyEstrogenEffect(stateWithShopContext)
-          newState = {
-            ...equipmentEffectState,
-            // Preserve shop-specific data (don't override gamePhase - let effect's phase stand)
-            copper: newState.copper,
-            purchasedShopItems: newState.purchasedShopItems,
-            shopOptions: newState.shopOptions
-          }
+          effectResult = applyEstrogenEffect(newState)
         } else if (option.equipment.name === 'Progesterone') {
-          const equipmentEffectState = applyProgesteroneEffect(stateWithShopContext)
-          newState = {
-            ...equipmentEffectState,
-            // Preserve shop-specific data
-            copper: newState.copper,
-            purchasedShopItems: newState.purchasedShopItems,
-            shopOptions: newState.shopOptions
-          }
+          effectResult = applyProgesteroneEffect(newState)
         } else if (option.equipment.name === 'Boots') {
-          const equipmentEffectState = applyBootsEffect(stateWithShopContext)
-          newState = {
-            ...equipmentEffectState,
-            // Preserve shop-specific data
-            copper: newState.copper,
-            purchasedShopItems: newState.purchasedShopItems,
-            shopOptions: newState.shopOptions
-          }
+          effectResult = applyBootsEffect(newState)
         } else if (option.equipment.name === 'Crystal') {
-          const equipmentEffectState = applyCrystalEffect(stateWithShopContext)
-          newState = {
-            ...equipmentEffectState,
-            // Preserve shop-specific data
-            copper: newState.copper,
-            purchasedShopItems: newState.purchasedShopItems,
-            shopOptions: newState.shopOptions
-          }
+          effectResult = applyCrystalEffect(newState)
         } else if (option.equipment.name === 'Broom Closet') {
-          const equipmentEffectState = applyBroomClosetEffect(stateWithShopContext)
-          newState = {
-            ...equipmentEffectState,
-            // Preserve shop-specific data
-            copper: newState.copper,
-            purchasedShopItems: newState.purchasedShopItems,
-            shopOptions: newState.shopOptions
-          }
+          effectResult = applyBroomClosetEffect(newState)
         } else if (option.equipment.name === 'Novel') {
-          const equipmentEffectState = applyNovelEffect(stateWithShopContext)
-          newState = {
-            ...equipmentEffectState,
-            // Preserve shop-specific data
-            copper: newState.copper,
-            purchasedShopItems: newState.purchasedShopItems,
-            shopOptions: newState.shopOptions
-          }
+          effectResult = applyNovelEffect(newState)
         } else if (option.equipment.name === 'Cocktail') {
-          const equipmentEffectState = applyCocktailEffect(stateWithShopContext)
-          newState = {
-            ...equipmentEffectState,
-            // Preserve shop-specific data
-            copper: newState.copper,
-            purchasedShopItems: newState.purchasedShopItems,
-            shopOptions: newState.shopOptions
-          }
+          effectResult = applyCocktailEffect(newState)
         } else if (option.equipment.name === 'Disco Ball') {
-          const equipmentEffectState = applyDiscoBallEffect(stateWithShopContext)
-          newState = {
-            ...equipmentEffectState,
-            // Preserve shop-specific data
-            copper: newState.copper,
-            purchasedShopItems: newState.purchasedShopItems,
-            shopOptions: newState.shopOptions
-          }
+          effectResult = applyDiscoBallEffect(newState)
         } else if (option.equipment.name === 'Bleach') {
-          const equipmentEffectState = applyBleachEffect(stateWithShopContext)
-          newState = {
-            ...equipmentEffectState,
-            // Preserve shop-specific data
-            copper: newState.copper,
+          effectResult = applyBleachEffect(newState)
+        }
+
+        if (effectResult) {
+          const { state: equipmentState, results } = effectResult
+
+          // Ensure shop state is preserved in equipment state
+          const stateWithShopData = {
+            ...equipmentState,
+            shopOptions: newState.shopOptions,
             purchasedShopItems: newState.purchasedShopItems,
-            shopOptions: newState.shopOptions
+            copper: newState.copper
+          }
+
+          // If equipment has upgrade results, show modal with shop continuation
+          if (results && results.length > 0) {
+            newState = pushEquipmentUpgradeModal(stateWithShopData, results, {
+              returnTo: 'shop',
+              preservedState: {
+                shopOptions: newState.shopOptions,
+                purchasedShopItems: newState.purchasedShopItems,
+                copper: newState.copper
+              }
+            }) as typeof newState
+          } else {
+            // Boots: no results yet, will show modal after card selection
+            newState = stateWithShopData
           }
         }
       }
@@ -341,12 +303,19 @@ export function purchaseShopItem(state: GameState, optionIndex: number): GameSta
         card.id === cardToEnhance.id ? enhancedCard : card
       )
 
-      newState = {
-        ...newState,
-        persistentDeck: updatedDeck,
-        modalStack: [...newState.modalStack, 'equipment_upgrade_display'], // Push modal to stack
-        equipmentUpgradeResults: [{ before: cardToEnhance, after: enhancedCard }]
-      }
+      // Use modal manager with explicit continuation
+      newState = pushEquipmentUpgradeModal(
+        { ...newState, persistentDeck: updatedDeck },
+        [{ before: cardToEnhance, after: enhancedCard }],
+        {
+          returnTo: 'shop',
+          preservedState: {
+            shopOptions: newState.shopOptions,
+            purchasedShopItems: newState.purchasedShopItems,
+            copper: newState.copper
+          }
+        }
+      ) as typeof newState
       break
   }
 
@@ -356,7 +325,21 @@ export function purchaseShopItem(state: GameState, optionIndex: number): GameSta
 export function removeSelectedCard(state: GameState, cardId: string): GameState {
   // Check if this is Boots transformation mode
   if (state.bootsTransformMode) {
-    return transformCardForBoots(state, cardId)
+    const { state: newState, results } = transformCardForBoots(state, cardId)
+
+    // If Boots transformation has results, show modal with shop continuation
+    if (results && results.length > 0) {
+      return pushEquipmentUpgradeModal(newState, results, {
+        returnTo: 'shop',
+        preservedState: {
+          shopOptions: state.shopOptions,
+          purchasedShopItems: state.purchasedShopItems,
+          copper: state.copper
+        }
+      })
+    }
+
+    return newState
   }
 
   // Normal shop card removal

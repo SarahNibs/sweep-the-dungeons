@@ -1,11 +1,11 @@
-import { GameState } from '../../types'
+import { GameState, Card } from '../../types'
 import { createCard, applyDIYGel } from '../gameRepository'
 
 /**
  * Broom Closet equipment: when gained, remove all Spritz cards and add 3 Sweep cards
  * (one regular, one energy-upgraded, one enhance-upgraded)
  */
-export function applyBroomClosetEffect(state: GameState): GameState {
+export function applyBroomClosetEffect(state: GameState): { state: GameState; results?: { before: Card; after: Card }[] } {
   // Filter out all Spritz cards from persistent deck
   const deckWithoutSpritz = state.persistentDeck.filter(card => card.name !== 'Spritz')
 
@@ -19,16 +19,16 @@ export function applyBroomClosetEffect(state: GameState): GameState {
 
   // Create upgrade results showing the transformations (use Spritz as "before" state)
   const spritzBefore = createCard('Spritz', {})
-  const equipmentUpgradeResults = [
+  const results = [
     { before: spritzBefore, after: regularSweep },
     { before: spritzBefore, after: energySweep },
     { before: spritzBefore, after: enhancedSweep }
   ]
 
-  return {
+  const newState = {
     ...state,
-    persistentDeck: newDeck,
-    modalStack: [...state.modalStack, 'equipment_upgrade_display'], // Push modal to stack
-    equipmentUpgradeResults
+    persistentDeck: newDeck
   }
+
+  return { state: newState, results }
 }

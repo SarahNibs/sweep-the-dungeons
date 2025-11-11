@@ -294,9 +294,6 @@ export function selectCardForMasking(state: GameState, targetCardId: string): Ga
       case 'Snip, Snip':
         effectType = 'snip_snip'
         break
-      case 'Fan':
-        effectType = 'fan'
-        break
       default:
         // Gaze cards and other cards
         if (targetCard.name.startsWith('Gaze')) {
@@ -514,9 +511,6 @@ export function playCard(state: GameState, cardId: string): GameState {
         break
       case 'Masking':
         effectType = 'masking'
-        break
-      case 'Fan':
-        effectType = 'fan'
         break
       default:
         // Gaze and Fetch cards and other cards
@@ -788,12 +782,12 @@ function triggerEspressoEffect(state: GameState): GameState {
         }
       } else {
         // For non-targeting cards, play immediately
-        // Remove card from hand
-        const newHand = finalState.hand.filter(c => c.id !== drawnCard.id)
-
         // Execute card effect using proper effect type mapping
         const cardEffect = { type: getCardEffectType(drawnCard.name) } as any
         finalState = executeCardEffect(finalState, cardEffect, drawnCard)
+
+        // Remove card from hand AFTER effect execution (to preserve cards added by effects like Monster)
+        const newHand = finalState.hand.filter(c => c.id !== drawnCard.id)
 
         // Deduct energy and update hand
         finalState = {
@@ -920,7 +914,7 @@ export function createInitialState(
   preservedStatusEffects?: import('../types').StatusEffect[],
   shopVisitCount: number = 0,
   playerTilesRevealedCount: number = 0,
-  debugFlags?: { adjacencyColor: boolean; easyMode: boolean; sarcasticOrdersAlternate: boolean }
+  debugFlags?: { adjacencyColor: boolean; adjacencyStyle: 'palette' | 'dark'; easyMode: boolean; sarcasticOrdersAlternate: boolean }
 ): GameState {
   const startingPersistentDeck = persistentDeck || createStartingDeck()
   const startingEquipment = equipment || []
@@ -1020,6 +1014,7 @@ export function createInitialState(
     activeStatusEffects: preservedStatusEffects || [],
     debugFlags: debugFlags || {
       adjacencyColor: false, // Default: black text
+      adjacencyStyle: 'dark', // Default: gradient mode (light to desaturated diagonal gradient)
       easyMode: false, // Default: no easy mode
       sarcasticOrdersAlternate: false // Default: original implementation
     },

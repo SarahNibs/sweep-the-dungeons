@@ -836,16 +836,35 @@ export function startNewTurn(state: GameState): GameState {
 
   const discardedState = discardHand(currentState)
 
+  // IMPORTANT: We're in startNewTurn(), which means we're starting a turn AFTER the first turn
+  // So we need to mark isFirstTurn = false BEFORE calculating card draw for Caffeinated
+  const stateForTurnStart = {
+    ...discardedState,
+    isFirstTurn: false // This is no longer the first turn (first turn was the initial state)
+  }
+
   // Draw regular 5 cards (or 4 with Caffeinated equipment, except on first turn) plus any queued card draws plus burger bonus
   // Caffeinated reduces draw by 1 on all turns EXCEPT the first turn of each floor
-  const hasCaffeinated = hasEquipment(state, 'Caffeinated')
-  const baseCardDraw = (hasCaffeinated && !state.isFirstTurn) ? 4 : 5
-  const burgerEffect = state.activeStatusEffects.find(e => e.type === 'burger')
+  const hasCaffeinated = hasEquipment(stateForTurnStart, 'Caffeinated')
+  const isNotFirstTurn = stateForTurnStart.isFirstTurn === false
+  const baseCardDraw = (hasCaffeinated && isNotFirstTurn) ? 4 : 5
+  const burgerEffect = stateForTurnStart.activeStatusEffects.find(e => e.type === 'burger')
   const burgerBonus = burgerEffect ? 1 : 0 // Always +1 if Burger effect is active, regardless of stack count
-  const totalCardsToDraw = baseCardDraw + state.queuedCardDraws + burgerBonus
+  const totalCardsToDraw = baseCardDraw + stateForTurnStart.queuedCardDraws + burgerBonus
+
+  console.log('[Caffeinated Debug] Card draw calculation:', {
+    hasCaffeinated,
+    isFirstTurn: stateForTurnStart.isFirstTurn,
+    isNotFirstTurn,
+    baseCardDraw,
+    queuedCardDraws: stateForTurnStart.queuedCardDraws,
+    burgerBonus,
+    totalCardsToDraw,
+    equipment: stateForTurnStart.equipment.map(e => e.name)
+  })
 
 
-  const drawnState = drawCards(discardedState, totalCardsToDraw)
+  const drawnState = drawCards(stateForTurnStart, totalCardsToDraw)
   
   // Remove ramble status effect at start of new turn
   const stateWithoutRamble = removeStatusEffect(drawnState, 'ramble_active')
@@ -865,7 +884,7 @@ export function startNewTurn(state: GameState): GameState {
     energy: stateWithoutRamble.maxEnergy,
     rambleActive: false, // Clear ramble effect at start of new turn
     ramblePriorityBoosts: [], // Clear ramble priority boosts
-    isFirstTurn: false, // No longer first turn after first turn
+    // isFirstTurn already set to false earlier in stateForTurnStart
     neutralsRevealedThisTurn: 0, // Reset neutral reveal counter
     underwireUsedThisTurn: false, // Reset underwire usage tracking
     horseRevealedNonPlayer: false, // Reset horse turn ending tracking
@@ -901,7 +920,7 @@ export function createInitialState(
   preservedStatusEffects?: import('../types').StatusEffect[],
   shopVisitCount: number = 0,
   playerTilesRevealedCount: number = 0,
-  debugFlags?: { adjacencyColor: boolean; easyMode: boolean }
+  debugFlags?: { adjacencyColor: boolean; easyMode: boolean; sarcasticOrdersAlternate: boolean }
 ): GameState {
   const startingPersistentDeck = persistentDeck || createStartingDeck()
   const startingEquipment = equipment || []
@@ -1001,7 +1020,8 @@ export function createInitialState(
     activeStatusEffects: preservedStatusEffects || [],
     debugFlags: debugFlags || {
       adjacencyColor: false, // Default: black text
-      easyMode: false // Default: no easy mode
+      easyMode: false, // Default: no easy mode
+      sarcasticOrdersAlternate: false // Default: original implementation
     },
     selectedAnnotationTileType: 'player', // Default to player selected
     isProcessingCard: false,
@@ -1018,6 +1038,15 @@ export function createInitialState(
   const initialCardDraw = 5
   const burgerEffect = preservedStatusEffects?.find(e => e.type === 'burger')
   const burgerBonus = burgerEffect ? 1 : 0
+
+  console.log('[Caffeinated Debug] New level initial draw:', {
+    initialCardDraw,
+    burgerBonus,
+    total: initialCardDraw + burgerBonus,
+    isFirstTurn: initialState.isFirstTurn,
+    equipment: startingEquipment.map(e => e.name)
+  })
+
   let finalState = drawCards(initialState, initialCardDraw + burgerBonus)
 
   // Trigger Handbag effect if present (draw 2 additional cards on first turn)

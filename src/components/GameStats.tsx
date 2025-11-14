@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { GameStatusInfo } from '../types'
 import { helpText } from '../helpText'
 import { Tooltip } from './Tooltip'
@@ -29,86 +29,7 @@ interface GameStatsProps {
 }
 
 export function GameStats({ onResetGame, gameStatus }: GameStatsProps) {
-  const [isPressed, setIsPressed] = useState(false)
-  const [animationProgress, setAnimationProgress] = useState(0)
-  const [allowTransition, setAllowTransition] = useState(true)
   const [showHelp, setShowHelp] = useState(false)
-  const animationRef = useRef<number>()
-  const startTimeRef = useRef<number>()
-  const isAnimatingRef = useRef<boolean>(false)
-
-  const ANIMATION_DURATION = 2000 // 2 seconds
-
-  const startAnimation = () => {
-    startTimeRef.current = Date.now()
-    isAnimatingRef.current = true
-    setIsPressed(true)
-    setAnimationProgress(0)
-    setAllowTransition(false)
-    
-    const animate = () => {
-      if (!startTimeRef.current || !isAnimatingRef.current) {
-        return
-      }
-      
-      const elapsed = Date.now() - startTimeRef.current
-      const progress = Math.min(elapsed / ANIMATION_DURATION, 1)
-      
-      // Easing function: slow start, fast finish
-      const easedProgress = progress * progress * (3 - 2 * progress)
-      setAnimationProgress(easedProgress)
-      
-      if (progress >= 1) {
-        // Animation complete - reset animation state first, then reset game
-        isAnimatingRef.current = false
-        setIsPressed(false)
-        setAnimationProgress(0)
-        if (animationRef.current) {
-          cancelAnimationFrame(animationRef.current)
-        }
-        // Reset game after state is cleared
-        onResetGame()
-        // Re-enable transitions after a brief delay
-        setTimeout(() => setAllowTransition(true), 100)
-      } else {
-        animationRef.current = requestAnimationFrame(animate)
-      }
-    }
-    
-    animationRef.current = requestAnimationFrame(animate)
-  }
-
-  const resetAnimation = () => {
-    isAnimatingRef.current = false
-    setIsPressed(false)
-    setAnimationProgress(0)
-    setAllowTransition(true)
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current)
-    }
-  }
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault()
-    startAnimation()
-  }
-
-  const handleMouseUp = () => {
-    resetAnimation()
-  }
-
-  const handleMouseLeave = () => {
-    resetAnimation()
-  }
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      resetAnimation()
-    }
-  }, [])
-
-  const slideDistance = 110 // percentage - extra 10% for spacing
 
   const isGameEnded = gameStatus.status !== 'playing'
   
@@ -123,78 +44,65 @@ export function GameStats({ onResetGame, gameStatus }: GameStatsProps) {
       <div
         style={{
           margin: '20px auto',
-          width: 'fit-content',
+          width: '100%',
           padding: '3px', // Space for the border to prevent layout shifts
           display: 'flex',
           gap: '10px',
-          alignItems: 'center'
+          alignItems: 'center',
+          justifyContent: 'center'
         }}
       >
-        <Tooltip text="Click and hold for new game" style={{ display: 'inline-block' }}>
+        {/* New Game button */}
+        <Tooltip text="New Game" style={{ display: 'inline-block' }}>
           <div
+            onClick={(e) => {
+              e.stopPropagation()
+              onResetGame()
+            }}
             style={{
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
-              gap: '16px',
-              padding: '12px 20px',
+              justifyContent: 'center',
+              padding: '8px 12px',
               backgroundColor: '#e5e5e5',
               borderRadius: '8px',
               cursor: 'pointer',
               userSelect: 'none',
-              border: isGameEnded ? `3px solid ${getPulseBorderColor()}` : '3px solid transparent',
-              animation: isGameEnded ? 'pulseGlow 1.5s ease-in-out infinite' : 'none',
-              color: getPulseBorderColor()
-            }}
-            onMouseDown={handleMouseDown}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseLeave}
-          >
-          <div
-            style={{
-              position: 'relative',
-              overflow: 'hidden',
-              margin: '0',
-              fontSize: '24px',
+              border: '3px solid transparent',
+              fontSize: '18px',
               color: '#4a4a4a',
-              minWidth: '200px',
-              minHeight: '30px'
+              fontWeight: 'bold'
             }}
           >
-            {/* Original text */}
-            <h1 style={{
-              margin: '0',
-              fontSize: '24px',
-              color: '#4a4a4a',
-              transform: `translateX(${isPressed ? animationProgress * slideDistance : 0}%)`,
-              transition: allowTransition && !isPressed ? 'transform 0.2s ease' : 'none',
-              opacity: isPressed ? 1 - animationProgress * 0.3 : 1,
-              width: '100%',
-              whiteSpace: 'nowrap'
-            }}>
-              Sweep The Dungeons
-            </h1>
-
-            {/* New text sliding in */}
-            {isPressed && (
-              <h1 style={{
-                position: 'absolute',
-                top: '0',
-                left: '0',
-                margin: '0',
-                fontSize: '24px',
-                color: '#4a4a4a',
-                transform: `translateX(${-slideDistance + animationProgress * slideDistance}%)`,
-                opacity: animationProgress,
-                width: '100%',
-                whiteSpace: 'nowrap'
-              }}>
-                Sweep The Dungeons
-              </h1>
-            )}
+            +
           </div>
-        </div>
         </Tooltip>
+
+        {/* Title */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px',
+            padding: '12px 20px',
+            backgroundColor: '#e5e5e5',
+            borderRadius: '8px',
+            userSelect: 'none',
+            border: isGameEnded ? `3px solid ${getPulseBorderColor()}` : '3px solid transparent',
+            animation: isGameEnded ? 'pulseGlow 1.5s ease-in-out infinite' : 'none',
+            color: getPulseBorderColor()
+          }}
+        >
+          <h1 style={{
+            margin: '0',
+            fontSize: '24px',
+            color: '#4a4a4a',
+            whiteSpace: 'nowrap'
+          }}>
+            Sweep The Dungeons
+          </h1>
+        </div>
 
         {/* Help button */}
         <Tooltip text="Help" style={{ display: 'inline-block' }}>

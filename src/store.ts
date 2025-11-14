@@ -9,7 +9,7 @@ import { isTestMode } from './game/utils/testMode'
 import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
 import { startEquipmentSelection, selectEquipment, transformCardForBoots } from './game/equipment'
 import { closeTopModal, pushEquipmentUpgradeModal } from './game/modalManager'
-import { revealTileWithResult, shouldRevealEndTurn, getTile } from './game/boardSystem'
+import { revealTileWithResult, shouldRevealEndTurn, getTile, getNeighbors } from './game/boardSystem'
 import { getTargetingInfo, revealTileWithEquipmentEffects } from './game/cardEffects'
 import { AIController } from './game/ai/AIController'
 import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowEquipmentReward, shouldShowShopReward, calculateCopperReward } from './game/levelSystem'
@@ -70,6 +70,10 @@ interface GameStore extends GameState {
   itemHelpModal: { itemName: string; itemType: 'card' | 'equipment' } | null
   showItemHelp: (itemName: string, itemType: 'card' | 'equipment') => void
   closeItemHelp: () => void
+  // Saturation confirmation
+  saturationConfirmation: { position: Position } | null
+  confirmSaturationReveal: () => void
+  cancelSaturationReveal: () => void
 }
 
 /**
@@ -102,6 +106,59 @@ const updateStateWithCopperReward = (set: any, get: any, newState: GameState) =>
   }
 
   set(finalState)
+}
+
+/**
+ * Check if a tile is "saturated" (adjacency count satisfied by revealed neighbors)
+ * and if so, whether it rules out the target tile as not-player
+ */
+function isTileRuledOutBySaturatedNeighbor(board: Board, targetPosition: Position): boolean {
+  const neighbors = getNeighbors(board, targetPosition)
+
+  for (const neighborPos of neighbors) {
+    const neighbor = getTile(board, neighborPos)
+    if (!neighbor || !neighbor.revealed || neighbor.adjacencyCount === null || !neighbor.revealedBy) continue
+
+    // Check if this revealed tile is "saturated"
+    const neighborNeighbors = getNeighbors(board, neighborPos)
+
+    // Count revealed neighbors that match the revealer's owner type
+    const targetOwner = neighbor.revealedBy // 'player' or 'rival'
+    let revealedMatchingCount = 0
+
+    for (const nnPos of neighborNeighbors) {
+      const nn = getTile(board, nnPos)
+      if (nn && nn.revealed && nn.owner === targetOwner) {
+        revealedMatchingCount++
+      }
+    }
+
+    const isSaturated = revealedMatchingCount === neighbor.adjacencyCount
+
+    if (!isSaturated) continue
+
+    // This neighbor is saturated. Check if it rules out the target tile as not-player.
+    // The target tile would be ruled out if:
+    // - The saturated tile was revealed by 'player' and has all player neighbors accounted for
+    // - The target tile is one of those neighbors
+    // - Therefore the target tile cannot be a player tile
+
+    const isTargetInNeighbors = neighborNeighbors.some(nnPos =>
+      nnPos.x === targetPosition.x && nnPos.y === targetPosition.y
+    )
+
+    if (!isTargetInNeighbors) continue
+
+    // Target is a neighbor of this saturated tile
+    // If this is a player-revealed tile and all player neighbors are accounted for, target cannot be player
+    if (neighbor.revealedBy === 'player') {
+      // All player tiles in this neighborhood are accounted for
+      // Target tile (unrevealed) cannot be player
+      return true
+    }
+  }
+
+  return false
 }
 
 export const useGameStore = create<GameStore>((set, get) => {
@@ -276,6 +333,13 @@ export const useGameStore = create<GameStore>((set, get) => {
     // Validate direct reveal (no card effect)
     const validation = canDirectRevealTile(tile)
     if (!validation.isValid) {
+      return
+    }
+
+    // Check if tile is ruled out by saturated adjacent tiles
+    if (isTileRuledOutBySaturatedNeighbor(currentState.board, tile.position)) {
+      // Set saturation confirmation state and wait for user input
+      set({ saturationConfirmation: { position: tile.position } })
       return
     }
 
@@ -733,5 +797,58 @@ export const useGameStore = create<GameStore>((set, get) => {
 
   closeItemHelp: () => {
     set({ itemHelpModal: null })
+  },
+
+  // Saturation confirmation state and methods
+  saturationConfirmation: null,
+
+  confirmSaturationReveal: () => {
+    const currentState = get()
+    if (!currentState.saturationConfirmation) return
+
+    const position = currentState.saturationConfirmation.position
+    const tileKey = `${position.x},${position.y}`
+    const tile = currentState.board.tiles.get(tileKey)
+
+    if (!tile || tile.revealed) {
+      set({ saturationConfirmation: null })
+      return
+    }
+
+    // Now perform the actual reveal (same logic as revealTile, but skip saturation check)
+    const revealResult = revealTileWithResult(currentState.board, position, 'player')
+
+    // Use shared reveal function that includes equipment effects
+    let stateWithBoard = revealTileWithEquipmentEffects(currentState, position, 'player')
+
+    // Add hover state clearing and clear saturation confirmation
+    stateWithBoard = {
+      ...stateWithBoard,
+      hoveredClueId: null,
+      saturationConfirmation: null
+    }
+
+    // Determine if turn should end
+    const revealedTile = getTile(stateWithBoard.board, position)
+    let shouldEndTurn = !revealResult.revealed || (revealedTile && shouldRevealEndTurn(stateWithBoard, revealedTile))
+
+    // Check for Underwire effect
+    if (stateWithBoard.underwireUsedThisTurn) {
+      shouldEndTurn = true
+    }
+
+    if (stateWithBoard.gameStatus.status !== 'playing') {
+      updateStateWithCopperReward(set, get, stateWithBoard)
+    } else if (shouldEndTurn) {
+      const discardedState = discardHand(stateWithBoard)
+      set(discardedState)
+      get().startRivalTurn(discardedState.board)
+    } else {
+      updateStateWithCopperReward(set, get, stateWithBoard)
+    }
+  },
+
+  cancelSaturationReveal: () => {
+    set({ saturationConfirmation: null })
   }
 }})

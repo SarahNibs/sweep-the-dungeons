@@ -2,6 +2,7 @@ import { Tile as TileType, ClueResult } from '../types'
 import { useGameStore } from '../store'
 import { useState, useEffect } from 'react'
 import { Tooltip } from './Tooltip'
+import { getNeighbors } from '../game/boardSystem'
 
 interface TileProps {
   tile: TileType
@@ -163,19 +164,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     const highlighted = isClueHighlighted()
 
     if (!tile.revealed) {
-      // Post-game: show owner colors for unrevealed tiles
-      const isGameComplete = gameStatus.status !== 'playing'
-      if (isGameComplete) {
-        const ownerColors = {
-          player: '#81b366',
-          rival: '#c65757',
-          neutral: '#d4aa5a',
-          mine: '#8b6ba8',
-          empty: 'transparent'
-        }
-        return ownerColors[tile.owner as keyof typeof ownerColors] || '#9ca3af'
-      }
-      // Unrevealed tiles: darker gray when highlighted
+      // Unrevealed tiles: darker gray when highlighted (post-game shows corner triangle instead)
       return highlighted ? '#6c757d' : '#9ca3af'
     }
 
@@ -192,7 +181,61 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
 
   const getOverlay = () => {
     const elements: JSX.Element[] = []
-    
+
+    // Post-game: show triangular corner for unrevealed tiles
+    const isGameComplete = gameStatus.status !== 'playing'
+    if (isGameComplete && !tile.revealed && tile.owner !== 'empty') {
+      const ownerColors = {
+        player: '#81b366',
+        rival: '#c65757',
+        neutral: '#d4aa5a',
+        mine: '#8b6ba8'
+      }
+      const cornerColor = ownerColors[tile.owner as keyof typeof ownerColors] || '#9ca3af'
+
+      elements.push(
+        <div
+          key="post-game-corner"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: 0,
+            height: 0,
+            borderLeft: '20px solid ' + cornerColor,
+            borderBottom: '20px solid transparent',
+            borderTop: 'none',
+            borderRight: 'none',
+            pointerEvents: 'none'
+          }}
+        />
+      )
+    }
+
+    // Check if this revealed tile is "saturated" (adjacency count satisfied by revealed neighbors)
+    const isSaturated = (() => {
+      if (!tile.revealed || tile.adjacencyCount === null || !tile.revealedBy) return false
+
+      // Use getNeighbors from boardSystem to get proper adjacency
+      const neighborPositionsList = getNeighbors(board, tile.position)
+
+      // Count revealed neighbors that match the revealer's owner type
+      const targetOwner = tile.revealedBy // 'player' or 'rival'
+      let revealedMatchingCount = 0
+
+      for (const neighborPos of neighborPositionsList) {
+        const neighborKey = `${neighborPos.x},${neighborPos.y}`
+        const neighbor = board.tiles.get(neighborKey)
+        if (neighbor && neighbor.revealed && neighbor.owner === targetOwner) {
+          revealedMatchingCount++
+        }
+      }
+
+      const isSat = revealedMatchingCount === tile.adjacencyCount
+
+      return isSat
+    })()
+
     // Show adjacency info if revealed
     if (tile.revealed && tile.adjacencyCount !== null) {
       const getAdjacencyColors = (): { background: string; textColor: string; borderColor: string; borderWidth: string; fontWeight: string } => {
@@ -241,6 +284,29 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           {tile.adjacencyCount}
         </div>
       )
+
+      // Add blue checkmark for saturated tiles (next to adjacency count)
+      // Only show for player-revealed tiles
+      if (isSaturated && tile.revealedBy === 'player') {
+        elements.push(
+          <div
+            key="saturation-checkmark"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '65%',
+              transform: 'translateY(-50%)',
+              color: '#4a69bd',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              zIndex: 1100,
+              textShadow: '0 0 3px white, 0 0 3px white'
+            }}
+          >
+            ✓
+          </div>
+        )
+      }
     }
 
     // Show all annotations for unrevealed tiles, or just adjacency info for revealed tiles
@@ -248,14 +314,17 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     const shouldShowAnnotations = !tile.revealed && (tile.annotations.length > 0 || tile.specialTiles.length > 0)
     const shouldShowAdjacencyOnRevealed = tile.revealed && tile.annotations.some(a => a.type === 'adjacency_info')
 
+    // Check if this revealed tile has clue results that match the hovered clue
+    const clueResultsAnnotation = tile.annotations.find(a => a.type === 'clue_results')
+    const hasHoveredClueOnRevealedTile = tile.revealed && hoveredClueId && clueResultsAnnotation?.clueResults?.some(cr => cr.id === hoveredClueId)
+
     // Calculate combined annotation once for use in multiple places
     const combinedPossibility = getCombinedOwnerPossibility()
 
-    if (shouldShowAnnotations || shouldShowAdjacencyOnRevealed) {
+    if (shouldShowAnnotations || shouldShowAdjacencyOnRevealed || hasHoveredClueOnRevealedTile) {
       // Note: Use the same elements array from above
+      // clueResultsAnnotation already found above for hover check
 
-      // Group annotations by type
-      const clueResultsAnnotation = tile.annotations.find(a => a.type === 'clue_results')
       const subsetAnnotations = tile.annotations.filter(a => a.type === 'owner_subset')
       // Legacy annotations - keeping for backward compatibility
       const safetyAnnotations = tile.annotations.filter(a => a.type === 'safe' || a.type === 'unsafe')
@@ -264,13 +333,18 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       const playerSmallCheckmarkAnnotation = tile.annotations.find(a => a.type === 'player_small_checkmark')
       
       // Render clue pips - player clues (top-left) and rival clues (bottom-left)
-      // Only show these for unrevealed tiles
-      if (!tile.revealed && clueResultsAnnotation?.clueResults) {
+      // Show for unrevealed tiles, or for revealed tiles when their clue is hovered
+      if (clueResultsAnnotation?.clueResults) {
         clueResultsAnnotation.clueResults.forEach((clueResult, clueIndex) => {
           const strength = clueResult.strengthForThisTile
           const isThisClueHovered = hoveredClueId === clueResult.id
           const isEnemyClue = clueResult.cardType === 'rival_clue'
           const isAntiClue = clueResult.isAntiClue || false
+
+          // Skip rendering this clue's pips on revealed tiles unless hovered
+          if (tile.revealed && !isThisClueHovered) {
+            return
+          }
 
           // Position based on clue row position (already separated by player/rival)
           // Fallback to clueOrder if clueRowPosition is not available (backward compatibility)
@@ -302,23 +376,19 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                 </Tooltip>
               )
             } else if (isAntiClue) {
-              // Anti-clue (red) Xs: top-left, going down and right, RED color
+              // Anti-clue (red) squares: top-left, going down and right, RED color
               elements.push(
                 <Tooltip key={`pip-${clueResult.id}-${clueIndex}-${i}`} text={getClueHoverText(clueResult)} style={{ position: 'absolute', top: `${2 + rowPosition * 6}px`, left: `${2 + i * 6}px` }}>
                   <div
                     style={{
                       width: '12px',
                       height: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: isThisClueHovered ? '#dc2626' : '#991b1b',
-                      fontSize: '14px',
-                      fontWeight: 'bold',
+                      backgroundColor: isThisClueHovered ? '#dc2626' : '#991b1b',
+                      borderRadius: '2px',
                       cursor: 'pointer',
                       transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
                       transition: 'all 0.15s ease',
-                      textShadow: '0 0 2px rgba(0, 0, 0, 0.8)'
+                      boxShadow: '0 0 2px rgba(0, 0, 0, 0.8)'
                     }}
                     onMouseEnter={() => {
                       setHoveredClueId(clueResult.id)
@@ -326,9 +396,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                     onMouseLeave={() => {
                       setHoveredClueId(null)
                     }}
-                  >
-                    ×
-                  </div>
+                  />
                 </Tooltip>
               )
             } else {
@@ -439,7 +507,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         // Render the squares that are included in the subset
         includedOwners.forEach(info => {
           elements.push(
-            <Tooltip key={`subset-${info.owner}`} text={tooltipText} style={{ position: 'absolute', bottom: `${2 + info.position.top}px`, right: `${2 + info.position.left}px` }}>
+            <Tooltip key={`subset-${info.owner}`} text={tooltipText} style={{ position: 'absolute', bottom: `${2 + info.position.top}px`, right: `${4 + info.position.left}px` }}>
               <div
                 style={{
                   width: '4px',
@@ -574,7 +642,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           // Single possibility: large colored square
           const info = includedOwners[0]
           elements.push(
-            <Tooltip key={`combined-single`} text={tooltipText} style={{ position: 'absolute', top: '2px', right: '2px' }}>
+            <Tooltip key={`combined-single`} text={tooltipText} style={{ position: 'absolute', top: '2px', right: '4px' }}>
               <div
                 style={{
                   width: '12px',
@@ -591,7 +659,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           // Multiple possibilities: small squares in 2x2 grid
           includedOwners.forEach(info => {
             elements.push(
-              <Tooltip key={`combined-${info.owner}`} text={tooltipText} style={{ position: 'absolute', top: `${2 + (4 - info.position.top)}px`, right: `${2 + info.position.left}px` }}>
+              <Tooltip key={`combined-${info.owner}`} text={tooltipText} style={{ position: 'absolute', top: `${2 + (4 - info.position.top)}px`, right: `${4 + info.position.left}px` }}>
                 <div
                   style={{
                     width: '4px',
@@ -724,12 +792,38 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       // Render adjacency info from Eavesdropping card (center of tile)
       // This is shown for both revealed and unrevealed tiles
       const adjacencyAnnotation = tile.annotations.find(a => a.type === 'adjacency_info')
-      
+
       if (adjacencyAnnotation?.adjacencyInfo) {
         const { player, neutral, rival, mine } = adjacencyAnnotation.adjacencyInfo
-        
-        // Count how many values we have to determine layout
-        const values = [player, neutral, rival, mine].filter(v => v !== undefined)
+
+        // Deduplication: if tile is revealed and annotation shows same info as natural adjacency, skip rendering
+        if (tile.revealed && tile.adjacencyCount !== null && tile.revealedBy) {
+          const values = [player, neutral, rival, mine].filter(v => v !== undefined)
+
+          // Only deduplicate if annotation has exactly one owner type
+          if (values.length === 1) {
+            const revealer = tile.revealedBy // 'player' or 'rival'
+            const annotatedValue = adjacencyAnnotation.adjacencyInfo[revealer]
+
+            // If annotation matches natural adjacency, skip rendering (it's redundant)
+            if (annotatedValue === tile.adjacencyCount) {
+              // Skip rendering this annotation - natural adjacency already shows this info
+            } else {
+              // Annotation differs from natural adjacency, or is for different owner - render it
+              renderAdjacencyAnnotation()
+            }
+          } else {
+            // Multiple owner types in annotation - always render
+            renderAdjacencyAnnotation()
+          }
+        } else {
+          // Tile not revealed or no natural adjacency - always render annotation
+          renderAdjacencyAnnotation()
+        }
+
+        function renderAdjacencyAnnotation() {
+          // Count how many values we have to determine layout
+          const values = [player, neutral, rival, mine].filter(v => v !== undefined)
         
         if (values.length === 1) {
           // Single value: show appropriate colored circle
@@ -780,10 +874,10 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         } else if (values.length > 1) {
           // Enhanced version: four smaller circles in 2x2 grid
           const positions = [
-            { top: '30%', left: '30%', label: 'P', name: 'Player', value: player, color: '#81b366' }, // Green for player (matches revealed tile color)
-            { top: '30%', left: '70%', label: 'N', name: 'Neutral', value: neutral, color: '#d4aa5a' }, // Yellow for neutral (matches revealed tile color)
-            { top: '70%', left: '30%', label: 'R', name: 'Rival', value: rival, color: '#c65757' }, // Red for rival (matches revealed tile color)
-            { top: '70%', left: '70%', label: 'M', name: 'Mine', value: mine, color: '#8b6ba8' }  // Purple for mine (matches revealed tile color)
+            { top: '30%', left: '30%', label: 'M', name: 'Mine', value: mine, color: '#8b6ba8' }, // Purple for mine (matches revealed tile color) - upper left
+            { top: '30%', left: '70%', label: 'N', name: 'Neutral', value: neutral, color: '#d4aa5a' }, // Yellow for neutral (matches revealed tile color) - upper right
+            { top: '70%', left: '30%', label: 'R', name: 'Rival', value: rival, color: '#c65757' }, // Red for rival (matches revealed tile color) - lower left
+            { top: '70%', left: '70%', label: 'P', name: 'Player', value: player, color: '#81b366' }  // Green for player (matches revealed tile color) - lower right
           ]
 
           positions.forEach((pos, index) => {
@@ -792,8 +886,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                 <Tooltip key={`adjacency-${index}`} text={`${pos.name}: ${pos.value}`} style={{ position: 'absolute', top: pos.top, left: pos.left, transform: 'translate(-50%, -50%)', zIndex: 1100 }}>
                   <div
                     style={{
-                      width: '12px',
-                      height: '12px',
+                      width: '16px',
+                      height: '16px',
                       backgroundColor: pos.color,
                       color: 'black',
                       border: '1px solid black',
@@ -801,7 +895,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '8px',
+                      fontSize: '10px',
                       fontWeight: 'bold',
                       zIndex: 1100
                     }}
@@ -813,8 +907,9 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
             }
           })
         }
+        }
       }
-      
+
       return <>{elements}</>
     }
 
@@ -894,7 +989,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
               transform: 'translate(-50%, -50%)',
               fontSize: '36px',
               pointerEvents: 'none',
-              zIndex: 999
+              zIndex: 1
             }}
           >
             🏠
@@ -912,7 +1007,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
               width: '100%',
               height: '100%',
               pointerEvents: 'none',
-              zIndex: 1000
+              zIndex: 1
             }}
           >
             {/* Jagged red explosion shape */}
@@ -927,6 +1022,9 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
             </svg>
           </div>
         )}
+
+        {/* Render annotations on top of lair (e.g., from Eavesdropping) */}
+        {getOverlay()}
       </div>
     )
 
@@ -966,8 +1064,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         transition: 'all 0.2s ease',
         userSelect: 'none',
         transform: ((isHovered && !tile.revealed) || isAdjacentToHoveredRevealed) ? 'scale(1.05)' : 'scale(1)',
-        boxShadow: (gameStatus.status !== 'playing' && !tile.revealed) ? 'inset 0 0 0 6px #c8ccd4' :
-                   isAdjacencyHighlighted() === 'green' ? '0 0 12px rgba(34, 197, 94, 0.6)' :
+        boxShadow: isAdjacencyHighlighted() === 'green' ? '0 0 12px rgba(34, 197, 94, 0.6)' :
                    isAdjacencyHighlighted() === 'red' ? '0 0 12px rgba(220, 53, 69, 0.6)' :
                    isEnemyHighlighted || isTingleEmphasized() ? '0 0 12px rgba(220, 53, 69, 0.6)' :
                    isTrystHighlighted ? '0 0 12px rgba(155, 89, 182, 0.6)' :

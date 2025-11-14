@@ -2,7 +2,7 @@ import { Card, GameState, StatusEffect } from '../types'
 import { createBoard, revealTileWithResult } from './boardSystem'
 import { executeCardEffect, requiresTargeting } from './cardEffects'
 import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
-import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerMatedPairEffect, triggerBabyBunnyEffect, triggerBusyCanaryEffect, triggerInterceptedNoteEffect, triggerHyperfocusEffect, prepareGlassesEffect, hasEquipment } from './equipment'
+import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerMatedPairEffect, triggerBabyBunnyEffect, triggerBusyCanaryEffect, triggerInterceptedNoteEffect, triggerHyperfocusEffect, prepareGlassesEffect, hasEquipment, transformInstructionsIfNovel } from './equipment'
 import { AIController } from './ai/AIController'
 import { decrementBurgerStacks } from './cards/burger'
 import { decrementIceCreamStacks } from './cards/iceCream'
@@ -846,22 +846,51 @@ export function startNewTurn(state: GameState): GameState {
   const burgerBonus = burgerEffect ? 1 : 0 // Always +1 if Burger effect is active, regardless of stack count
   const totalCardsToDraw = baseCardDraw + stateForTurnStart.queuedCardDraws + burgerBonus
 
-  console.log('[Caffeinated Debug] Card draw calculation:', {
-    hasCaffeinated,
-    isFirstTurn: stateForTurnStart.isFirstTurn,
-    isNotFirstTurn,
-    baseCardDraw,
-    queuedCardDraws: stateForTurnStart.queuedCardDraws,
-    burgerBonus,
-    totalCardsToDraw,
-    equipment: stateForTurnStart.equipment.map(e => e.name)
-  })
-
-
   const drawnState = drawCards(stateForTurnStart, totalCardsToDraw)
-  
+
+  // Add Distraction stacks from Eyeshadow and Mascara equipment at start of turn
+  let stateAfterEquipment = drawnState
+  let equipmentStacks = 0
+  if (hasEquipment(drawnState, 'Eyeshadow')) {
+    equipmentStacks += 1
+  }
+  if (hasEquipment(drawnState, 'Mascara')) {
+    equipmentStacks += 1
+  }
+
+  if (equipmentStacks > 0) {
+    const existingDistraction = stateAfterEquipment.activeStatusEffects.find(e => e.type === 'distraction')
+
+    if (existingDistraction) {
+      const newCount = (existingDistraction.count || 0) + equipmentStacks
+      const updatedEffects = stateAfterEquipment.activeStatusEffects.map(e =>
+        e.type === 'distraction'
+          ? {
+              ...e,
+              count: newCount,
+              name: `Distraction (×${newCount})`,
+              description: `Rival's tile priorities are disrupted for their next turn (${newCount} stack${newCount > 1 ? 's' : ''})`
+            }
+          : e
+      )
+      stateAfterEquipment = { ...stateAfterEquipment, activeStatusEffects: updatedEffects }
+    } else {
+      const distractionEffect = {
+        id: crypto.randomUUID(),
+        type: 'distraction' as const,
+        icon: '🌀',
+        name: equipmentStacks > 1 ? `Distraction (×${equipmentStacks})` : 'Distraction',
+        description: equipmentStacks > 1
+          ? `Rival's tile priorities are disrupted for their next turn (${equipmentStacks} stacks)`
+          : "Rival's tile priorities are disrupted for their next turn",
+        count: equipmentStacks
+      }
+      stateAfterEquipment = { ...stateAfterEquipment, activeStatusEffects: [...stateAfterEquipment.activeStatusEffects, distractionEffect] }
+    }
+  }
+
   // Remove ramble status effect at start of new turn
-  const stateWithoutRamble = removeStatusEffect(drawnState, 'ramble_active')
+  const stateWithoutRamble = removeStatusEffect(stateAfterEquipment, 'ramble_active')
 
   // Determine easy mode tile before creating finalState
   let easyModeTile: import('../types').Position | null = null
@@ -873,11 +902,20 @@ export function startNewTurn(state: GameState): GameState {
     }
   }
 
+  // Get Distraction stack count (equipment already added stacks earlier in turn)
+  let distractionStacks = 0
+  const distractionEffect = stateWithoutRamble.activeStatusEffects.find(e => e.type === 'distraction')
+  if (distractionEffect) {
+    distractionStacks = distractionEffect.count || 0
+  }
+
+  // NOTE: Distraction status effect is NOT removed here - it stays visible during player's turn
+  // It will be removed at the START of the rival's turn (in AIController.ts)
+
   let finalState = {
     ...stateWithoutRamble,
     energy: stateWithoutRamble.maxEnergy,
-    rambleActive: false, // Clear ramble effect at start of new turn
-    ramblePriorityBoosts: [], // Clear ramble priority boosts
+    distractionStackCount: distractionStacks, // Store stack count for rival turn (noise generated per-tile)
     // isFirstTurn already set to false earlier in stateForTurnStart
     neutralsRevealedThisTurn: 0, // Reset neutral reveal counter
     underwireUsedThisTurn: false, // Reset underwire usage tracking
@@ -993,8 +1031,7 @@ export function createInitialState(
     adjacencyPatternAnimation: null,
     pulsingStatusEffectIds: [],
     seenRivalAITypes: new Set<string>(),
-    rambleActive: false,
-    ramblePriorityBoosts: [],
+    distractionStackCount: 0,
     copper,
     playerTilesRevealedCount,
     shopOptions: undefined,
@@ -1016,7 +1053,7 @@ export function createInitialState(
       adjacencyColor: false, // Default: black text
       adjacencyStyle: 'dark', // Default: gradient mode (light to desaturated diagonal gradient)
       easyMode: false, // Default: no easy mode
-      sarcasticOrdersAlternate: false // Default: original implementation
+      sarcasticOrdersAlternate: true // Default: alternate implementation (doubled draws, no green pips)
     },
     selectedAnnotationTileType: 'player', // Default to player selected
     isProcessingCard: false,
@@ -1025,7 +1062,8 @@ export function createInitialState(
     easyModeTingleTile: null,
     rivalMineProtectionCount: levelConfig?.specialBehaviors.rivalMineProtection || 0,
     maskingState: null,
-    napState: null
+    napState: null,
+    saturationConfirmation: null
   }
 
   // Draw initial cards (always 5, even with Caffeinated - it's the first turn) plus Burger bonus
@@ -1033,14 +1071,6 @@ export function createInitialState(
   const initialCardDraw = 5
   const burgerEffect = preservedStatusEffects?.find(e => e.type === 'burger')
   const burgerBonus = burgerEffect ? 1 : 0
-
-  console.log('[Caffeinated Debug] New level initial draw:', {
-    initialCardDraw,
-    burgerBonus,
-    total: initialCardDraw + burgerBonus,
-    isFirstTurn: initialState.isFirstTurn,
-    equipment: startingEquipment.map(e => e.name)
-  })
 
   let finalState = drawCards(initialState, initialCardDraw + burgerBonus)
 
@@ -1092,6 +1122,33 @@ export function createInitialState(
   if (startingEquipment.some(equipment => equipment.name === 'Glasses')) {
     finalState = prepareGlassesEffect(finalState)
     finalState = { ...finalState, glassesNeedsTingleAnimation: true }
+  }
+
+  // Add Distraction stacks from Eyeshadow and Mascara equipment at start of turn 1
+  let equipmentStacks = 0
+  if (startingEquipment.some(equipment => equipment.name === 'Eyeshadow')) {
+    equipmentStacks += 1
+  }
+  if (startingEquipment.some(equipment => equipment.name === 'Mascara')) {
+    equipmentStacks += 1
+  }
+
+  if (equipmentStacks > 0) {
+    const distractionEffect = {
+      id: crypto.randomUUID(),
+      type: 'distraction' as const,
+      icon: '🌀',
+      name: equipmentStacks > 1 ? `Distraction (×${equipmentStacks})` : 'Distraction',
+      description: equipmentStacks > 1
+        ? `Rival's tile priorities are disrupted for their next turn (${equipmentStacks} stacks)`
+        : "Rival's tile priorities are disrupted for their next turn",
+      count: equipmentStacks
+    }
+    finalState = {
+      ...finalState,
+      activeStatusEffects: [...finalState.activeStatusEffects, distractionEffect],
+      distractionStackCount: equipmentStacks
+    }
   }
 
   // Add manhattan adjacency status effect if board uses it
@@ -1227,7 +1284,7 @@ export function startCardSelection(state: GameState): GameState {
 
 export function selectNewCard(state: GameState, selectedCard: Card): GameState {
   const nextLevelId = getNextLevelId(state.currentLevelId)
-  
+
   if (!nextLevelId) {
     // No next level - game won!
     return {
@@ -1236,9 +1293,13 @@ export function selectNewCard(state: GameState, selectedCard: Card): GameState {
       gameStatus: { status: 'player_won', reason: 'all_player_tiles_revealed' }
     }
   }
-  
+
+  // Check if Novel equipment is owned and transform Instructions if needed
+  const hasNovel = state.equipment.some(r => r.name === 'Novel')
+  const cardToAdd = hasNovel ? transformInstructionsIfNovel(selectedCard, hasNovel) : selectedCard
+
   // Add the selected card to the persistent deck (respecting DIY Gel)
-  const newPersistentDeck = addCardToPersistentDeck(state, selectedCard)
+  const newPersistentDeck = addCardToPersistentDeck(state, cardToAdd)
 
   // Return state with updated persistent deck but don't advance level yet
   // Level advancement will happen after upgrades (if any) are applied

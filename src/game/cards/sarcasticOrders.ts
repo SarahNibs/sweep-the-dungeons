@@ -24,6 +24,7 @@ interface Method2Result {
  * Finds tiles with mostly player-owned neighbors and marks them with red dots
  */
 function generateMethod1(state: GameState, useAlternate: boolean = false): Method1Result {
+  console.log(`\n[SARCASTIC-M1] Generating Method 1 (anti-clue bag system)`)
 
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
@@ -31,6 +32,7 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
   const playerTiles = unrevealedTiles.filter(t => t.owner === 'player')
   const totalPlayerTilesRemaining = playerTiles.length
 
+  console.log(`[SARCASTIC-M1] ${unrevealedTiles.length} unrevealed tiles, ${totalPlayerTilesRemaining} player tiles`)
 
   // Find candidate tiles
   const candidates: Array<{
@@ -74,12 +76,14 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
     // Check eligibility: P > 0.8 * (N-1) OR (P >= 6 OR P is all/all-but-one remaining)
     // PLUS the mandatory >50% player tiles requirement
     // MINUS the excluded combinations
+    // PLUS at least two player tiles
+    const notTiny = P > 1
     const threshold = 0.8 * (N - 1)
     const isHighPercentage = P > threshold
     const isHighCount = P >= 6
     const isAllOrAlmostAll = P >= totalPlayerTilesRemaining - 1
 
-    if (isMoreThanHalfPlayer && !isExcludedCombination && (isHighPercentage || isHighCount || isAllOrAlmostAll)) {
+    if (notTiny && isMoreThanHalfPlayer && !isExcludedCombination && (isHighPercentage || isHighCount || isAllOrAlmostAll)) {
       const adjacentRival = adjacentUnrevealed.filter(t => t.owner === 'rival').length
       const adjacentNeutral = adjacentUnrevealed.filter(t => t.owner === 'neutral').length
 
@@ -94,8 +98,10 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
     }
   }
 
+  console.log(`[SARCASTIC-M1] Found ${candidates.length} candidate tiles`)
 
   if (candidates.length === 0) {
+    console.log(`[SARCASTIC-M1] No valid candidates found - method not available`)
     return {
       exists: false,
       candidateTiles: [],
@@ -291,16 +297,15 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
 
 
   if (adjacentNonPlayerTiles.length > 0 && redPipCounts.size > 0) {
-    // Find the minimum non-zero pip count, or 0 if all are 0
-    const nonZeroCounts = adjacentNonPlayerTiles
+    // Find the minimum pip count (including 0)
+    const allCounts = adjacentNonPlayerTiles
       .map(t => redPipCounts.get(`${t.position.x},${t.position.y}`) || 0)
-      .filter(c => c > 0)
-    const minNonZero = nonZeroCounts.length > 0 ? Math.min(...nonZeroCounts) : 0
+    const minCount = allCounts.length > 0 ? Math.min(...allCounts) : 0
 
-    // Filter to tiles with the minimum non-zero count (or 0 if no tiles have pips)
+    // Filter to tiles with the minimum count
     const candidates = adjacentNonPlayerTiles.filter(t => {
       const pipCount = redPipCounts.get(`${t.position.x},${t.position.y}`) || 0
-      return minNonZero > 0 ? pipCount === minNonZero : pipCount === 0
+      return pipCount === minCount
     })
 
 
@@ -319,10 +324,18 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
       const pipsToRedistribute = useAlternate ? 2 : 1
 
       for (let pipIndex = 0; pipIndex < pipsToRedistribute; pipIndex++) {
-        // Find a tile to steal a pip from (pick one with highest pip count)
-        const tilesWithPips = Array.from(redPipCounts.entries())
-          .filter(([_, count]) => count > 0)
+        // Find a tile to steal a pip from (prioritize spoilers, then candidates)
+        // First try spoiler tiles (non-candidates) with pips
+        const spoilerTilesWithPips = Array.from(redPipCounts.entries())
+          .filter(([posKey, count]) => count > 0 && !candidateSet.has(posKey))
           .sort((a, b) => b[1] - a[1])
+
+        // If no spoilers with pips, fall back to candidate tiles
+        const tilesWithPips = spoilerTilesWithPips.length > 0
+          ? spoilerTilesWithPips
+          : Array.from(redPipCounts.entries())
+              .filter(([_, count]) => count > 0)
+              .sort((a, b) => b[1] - a[1])
 
         if (tilesWithPips.length > 0) {
           const [sourcePosKey, sourceCount] = tilesWithPips[0]
@@ -460,14 +473,14 @@ function generateMethod2(state: GameState, _enhanced: boolean, useAlternate: boo
   let redPipTargets: Tile[] = []
 
   if (useAlternate) {
-    // Alternate Method 2: Simple bag with 2x player, 3x neutral, 4x rival, 5x mine
+    // Alternate Method 2: Simple bag with 2x player, 4x neutral, 6x rival, 8x mine
     // Draw 10 pips (all red, no green)
     const redCluesBag: Tile[] = []
     for (const tile of unrevealedTiles) {
       const copies = tile.owner === 'player' ? 2
-                   : tile.owner === 'neutral' ? 3
-                   : tile.owner === 'rival' ? 4
-                   : 5 // mine
+                   : tile.owner === 'neutral' ? 4
+                   : tile.owner === 'rival' ? 6
+                   : 8 // mine
       for (let i = 0; i < copies; i++) {
         redCluesBag.push(tile)
       }
@@ -700,6 +713,7 @@ function generateMethod2(state: GameState, _enhanced: boolean, useAlternate: boo
 }
 
 export function executeSarcasticOrdersEffect(state: GameState, card?: Card): GameState {
+  console.log(`\n[SARCASTIC] ========== executeSarcasticOrdersEffect (${card?.enhanced ? 'enhanced' : 'basic'}) ==========`)
 
   const enhanced = card?.enhanced || false
   const useAlternate = state.debugFlags.sarcasticOrdersAlternate
@@ -708,9 +722,13 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
   const method1 = generateMethod1(state, useAlternate)
   const method2 = generateMethod2(state, enhanced, useAlternate)
 
+  console.log(`[SARCASTIC] Method 1 (anti-clue): exists=${method1.exists}, score=${method1.score}`)
+  console.log(`[SARCASTIC] Method 2 (stretch): score=${method2.score}`)
 
   // Choose best method
   const useMethod1 = method1.exists && method1.score > method2.score
+
+  console.log(`[SARCASTIC] Selected: ${useMethod1 ? 'Method 1 (anti-clue system)' : 'Method 2 (stretch system)'}`)
 
 
   let newState = {

@@ -175,8 +175,13 @@ export class AnimationController {
    * Execute Tryst animation - reveals player and rival tiles with pulsing
    */
   executeTrystWithAnimation(state: GameState, isEnhanced: boolean, target?: Position): void {
+    console.log(`\n[TRYST-ANIM] ========== executeTrystWithAnimation ==========`)
+    console.log(`[TRYST-ANIM] Enhanced: ${isEnhanced}, Target: ${target ? `(${target.x},${target.y})` : 'none'}`)
+
     // Use shared tile selection logic from tryst.ts
     const reveals = selectTrystTiles(state, target, isEnhanced)
+
+    console.log(`[TRYST-ANIM] Selected ${reveals.length} tiles to reveal`)
 
     if (reveals.length === 0) return
 
@@ -188,6 +193,8 @@ export class AnimationController {
       this.setState(effectState)
       return
     }
+
+    console.log(`[TRYST-ANIM] Starting animation, storing isEnhanced=${isEnhanced}, target=${target ? `(${target.x},${target.y})` : 'none'}`)
 
     // Start the animation with first tile
     this.setState({
@@ -216,6 +223,8 @@ export class AnimationController {
     if (!currentState.trystAnimation || !currentState.trystAnimation.isActive) return
 
     const { revealsRemaining, currentRevealIndex, isEnhanced, target } = currentState.trystAnimation
+
+    console.log(`[TRYST-ANIM] performNextTrystReveal: index=${currentRevealIndex}/${revealsRemaining.length}, enhanced=${isEnhanced}, target=${target ? `(${target.x},${target.y})` : 'none'}`)
 
     if (currentRevealIndex >= revealsRemaining.length) {
       // All reveals complete - apply enhanced annotations if needed

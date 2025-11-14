@@ -54,40 +54,27 @@ export class AIController {
    * Process AI decision-making: generate clues, select tiles
    */
   processRivalTurn(state: GameState): AITurnResult {
-    // CRITICAL: Update distractionStackCount from active status effects
-    // This ensures Ramble stacks added during the player's turn are used for rival clue generation
-    let stateForRivalTurn = state
-    const distractionEffect = state.activeStatusEffects.find(e => e.type === 'distraction')
-    if (distractionEffect) {
-      const distractionStacks = distractionEffect.count || 0
-      if (distractionStacks !== state.distractionStackCount) {
-        console.log(`[RIVAL-TURN] Updating distractionStackCount from ${state.distractionStackCount} to ${distractionStacks} based on status effect`)
-        stateForRivalTurn = {
-          ...state,
-          distractionStackCount: distractionStacks
-        }
-      }
-    }
+    console.log(`[RIVAL-TURN] processRivalTurn called with distractionStackCount=${state.distractionStackCount}`)
 
     // Get level config for AI selection and special behaviors
-    const levelConfig = getLevelConfig(stateForRivalTurn.currentLevelId)
+    const levelConfig = getLevelConfig(state.currentLevelId)
     if (!levelConfig) {
-      throw new Error(`Level config not found for ${stateForRivalTurn.currentLevelId}`)
+      throw new Error(`Level config not found for ${state.currentLevelId}`)
     }
 
     // Select appropriate AI type for this level (with debug override support)
-    const aiTypeName = stateForRivalTurn.aiTypeOverride || selectAIForLevel(levelConfig.specialBehaviors)
+    const aiTypeName = state.aiTypeOverride || selectAIForLevel(levelConfig.specialBehaviors)
     const ai = AIRegistry.create(aiTypeName)
 
     // Generate dual rival clues (visible X marks + hidden AI clues)
     const dualClues = generateDualRivalClues(
-      stateForRivalTurn,
-      stateForRivalTurn.rivalClueCounter + 1,
-      stateForRivalTurn.rivalClueCounter + 1
+      state,
+      state.rivalClueCounter + 1,
+      state.rivalClueCounter + 1
     )
 
     // Apply only visible clues to the game state (X marks for player)
-    const stateWithVisibleClues = applyVisibleRivalClues(stateForRivalTurn, dualClues.visiblePairs)
+    const stateWithVisibleClues = applyVisibleRivalClues(state, dualClues.visiblePairs)
 
     // Build AI context
     const context: AIContext = {
@@ -133,6 +120,14 @@ export class AIController {
   startRivalTurn(board: Board): void {
     const currentState = this.getState()
 
+    // CRITICAL: Read distraction count from status effect BEFORE removing it
+    let distractionStackCount = 0
+    const distractionEffect = currentState.activeStatusEffects.find(e => e.type === 'distraction')
+    if (distractionEffect) {
+      distractionStackCount = distractionEffect.count || 0
+      console.log(`[RIVAL-TURN] Found distraction status effect with ${distractionStackCount} stacks`)
+    }
+
     // Remove Distraction status effect (it was visible during player's turn, now consumed)
     const stateWithoutDistraction = removeStatusEffect(currentState, 'distraction')
 
@@ -141,7 +136,8 @@ export class AIController {
       ...stateWithoutDistraction,
       board,
       pendingCardEffect: null,
-      selectedCardName: null
+      selectedCardName: null,
+      distractionStackCount // Update count for rival clue generation
     }
 
     // Spawn goblins from lairs BEFORE rival takes their turn

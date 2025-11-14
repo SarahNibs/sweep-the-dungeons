@@ -115,7 +115,7 @@ ${snippets.bayes_instructions}
 **Cost**: 2 energy
 **Effect**: 10 red Xs will be distributed onto unrevealed tiles, either showing an area surrounded by lots of your unrevealed tiles if such an area exists, or just showing you lots of tiles that probably aren't yours.
 **Enhanced**: Refunds 1 energy unless it's the very first Instruction card played this floor.
-**Curiosities**: It might show you two areas surrounded by lots of your unrevealed tiles, if 2+ such areas exist. You can often tell that you're being instructed to guess most everything adjacent to a tile because that tile will have lots of red Xs rather than seeing a more even distribution. If it is a more even distribution, the pips will have been distributed on tiles weighted yours: 2, neutral: 3, rival's: 4, mined: 5.
+**Curiosities**: It might show you two areas surrounded by lots of your unrevealed tiles, not just one, if 2+ such areas exist. You can often tell that you're being instructed to guess most everything adjacent to a tile because that tile will have lots of red Xs rather than seeing a more even distribution. If it is a more even distribution, the pips will have been distributed on tiles weighted yours: 1, neutral: 2, rival's: 3, mined: 4, filtered to guarantee your tiles receive at most 1 pip.
 ${snippets.instructions}
 ${snippets.bayes_instructions}
   `,

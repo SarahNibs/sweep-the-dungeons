@@ -376,21 +376,21 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                 </Tooltip>
               )
             } else if (isAntiClue) {
-              // Anti-clue (red) pips: top-left, going down and right, RED color
-              // Same size as regular pips (4px) but red instead of green
+              // Anti-clue (red) pips: top-left, going down and right, RED SQUARES
+              // Same size as regular pips (4px) but red squares instead of green circles
               elements.push(
                 <Tooltip key={`pip-${clueResult.id}-${clueIndex}-${i}`} text={getClueHoverText(clueResult)} style={{ position: 'absolute', top: `${2 + rowPosition * 6}px`, left: `${2 + i * 6}px` }}>
                   <div
                     style={{
                       width: '4px',
                       height: '4px',
-                      borderRadius: '50%',
-                      backgroundColor: isThisClueHovered ? '#dc2626' : '#991b1b',
+                      borderRadius: '0px',
+                      backgroundColor: isThisClueHovered ? '#e57373' : '#c65757',  // Match rival tile color
                       border: '0.5px solid black',
                       cursor: 'pointer',
                       transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
                       transition: 'all 0.15s ease',
-                      boxShadow: isThisClueHovered ? '0 1px 3px rgba(220, 38, 38, 0.5)' : 'none'
+                      boxShadow: isThisClueHovered ? '0 1px 3px rgba(198, 87, 87, 0.5)' : 'none'
                     }}
                     onMouseEnter={() => {
                       setHoveredClueId(clueResult.id)

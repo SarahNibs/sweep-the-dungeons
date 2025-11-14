@@ -226,9 +226,65 @@ export class AnimationController {
 
     console.log(`[TRYST-ANIM] performNextTrystReveal: index=${currentRevealIndex}/${revealsRemaining.length}, enhanced=${isEnhanced}, target=${target ? `(${target.x},${target.y})` : 'none'}`)
 
-    if (currentRevealIndex >= revealsRemaining.length) {
-      // All reveals complete - apply enhanced annotations if needed
-      let finalState = currentState
+    const currentReveal = revealsRemaining[currentRevealIndex]
+
+    // Clean dirty tiles before revealing if this is a player tile
+    let currentStateForReveal = currentState
+    if (currentReveal.revealer === 'player' && currentReveal.tile.specialTiles.includes('extraDirty')) {
+      // Clean the dirty tile first
+      const key = `${currentReveal.tile.position.x},${currentReveal.tile.position.y}`
+      const newTiles = new Map(currentStateForReveal.board.tiles)
+      const cleanedTile = {
+        ...currentReveal.tile,
+        specialTiles: currentReveal.tile.specialTiles.filter(t => t !== 'extraDirty') // Remove extraDirty
+      }
+      newTiles.set(key, cleanedTile)
+      currentStateForReveal = {
+        ...currentStateForReveal,
+        board: {
+          ...currentStateForReveal.board,
+          tiles: newTiles
+        }
+      }
+
+      // Queue card draws for cleaning dirt by revealing (Mop equipment effect)
+      const updatedState = queueCardDrawsFromDirtCleaning(currentStateForReveal, 1)
+      currentStateForReveal = {
+        ...currentStateForReveal,
+        queuedCardDraws: updatedState.queuedCardDraws
+      }
+    }
+
+    // Reveal the current tile
+    let newState = revealTileWithEquipmentEffects(currentStateForReveal, currentReveal.tile.position, currentReveal.revealer)
+
+    // Update animation state for next reveal
+    const nextIndex = currentRevealIndex + 1
+    if (nextIndex < revealsRemaining.length) {
+      // More reveals to go - IMPORTANT: preserve isEnhanced and target for annotation logic
+      newState = {
+        ...newState,
+        trystAnimation: {
+          isActive: true,
+          highlightedTile: revealsRemaining[nextIndex].tile.position,
+          revealsRemaining,
+          currentRevealIndex: nextIndex,
+          isEnhanced,  // CRITICAL: preserve for final annotation step
+          target       // CRITICAL: preserve for final annotation step
+        }
+      }
+
+      this.setState(newState)
+
+      // Schedule next reveal
+      setTimeout(() => {
+        this.performNextTrystReveal()
+      }, 800)
+    } else {
+      // This was the last reveal - apply enhanced annotations if needed, then complete
+      console.log(`[TRYST-ANIM] Last reveal complete, checking for annotations: enhanced=${isEnhanced}, target=${target ? `(${target.x},${target.y})` : 'none'}`)
+
+      let finalState = newState
 
       if (isEnhanced && target && revealsRemaining.length > 0) {
         console.log(`[TRYST] Enhanced mode: Adding annotations for tiles closer to target (${target.x},${target.y})`)
@@ -276,68 +332,6 @@ export class AnimationController {
       // Animation complete - clear processing flag
       this.setState({
         ...finalState,
-        trystAnimation: null,
-        isProcessingCard: false
-      })
-      return
-    }
-
-    const currentReveal = revealsRemaining[currentRevealIndex]
-
-    // Clean dirty tiles before revealing if this is a player tile
-    let currentStateForReveal = currentState
-    if (currentReveal.revealer === 'player' && currentReveal.tile.specialTiles.includes('extraDirty')) {
-      // Clean the dirty tile first
-      const key = `${currentReveal.tile.position.x},${currentReveal.tile.position.y}`
-      const newTiles = new Map(currentStateForReveal.board.tiles)
-      const cleanedTile = {
-        ...currentReveal.tile,
-        specialTiles: currentReveal.tile.specialTiles.filter(t => t !== 'extraDirty') // Remove extraDirty
-      }
-      newTiles.set(key, cleanedTile)
-      currentStateForReveal = {
-        ...currentStateForReveal,
-        board: {
-          ...currentStateForReveal.board,
-          tiles: newTiles
-        }
-      }
-
-      // Queue card draws for cleaning dirt by revealing (Mop equipment effect)
-      const updatedState = queueCardDrawsFromDirtCleaning(currentStateForReveal, 1)
-      currentStateForReveal = {
-        ...currentStateForReveal,
-        queuedCardDraws: updatedState.queuedCardDraws
-      }
-    }
-
-    // Reveal the current tile
-    let newState = revealTileWithEquipmentEffects(currentStateForReveal, currentReveal.tile.position, currentReveal.revealer)
-
-    // Update animation state for next reveal
-    const nextIndex = currentRevealIndex + 1
-    if (nextIndex < revealsRemaining.length) {
-      // More reveals to go
-      newState = {
-        ...newState,
-        trystAnimation: {
-          isActive: true,
-          highlightedTile: revealsRemaining[nextIndex].tile.position,
-          revealsRemaining,
-          currentRevealIndex: nextIndex
-        }
-      }
-
-      this.setState(newState)
-
-      // Schedule next reveal
-      setTimeout(() => {
-        this.performNextTrystReveal()
-      }, 800)
-    } else {
-      // This was the last reveal - clear processing flag
-      this.setState({
-        ...newState,
         trystAnimation: null,
         isProcessingCard: false
       })

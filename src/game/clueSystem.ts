@@ -17,20 +17,26 @@ export interface ClueGenerationResult {
 }
 
 export function selectTilesForClue(
-  availableTiles: Tile[], 
+  availableTiles: Tile[],
   count: number
 ): Tile[] {
+  console.log(`[CLUE-GEN] selectTilesForClue: ${availableTiles.length} available tiles, selecting ${count}`)
+
   if (availableTiles.length <= count) {
+    console.log(`[CLUE-GEN] Returning all ${availableTiles.length} tiles (not enough to shuffle)`)
     return [...availableTiles]
   }
-  
+
   const shuffled = [...availableTiles]
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
-  
-  return shuffled.slice(0, count)
+
+  const selected = shuffled.slice(0, count)
+  console.log(`[CLUE-GEN] Selected ${selected.length} tiles:`, selected.map(t => `(${t.position.x},${t.position.y})`))
+
+  return selected
 }
 
 
@@ -56,6 +62,8 @@ export function getExcludedPositionsByAdjacency(
 ): Set<string> {
   const excludedKeys = new Set<string>()
 
+  console.log(`[CLUE-GEN] getExcludedPositionsByAdjacency for targetType=${targetType}`)
+
   // Iterate through all revealed tiles
   for (const tile of board.tiles.values()) {
     if (!tile.revealed || tile.adjacencyCount !== 0) {
@@ -69,31 +77,37 @@ export function getExcludedPositionsByAdjacency(
 
     if (shouldExclude) {
       const neighbors = getNeighbors(board, tile.position)
+      console.log(`[CLUE-GEN] Tile (${tile.position.x},${tile.position.y}) has adjacency=0, excluding ${neighbors.length} neighbors from ${targetType} clues`)
       for (const neighborPos of neighbors) {
         excludedKeys.add(positionToKey(neighborPos))
       }
     }
   }
 
+  console.log(`[CLUE-GEN] Total excluded positions: ${excludedKeys.size}`)
   return excludedKeys
 }
 
 function buildBagWithAdjustments(
-  tiles: Tile[], 
-  copiesPerTile: number, 
-  targetOwner: 'player' | 'rival', 
+  tiles: Tile[],
+  copiesPerTile: number,
+  targetOwner: 'player' | 'rival',
   targetTiles: Tile[]
 ): Tile[] {
+  console.log(`[CLUE-GEN] buildBagWithAdjustments: ${tiles.length} tiles, ${copiesPerTile} copies each, targetOwner=${targetOwner}, ${targetTiles.length} target tiles`)
+
   const bag: Tile[] = []
   const targetTilePositions = new Set(
     targetTiles.map(tile => `${tile.position.x},${tile.position.y}`)
   )
-  
+
+  const bagComposition: { [key: string]: number } = {}
+
   for (const tile of tiles) {
     let actualCopies = copiesPerTile
     const tileKey = `${tile.position.x},${tile.position.y}`
     const isTargetTile = targetTilePositions.has(tileKey)
-    
+
     if (!isTargetTile) {
       // This is a spoiler tile - apply spoiler rules
       if (tile.owner === 'mine') {
@@ -103,14 +117,20 @@ function buildBagWithAdjustments(
         actualCopies -= 1 // Spoiler tiles with same owner as target get -1 instance (new rule)
       }
     }
-    
+
     // Ensure minimum of 0 copies
     actualCopies = Math.max(0, actualCopies)
-    
+
     for (let i = 0; i < actualCopies; i++) {
       bag.push(tile)
     }
+
+    if (actualCopies > 0) {
+      bagComposition[`(${tile.position.x},${tile.position.y})[${tile.owner}]`] = actualCopies
+    }
   }
+
+  console.log(`[CLUE-GEN] Bag composition (${bag.length} total):`, bagComposition)
   return bag
 }
 
@@ -119,35 +139,47 @@ export function generateClueFromBag(
   guaranteedTiles: Tile[],
   bag: Tile[],
   totalDraws: number,
-  params: ClueParams,
-  skipGuaranteedTiles: boolean = false
+  params: ClueParams
 ): ClueGenerationResult {
-  
+
+  console.log(`[CLUE-GEN] generateClueFromBag: ${totalDraws} draws from bag of ${bag.length}, ${guaranteedTiles.length} guaranteed, cardType=${params.cardType}`)
+
   const drawnTiles: Tile[] = []
-  
-  // Add guaranteed draws first (unless Ramble is active)
-  if (!skipGuaranteedTiles) {
-    drawnTiles.push(...guaranteedTiles)
+
+  // Add guaranteed draws first
+  drawnTiles.push(...guaranteedTiles)
+  if (guaranteedTiles.length > 0) {
+    console.log(`[CLUE-GEN] Guaranteed tiles:`, guaranteedTiles.map(t => `(${t.position.x},${t.position.y})`))
   }
-  
-  // Draw remaining tiles randomly from bag
+
+  // Create bag copy and remove ONE instance of each guaranteed tile
   const bagCopy = [...bag]
-  const guaranteedCount = skipGuaranteedTiles ? 0 : guaranteedTiles.length
-  const remainingDraws = totalDraws - guaranteedCount
-  
+  for (const guaranteedTile of guaranteedTiles) {
+    const indexToRemove = bagCopy.indexOf(guaranteedTile)
+    if (indexToRemove !== -1) {
+      bagCopy.splice(indexToRemove, 1)
+    }
+  }
+
+  const remainingDraws = totalDraws - guaranteedTiles.length
+
   for (let i = 0; i < Math.min(remainingDraws, bagCopy.length); i++) {
     const randomIndex = Math.floor(Math.random() * bagCopy.length)
     const drawnTile = bagCopy[randomIndex]
     drawnTiles.push(drawnTile)
     bagCopy.splice(randomIndex, 1)
   }
-  
+
+  console.log(`[CLUE-GEN] Drew ${drawnTiles.length} tiles total from bag`)
+
   // Count pips per tile
   const pipCounts = new Map<string, number>()
   for (const drawnTile of drawnTiles) {
     const key = `${drawnTile.position.x},${drawnTile.position.y}`
     pipCounts.set(key, (pipCounts.get(key) || 0) + 1)
   }
+
+  console.log(`[CLUE-GEN] Pip distribution:`, Object.fromEntries(pipCounts))
   
   
   // Create clue results with tile-specific information
@@ -202,6 +234,8 @@ export function generatePlayerSolidClue(
   clueRowPosition: number,
   enhanced: boolean = false
 ): ClueGenerationResult {
+  console.log(`\n[CLUE-GEN] ========== generatePlayerSolidClue (${enhanced ? 'enhanced' : 'basic'}) ==========`)
+
   // Get positions to exclude based on adjacency info
   const excludedPositions = getExcludedPositionsByAdjacency(state.board, 'player')
 
@@ -209,6 +243,8 @@ export function generatePlayerSolidClue(
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
     .filter(tile => !excludedPositions.has(positionToKey(tile.position)))
   const playerTiles = unrevealedTiles.filter(tile => tile.owner === 'player')
+
+  console.log(`[CLUE-GEN] Available tiles: ${unrevealedTiles.length} total, ${playerTiles.length} player tiles`)
 
   // Choose 2 player tiles
   const chosenPlayerTiles = selectTilesForClue(playerTiles, 2)
@@ -228,18 +264,19 @@ export function generatePlayerSolidClue(
     return true
   })
   const chosenRandomTiles = selectTilesForClue(remainingTiles, 6)
-  
+
+  console.log(`[CLUE-GEN] Chosen 2 player tiles:`, chosenPlayerTiles.map(t => `(${t.position.x},${t.position.y})`))
+  console.log(`[CLUE-GEN] Chosen 6 random tiles:`, chosenRandomTiles.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`))
+
   // Create bag: 12 copies of each player tile + 4 copies of each random tile (with spoiler adjustments)
   const bag: Tile[] = [
     ...buildBagWithAdjustments(chosenPlayerTiles, 12, 'player', chosenPlayerTiles),
     ...buildBagWithAdjustments(chosenRandomTiles, 4, 'player', chosenPlayerTiles)
   ]
-  
-  // DEBUG: Log clue generation details
-  
+
   // Guarantee first 2 draws are from chosen player tiles
   const guaranteedTiles = [...chosenPlayerTiles]
-  
+
   const params: ClueParams = {
     cardType: 'solid_clue',
     enhanced,
@@ -256,6 +293,8 @@ export function generatePlayerStretchClue(
   clueRowPosition: number,
   enhanced: boolean = false
 ): ClueGenerationResult {
+  console.log(`\n[CLUE-GEN] ========== generatePlayerStretchClue (${enhanced ? 'enhanced' : 'basic'}) ==========`)
+
   // Get positions to exclude based on adjacency info
   const excludedPositions = getExcludedPositionsByAdjacency(state.board, 'player')
 
@@ -263,28 +302,32 @@ export function generatePlayerStretchClue(
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
     .filter(tile => !excludedPositions.has(positionToKey(tile.position)))
   const playerTiles = unrevealedTiles.filter(tile => tile.owner === 'player')
-  
+
+  console.log(`[CLUE-GEN] Available tiles: ${unrevealedTiles.length} total, ${playerTiles.length} player tiles`)
+
   // Choose 5 player tiles
   const chosenPlayerTiles = selectTilesForClue(playerTiles, 5)
-  
+
   // Choose 14 other random tiles
-  const remainingTiles = unrevealedTiles.filter(tile => 
-    !chosenPlayerTiles.some(chosen => 
+  const remainingTiles = unrevealedTiles.filter(tile =>
+    !chosenPlayerTiles.some(chosen =>
       chosen.position.x === tile.position.x && chosen.position.y === tile.position.y
     )
   )
   const chosenRandomTiles = selectTilesForClue(remainingTiles, 14)
-  
+
+  console.log(`[CLUE-GEN] Chosen 5 player tiles:`, chosenPlayerTiles.map(t => `(${t.position.x},${t.position.y})`))
+  console.log(`[CLUE-GEN] Chosen 14 random tiles:`, chosenRandomTiles.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`))
+
   // Create bag: 4 copies of each player tile + 2 copies of each random tile (with spoiler adjustments)
   const bag: Tile[] = [
     ...buildBagWithAdjustments(chosenPlayerTiles, 4, 'player', chosenPlayerTiles),
     ...buildBagWithAdjustments(chosenRandomTiles, 2, 'player', chosenPlayerTiles)
   ]
-  
-  // DEBUG: Log clue generation details
-  
-  // Guarantee first 3 draws are from chosen player tiles (not all 5)
-  const guaranteedTiles = chosenPlayerTiles.slice(0, 3)
+
+  // Guarantee first 3 draws are from chosen player tiles (5 if enhanced)
+  const guaranteedTiles = chosenPlayerTiles.slice(0, enhanced ? 5 : 3)
+  console.log(`[CLUE-GEN] Guaranteed tiles: ${guaranteedTiles.length} (${enhanced ? 'enhanced: all 5' : 'basic: first 3'})`)
   
   const params: ClueParams = {
     cardType: 'stretch_clue',
@@ -328,6 +371,8 @@ export function prepareRivalClueSetup(state: GameState): {
   chosenRivalTiles: Tile[]
   chosenRandomTiles: Tile[]
 } {
+  console.log(`\n[RIVAL-CLUE] ========== prepareRivalClueSetup ==========`)
+
   // Get positions to exclude based on adjacency info
   const excludedPositions = getExcludedPositionsByAdjacency(state.board, 'rival')
 
@@ -335,17 +380,22 @@ export function prepareRivalClueSetup(state: GameState): {
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
     .filter(tile => !excludedPositions.has(positionToKey(tile.position)))
   const rivalTiles = unrevealedTiles.filter(tile => tile.owner === 'rival')
-  
+
+  console.log(`[RIVAL-CLUE] Available tiles: ${unrevealedTiles.length} total, ${rivalTiles.length} rival tiles`)
+
   // Choose 2 rival tiles
   const chosenRivalTiles = selectTilesForClue(rivalTiles, 2)
-  
+
   // Choose 6 other random tiles
-  const remainingTiles = unrevealedTiles.filter(tile => 
-    !chosenRivalTiles.some(chosen => 
+  const remainingTiles = unrevealedTiles.filter(tile =>
+    !chosenRivalTiles.some(chosen =>
       chosen.position.x === tile.position.x && chosen.position.y === tile.position.y
     )
   )
   const chosenRandomTiles = selectTilesForClue(remainingTiles, 6)
-  
+
+  console.log(`[RIVAL-CLUE] Chosen 2 rival tiles:`, chosenRivalTiles.map(t => `(${t.position.x},${t.position.y})`))
+  console.log(`[RIVAL-CLUE] Chosen 6 random tiles:`, chosenRandomTiles.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`))
+
   return { chosenRivalTiles, chosenRandomTiles }
 }

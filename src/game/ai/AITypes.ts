@@ -44,6 +44,6 @@ export interface RivalAI {
 
 export interface AITurnResult {
   stateWithVisibleClues: GameState
-  hiddenClues: ClueResult[]
+  hiddenClues: { clueResult: ClueResult; targetPosition: Position }[]
   tilesToReveal: Tile[]
 }

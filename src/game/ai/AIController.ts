@@ -8,6 +8,7 @@ import { checkGameStatus, trackPlayerTileReveal } from '../cardEffects'
 import { startNewTurn } from '../cardSystem'
 import { isTestMode } from '../utils/testMode'
 import { checkChokerEffect } from '../equipment'
+import { removeStatusEffect } from '../gameRepository'
 
 /**
  * Helper function to update state and award copper if game was just won
@@ -92,7 +93,7 @@ export class AIController {
         ...stateWithVisibleClues,
         rivalClueCounter: stateWithVisibleClues.rivalClueCounter + 1
       },
-      hiddenClues: dualClues.hidden,
+      hiddenClues: dualClues.hiddenPairs,
       tilesToReveal
     }
   }
@@ -117,19 +118,29 @@ export class AIController {
   startRivalTurn(board: Board): void {
     const currentState = this.getState()
 
+    // Remove Distraction status effect (it was visible during player's turn, now consumed)
+    const stateWithoutDistraction = removeStatusEffect(currentState, 'distraction')
+
     // Clear any pending card targeting state
     const clearedState = {
-      ...currentState,
+      ...stateWithoutDistraction,
       board,
       pendingCardEffect: null,
       selectedCardName: null
     }
 
+    // Spawn goblins from lairs BEFORE rival takes their turn
+    const boardWithGoblins = spawnGoblinsFromLairs(clearedState.board)
+    const stateWithGoblins = {
+      ...clearedState,
+      board: boardWithGoblins
+    }
+
     // Process rival turn with dual clue system using AI
-    const rivalTurnResult = this.processRivalTurn(clearedState)
+    const rivalTurnResult = this.processRivalTurn(stateWithGoblins)
     const stateWithRivalClue = {
       ...rivalTurnResult.stateWithVisibleClues,
-      rivalHiddenClues: [...clearedState.rivalHiddenClues, ...rivalTurnResult.hiddenClues]
+      rivalHiddenClues: [...stateWithGoblins.rivalHiddenClues, ...rivalTurnResult.hiddenClues]
     }
     const tilesToReveal = rivalTurnResult.tilesToReveal
 
@@ -175,11 +186,10 @@ export class AIController {
     }
 
     if (tilesToReveal.length === 0) {
-      // No tiles to reveal, spawn goblins from lairs and place rival mines, then end rival turn immediately
-      const boardWithGoblins = spawnGoblinsFromLairs(stateWithUpdatedClues.board)
+      // No tiles to reveal, place rival mines and end rival turn immediately
       const levelConfig = getLevelConfig(stateWithUpdatedClues.currentLevelId)
       const mineCount = levelConfig?.specialBehaviors.rivalPlacesMines || 0
-      const boardWithMines = placeRivalSurfaceMines(boardWithGoblins, mineCount)
+      const boardWithMines = placeRivalSurfaceMines(stateWithUpdatedClues.board, mineCount)
       const newTurnState = startNewTurn({
         ...stateWithUpdatedClues,
         board: boardWithMines
@@ -206,11 +216,10 @@ export class AIController {
         if (tile.owner !== 'rival') break // Stop if non-rival tile revealed
       }
 
-      // Spawn goblins from lairs and place rival mines before starting new turn
-      const boardWithGoblins = spawnGoblinsFromLairs(currentState.board)
+      // Place rival mines before starting new turn
       const levelConfig = getLevelConfig(currentState.currentLevelId)
       const mineCount = levelConfig?.specialBehaviors.rivalPlacesMines || 0
-      const boardWithMines = placeRivalSurfaceMines(boardWithGoblins, mineCount)
+      const boardWithMines = placeRivalSurfaceMines(currentState.board, mineCount)
 
       const newTurnState = startNewTurn({
         ...currentState,
@@ -253,11 +262,10 @@ export class AIController {
     const { revealsRemaining, currentRevealIndex } = animation
 
     if (currentRevealIndex >= revealsRemaining.length) {
-      // Animation complete, spawn goblins from lairs, place rival mines, and end rival turn
-      const boardWithGoblins = spawnGoblinsFromLairs(currentState.board)
+      // Animation complete, place rival mines and end rival turn
       const levelConfig = getLevelConfig(currentState.currentLevelId)
       const mineCount = levelConfig?.specialBehaviors.rivalPlacesMines || 0
-      const boardWithMines = placeRivalSurfaceMines(boardWithGoblins, mineCount)
+      const boardWithMines = placeRivalSurfaceMines(currentState.board, mineCount)
       const newTurnState = startNewTurn({
         ...currentState,
         board: boardWithMines
@@ -424,12 +432,11 @@ export class AIController {
           this.performNextRivalReveal()
         }, 800)
       } else {
-        // End rival turn, spawn goblins from lairs, place rival mines, and start new turn
+        // End rival turn, place rival mines and start new turn
         const finalState = this.getState()
-        const boardWithGoblins = spawnGoblinsFromLairs(finalState.board)
         const levelConfig = getLevelConfig(finalState.currentLevelId)
         const mineCount = levelConfig?.specialBehaviors.rivalPlacesMines || 0
-        const boardWithMines = placeRivalSurfaceMines(boardWithGoblins, mineCount)
+        const boardWithMines = placeRivalSurfaceMines(finalState.board, mineCount)
         const newTurnState = startNewTurn({
           ...finalState,
           board: boardWithMines

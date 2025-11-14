@@ -195,7 +195,7 @@ export interface GameState {
   isFirstTurn: boolean // True if this is the first turn of the level (for Frilly Dress)
   neutralsRevealedThisTurn: number // Number of neutrals revealed this turn (for Frilly Dress - allows 6 on turn 1)
   // Dual rival clue system: visible clues (shown as X) vs AI clues (hidden)
-  rivalHiddenClues: ClueResult[] // AI-only clues for rival decision making (not shown to player)
+  rivalHiddenClues: { clueResult: ClueResult; targetPosition: Position }[] // AI-only clues for rival decision making (not shown to player)
   tingleAnimation: {
     isActive: boolean
     targetTile: Position | null
@@ -224,8 +224,8 @@ export interface GameState {
   // Status effect pulsing (for highlighting certain effects at floor start)
   pulsingStatusEffectIds: string[] // IDs of status effects that should pulse
   seenRivalAITypes: Set<string> // Set of rival AI types that have been pulsed (first floor only)
-  rambleActive: boolean // True if Ramble was played this turn
-  ramblePriorityBoosts: number[] // Array of max boost values from Rambles played this turn (e.g., [2, 4] for basic + enhanced)
+  // Distraction stack count (used to generate independent noise per tile during rival turn)
+  distractionStackCount: number // Number of Distraction stacks (each adds independent [0, 1.5] noise per tile)
   // Currency and shop system
   copper: number // Copper currency earned from unrevealed rival tiles
   playerTilesRevealedCount: number // Counter for player tiles revealed (every 5th grants 1 copper, persists across floors)
@@ -308,6 +308,11 @@ export interface GameState {
     napCardId: string  // ID of the Nap card being played
     enhanced: boolean  // Whether the Nap card is enhanced
   } | null
+
+  // Saturation confirmation (for warning when clicking tiles ruled out by saturated neighbors)
+  saturationConfirmation: {
+    position: Position // Position of the tile that needs confirmation
+  } | null
 }
 
 export interface UpgradeOption {
@@ -339,12 +344,12 @@ export interface ShopOption {
 
 export interface StatusEffect {
   id: string
-  type: 'underwire_protection' | 'ramble_active' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines' | 'rival_ai_type' | 'rival_mine_protection' | 'grace' | 'burger' | 'ice_cream' | 'carrots' | 'rival_places_mines'
+  type: 'underwire_protection' | 'ramble_active' | 'distraction' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines' | 'rival_ai_type' | 'rival_mine_protection' | 'grace' | 'burger' | 'ice_cream' | 'carrots' | 'rival_places_mines'
   icon: string
   name: string
   description: string
   enhanced?: boolean // For enhanced effects
-  count?: number // For effects with counts (e.g., rival mine protection remaining, burger stacks, rival places mines count)
+  count?: number // For effects with counts (e.g., rival mine protection remaining, burger stacks, rival places mines count, distraction stacks)
 }
 
 export type CardZone = 'deck' | 'hand' | 'discard'

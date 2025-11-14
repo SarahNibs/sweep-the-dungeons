@@ -49,7 +49,7 @@ export class ReasoningAI implements RivalAI {
       // Phase 1: Exclusion analysis
       const analysis = analyzeExclusionsAndGuarantees(simulatedState)
 
-      console.log(`[AI-DECISION] Exclusion analysis: ${analysis.guaranteedRivals.length} guaranteed rivals, ${analysis.excludedTiles.size} excluded tiles`)
+      console.log(`[AI-DECISION] Exclusion analysis: ${analysis.guaranteedRivals.length} guaranteed rivals, ${analysis.ruledOutRivals.size} ruled out tiles`)
 
       let nextTile: Tile | null = null
 
@@ -75,7 +75,7 @@ export class ReasoningAI implements RivalAI {
         // Phase 4: Run Monte Carlo simulation
         console.log(`[AI-DECISION] Running Monte Carlo simulation...`)
         const monteCarloResults = runMonteCarloSimulation(simulatedState, analysis, adjacencyInfo)
-        console.log(`[AI-DECISION] Monte Carlo results: ${monteCarloResults.size} tiles evaluated`)
+        console.log(`[AI-DECISION] Monte Carlo results: ${monteCarloResults.ownerCounts.size} tiles evaluated`)
 
         // Phase 5: Calculate priorities (using pre-calculated base priorities)
         const priorities = calculatePriorities(simulatedState, monteCarloResults, analysis, basePriorities, rivalCluePipsThisTurn)
@@ -89,7 +89,7 @@ export class ReasoningAI implements RivalAI {
         const top5 = priorities.slice(0, 5)
         console.log(`[AI-DECISION] Top 5 priorities:`)
         top5.forEach((tp, i) => {
-          console.log(`  ${i + 1}. (${tp.tile.position.x},${tp.position.y})[${tp.tile.owner}]: priority=${tp.priority.toFixed(2)}`)
+          console.log(`  ${i + 1}. (${tp.tile.position.x},${tp.tile.position.y})[${tp.tile.owner}]: priority=${tp.priority.toFixed(2)}`)
         })
 
         // Phase 6: Select highest priority tile (filter surface mines and mines if needed)

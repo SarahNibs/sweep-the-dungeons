@@ -159,17 +159,12 @@ export function calculateBasePriorities(
     basePriority += currentTurnPips
 
     // Step 2: Process PAST turn clues (from state) - use max(pips - 1, 0)
-    // These are all previous turns' clues
-    for (const historicalClue of state.rivalHiddenClues) {
-      // Find if this clue affects our tile
-      for (let i = 0; i < historicalClue.allAffectedTiles.length; i++) {
-        const affectedPos = historicalClue.allAffectedTiles[i]
-        if (positionToKey(affectedPos) === key) {
-          // This clue affects our tile - apply decay
-          const pips = historicalClue.strengthForThisTile
-          historicalPips += Math.max(pips - 1, 0)
-          break
-        }
+    // These are all previous turns' clues (stored as pairs with targetPosition)
+    for (const { clueResult, targetPosition } of state.rivalHiddenClues) {
+      if (positionToKey(targetPosition) === key) {
+        // This clue affects our tile - apply decay
+        const pips = clueResult.strengthForThisTile
+        historicalPips += Math.max(pips - 1, 0)
       }
     }
     basePriority += historicalPips

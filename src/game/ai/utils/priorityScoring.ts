@@ -45,17 +45,12 @@ export function calculateTilePriority(
   rivalScore += currentTurnRivalPips
 
   // Step 2: Process PAST turn clues (from state) - use max(pips - 1, 0)
-  // These are all previous turns' clues
-  for (const historicalClue of state.rivalHiddenClues) {
-    // Find all tiles affected by this clue and get the pip count for our tile
-    for (let i = 0; i < historicalClue.allAffectedTiles.length; i++) {
-      const affectedPos = historicalClue.allAffectedTiles[i]
-      if (positionToKey(affectedPos) === tileKey) {
-        // This clue affects our tile - apply decay
-        const pips = historicalClue.strengthForThisTile
-        historicalRivalPips += Math.max(pips - 1, 0)
-        break
-      }
+  // These are all previous turns' clues (stored as pairs with targetPosition)
+  for (const { clueResult, targetPosition } of state.rivalHiddenClues) {
+    if (positionToKey(targetPosition) === tileKey) {
+      // This clue affects our tile - apply decay
+      const pips = clueResult.strengthForThisTile
+      historicalRivalPips += Math.max(pips - 1, 0)
     }
   }
   rivalScore += historicalRivalPips
@@ -120,7 +115,7 @@ export function calculateTilePriorities(
   // Calculate priorities using player clues + all rival clues (current + past with decay)
   // Add Distraction noise (independent random values generated per tile for each stack)
   const tilesWithPriority = unrevealedTiles.map((tile, index) => {
-    const logDetails = index < 10 // Log first 10 tiles in detail
+    const logDetails = index < 1000 // Log all tiles in detail
     const basePriority = calculateTilePriority(tile, currentTurnCluesPairs, state, logDetails)
     const finalPriority = applyDistractionNoise(basePriority, state.distractionStackCount, logDetails)
 

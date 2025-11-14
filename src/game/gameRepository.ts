@@ -522,7 +522,7 @@ export const EQUIPMENT_DEFINITIONS: Record<string, EquipmentDefinition> = {
   'Eyeshadow': {
     name: 'Eyeshadow',
     description: 'distract your rival with your beauty',
-    hoverText: 'Eyeshadow: your rival ... um. their clues won\'t work as well. kinda-sorta like playing half a Ramble every turn?',
+    hoverText: 'Eyeshadow: at the start of each turn, add 1 Distraction stack (disrupts rival tile priorities)',
     category: 'common',
     icon: '👁️'
   },
@@ -648,7 +648,7 @@ export const EQUIPMENT_DEFINITIONS: Record<string, EquipmentDefinition> = {
   'Mascara': {
     name: 'Mascara',
     description: 'even more distracting beauty',
-    hoverText: 'Mascara: look I don\'t know how to tell you exactly what this does but yeah it\'s like playing more Rambles',
+    hoverText: 'Mascara: at the start of each turn, add an additional 1 Distraction stack (requires Eyeshadow)',
     category: 'uncommon',
     icon: '✏️',
     prerequisites: ['Eyeshadow']

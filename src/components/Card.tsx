@@ -45,9 +45,10 @@ interface CardProps {
   customOverlap?: number
   showUpgradeIndicator?: 'cost_reduction' | 'enhance_effect'
   applyStatusEffects?: boolean
+  disableTooltip?: boolean
 }
 
-export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isHovered = false, onHover, customOverlap, showUpgradeIndicator, applyStatusEffects = true }: CardProps) {
+export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isHovered = false, onHover, customOverlap, showUpgradeIndicator, applyStatusEffects = true, disableTooltip = false }: CardProps) {
   const { activeStatusEffects, showItemHelp } = useGameStore()
   
   // Calculate effective cost considering status effects
@@ -77,7 +78,9 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    showItemHelp(card.name, 'card')
+    // Strip directional arrow suffix for help text lookup
+    const baseCardName = card.name.replace(/ [↑↓←→]$/, '')
+    showItemHelp(baseCardName, 'card')
   }
 
   // Use custom overlap if provided, otherwise calculate based on totalCards
@@ -85,8 +88,7 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
   const baseZIndex = 10
   const zIndex = isHovered ? baseZIndex + 100 : baseZIndex + index
 
-  return (
-    <Tooltip text={getCardDescription(card)} style={{ display: 'inline-block' }}>
+  const cardContent = (
       <div
         onClick={handleClick}
         onContextMenu={handleContextMenu}
@@ -189,6 +191,11 @@ export function Card({ card, onClick, isPlayable, index = 0, totalCards = 1, isH
         </div>
       </div>
     </div>
+  )
+
+  return disableTooltip ? cardContent : (
+    <Tooltip text={getCardDescription(card)} style={{ display: 'inline-block' }}>
+      {cardContent}
     </Tooltip>
   )
 }

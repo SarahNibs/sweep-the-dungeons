@@ -31,7 +31,24 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
   const isCanaryTargeting = selectedCardName === 'Canary' && pendingCardEffect?.type === 'canary'
   const isArgumentTargeting = selectedCardName === 'Argument' && pendingCardEffect?.type === 'argument'
   const isHorseTargeting = selectedCardName === 'Horse' && pendingCardEffect?.type === 'horse'
-  const isAreaTargeting = isBrushTargeting || isSweepTargeting || isCanaryTargeting || isArgumentTargeting || isHorseTargeting
+
+  // Check for directional cards (Gaze and Fetch with arrows)
+  const isGazeTargeting = selectedCardName?.startsWith('Gaze') && pendingCardEffect?.type === 'gaze'
+  const isFetchTargeting = selectedCardName?.startsWith('Fetch') && pendingCardEffect?.type === 'fetch'
+  const isDirectionalTargeting = isGazeTargeting || isFetchTargeting
+
+  // Extract direction from card name (e.g., "Gaze →" -> "right")
+  const getDirection = (): 'up' | 'down' | 'left' | 'right' | null => {
+    if (!selectedCardName || !isDirectionalTargeting) return null
+    if (selectedCardName.includes('→')) return 'right'
+    if (selectedCardName.includes('←')) return 'left'
+    if (selectedCardName.includes('↑')) return 'up'
+    if (selectedCardName.includes('↓')) return 'down'
+    return null
+  }
+  const direction = getDirection()
+
+  const isAreaTargeting = isBrushTargeting || isSweepTargeting || isCanaryTargeting || isArgumentTargeting || isHorseTargeting || isDirectionalTargeting
 
   // Find the current selected card to check if enhanced - use ID to find exact card, not name
   const selectedCard = selectedCardId ? hand.find(card => card.id === selectedCardId) : hand.find(card => card.name === selectedCardName)
@@ -65,7 +82,28 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
 
         // Check if this position is in the area effect zone for hover highlighting
         const isInAreaEffect = isAreaTargeting && areaHoverCenter && (() => {
-          if (areaInfo.pattern === 'manhattan') {
+          if (isDirectionalTargeting && direction) {
+            // Directional targeting: highlight tiles in a line in the specified direction
+            // Must be unrevealed and non-empty
+            const tileAtPosition = board.tiles.get(`${x},${y}`)
+            if (!tileAtPosition || tileAtPosition.revealed || tileAtPosition.owner === 'empty') {
+              return false
+            }
+
+            // Check if this tile is in the line from areaHoverCenter in the specified direction
+            switch (direction) {
+              case 'right':
+                return y === areaHoverCenter.y && x >= areaHoverCenter.x
+              case 'left':
+                return y === areaHoverCenter.y && x <= areaHoverCenter.x
+              case 'down':
+                return x === areaHoverCenter.x && y >= areaHoverCenter.y
+              case 'up':
+                return x === areaHoverCenter.x && y <= areaHoverCenter.y
+              default:
+                return false
+            }
+          } else if (areaInfo.pattern === 'manhattan') {
             // Manhattan distance pattern
             const manhattanDistance = Math.abs(x - areaHoverCenter.x) + Math.abs(y - areaHoverCenter.y)
             return manhattanDistance <= areaInfo.size

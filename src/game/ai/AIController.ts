@@ -54,25 +54,40 @@ export class AIController {
    * Process AI decision-making: generate clues, select tiles
    */
   processRivalTurn(state: GameState): AITurnResult {
+    // CRITICAL: Update distractionStackCount from active status effects
+    // This ensures Ramble stacks added during the player's turn are used for rival clue generation
+    let stateForRivalTurn = state
+    const distractionEffect = state.activeStatusEffects.find(e => e.type === 'distraction')
+    if (distractionEffect) {
+      const distractionStacks = distractionEffect.count || 0
+      if (distractionStacks !== state.distractionStackCount) {
+        console.log(`[RIVAL-TURN] Updating distractionStackCount from ${state.distractionStackCount} to ${distractionStacks} based on status effect`)
+        stateForRivalTurn = {
+          ...state,
+          distractionStackCount: distractionStacks
+        }
+      }
+    }
+
     // Get level config for AI selection and special behaviors
-    const levelConfig = getLevelConfig(state.currentLevelId)
+    const levelConfig = getLevelConfig(stateForRivalTurn.currentLevelId)
     if (!levelConfig) {
-      throw new Error(`Level config not found for ${state.currentLevelId}`)
+      throw new Error(`Level config not found for ${stateForRivalTurn.currentLevelId}`)
     }
 
     // Select appropriate AI type for this level (with debug override support)
-    const aiTypeName = state.aiTypeOverride || selectAIForLevel(levelConfig.specialBehaviors)
+    const aiTypeName = stateForRivalTurn.aiTypeOverride || selectAIForLevel(levelConfig.specialBehaviors)
     const ai = AIRegistry.create(aiTypeName)
 
     // Generate dual rival clues (visible X marks + hidden AI clues)
     const dualClues = generateDualRivalClues(
-      state,
-      state.rivalClueCounter + 1,
-      state.rivalClueCounter + 1
+      stateForRivalTurn,
+      stateForRivalTurn.rivalClueCounter + 1,
+      stateForRivalTurn.rivalClueCounter + 1
     )
 
     // Apply only visible clues to the game state (X marks for player)
-    const stateWithVisibleClues = applyVisibleRivalClues(state, dualClues.visiblePairs)
+    const stateWithVisibleClues = applyVisibleRivalClues(stateForRivalTurn, dualClues.visiblePairs)
 
     // Build AI context
     const context: AIContext = {

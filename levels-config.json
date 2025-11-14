@@ -425,6 +425,11 @@
           "type": "extraDirty",
           "count": 4,
           "placement": "random"
+        },
+        {
+          "type": "goblin",
+          "count": 1,
+          "placement": "nonmine"
         }
       ],
       "specialBehaviors": {
@@ -470,6 +475,11 @@
           "type": "extraDirty",
           "count": 6,
           "placement": "random"
+        },
+        {
+          "type": "goblin",
+          "count": 1,
+          "placement": "nonmine"
         }
       ],
       "specialBehaviors": {
@@ -511,7 +521,7 @@
         },
         {
           "type": "goblin",
-          "count": 2,
+          "count": 3,
           "placement": "nonmine"
         }
       ],
@@ -522,15 +532,15 @@
       }
     },
     {
-      "levelNumber": 13,
-      "levelId": "L13",
+      "levelNumber": 14,
+      "levelId": "L14",
       "uponFinish": {
         "cardReward": true,
         "equipmentReward": false,
         "upgradeReward": true,
         "shopReward": false,
         "winTheGame": false,
-        "nextLevel": ["L14"]
+        "nextLevel": ["L15"]
       },
       "description": "Introducing: goblin lair",
       "dimensions": {
@@ -614,15 +624,15 @@
       }
     },
     {
-      "levelNumber": 14,
-      "levelId": "L14",
+      "levelNumber": 13,
+      "levelId": "L13",
       "uponFinish": {
         "cardReward": true,
-        "equipmentReward": true,
-        "upgradeReward": false,
+        "equipmentReward": false,
+        "upgradeReward": true,
         "shopReward": false,
         "winTheGame": false,
-        "nextLevel": ["L15"]
+        "nextLevel": ["L14"]
       },
       "description": "Strategic Lair Removal",
       "dimensions": {
@@ -655,7 +665,7 @@
         },
         {
           "type": "goblin",
-          "count": 2,
+          "count": 3,
           "placement": "nonmine"
         },
         {
@@ -714,6 +724,11 @@
           "type": "lair",
           "count": 5,
           "placement": [[2,1],[7,1],[1,2],[8,2],[1,7],[8,7],[2,8],[7,8]]
+        },
+        {
+          "type": "surfaceMine",
+          "count": 1,
+          "placement": {"owner": ["player", "neutral"]}
         }
       ],
       "specialBehaviors": {
@@ -756,6 +771,11 @@
           "type": "lair",
           "count": 2,
           "placement": "empty"
+        },
+        {
+          "type": "surfaceMine",
+          "count": 1,
+          "placement": {"owner": ["player", "neutral"]}
         }
       ],
       "specialBehaviors": {
@@ -800,7 +820,7 @@
         },
         {
           "type": "surfaceMine",
-          "count": 3,
+          "count": 4,
           "placement": {"owner": ["player", "neutral"]}
         }
       ],
@@ -846,7 +866,7 @@
         },
         {
           "type": "surfaceMine",
-          "count": 3,
+          "count": 4,
           "placement": {"owner": ["player", "neutral"]}
         }
       ],
@@ -861,7 +881,7 @@
       "levelNumber": 20,
       "levelId": "L20",
       "uponFinish": {
-        "cardReward": false,
+        "cardReward": true,
         "equipmentReward": false,
         "upgradeReward": false,
         "shopReward": true,

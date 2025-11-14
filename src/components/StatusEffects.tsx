@@ -92,7 +92,7 @@ export function StatusEffects({ statusEffects }: StatusEffectsProps) {
           >
           {effect.icon}
           {/* Count indicator for effects with counts */}
-          {effect.count !== undefined && effect.count > 1 && (
+          {effect.count !== undefined && effect.count >= 1 && (
             <div style={{
               position: 'absolute',
               bottom: '-2px',

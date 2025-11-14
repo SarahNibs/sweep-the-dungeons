@@ -1,9 +1,13 @@
 import { GameState, Position, Tile } from '../../types'
-import { getUnrevealedTilesByOwner, revealTileWithEquipmentEffects } from '../cardEffects'
+import { getUnrevealedTilesByOwner, revealTileWithEquipmentEffects, addOwnerSubsetAnnotation } from '../cardEffects'
 import { executeTingleEffect } from '../cards/report'
 import { selectTrystTiles } from '../cards/tryst'
 import { queueCardDrawsFromDirtCleaning, drawCards } from '../cardSystem'
 import { isTestMode } from '../utils/testMode'
+
+function manhattanDistance(pos1: Position, pos2: Position): number {
+  return Math.abs(pos1.x - pos2.x) + Math.abs(pos1.y - pos2.y)
+}
 
 /**
  * AnimationController handles card animations (Tingle, Tryst)
@@ -64,7 +68,7 @@ export class AnimationController {
 
     if (isTestMode()) {
       // In tests, execute immediately without animation
-      let effectState = state
+      let effectState = currentState
       for (const tile of randomTiles) {
         effectState = executeTingleEffect(effectState, tile.position, isEnhanced)
       }
@@ -74,7 +78,7 @@ export class AnimationController {
 
     // Start the sequential animation with first tile
     this.setState({
-      ...state,
+      ...currentState,
       tingleAnimation: {
         isActive: true,
         targetTile: randomTiles[0].position,
@@ -177,11 +181,10 @@ export class AnimationController {
     if (reveals.length === 0) return
 
     if (isTestMode()) {
-      // In tests, execute immediately without animation
-      let effectState = state
-      for (const { tile, revealer } of reveals) {
-        effectState = revealTileWithEquipmentEffects(effectState, tile.position, revealer)
-      }
+      // In tests, execute immediately without animation - use executeTrystEffect to include annotations
+      const { executeTrystEffect } = require('../cards/tryst')
+      const card = { enhanced: isEnhanced }
+      const effectState = executeTrystEffect(state, target, card)
       this.setState(effectState)
       return
     }
@@ -193,7 +196,9 @@ export class AnimationController {
         isActive: true,
         highlightedTile: reveals[0].tile.position,
         revealsRemaining: reveals,
-        currentRevealIndex: 0
+        currentRevealIndex: 0,
+        isEnhanced,
+        target
       }
     })
 
@@ -210,12 +215,58 @@ export class AnimationController {
     const currentState = this.getState()
     if (!currentState.trystAnimation || !currentState.trystAnimation.isActive) return
 
-    const { revealsRemaining, currentRevealIndex } = currentState.trystAnimation
+    const { revealsRemaining, currentRevealIndex, isEnhanced, target } = currentState.trystAnimation
 
     if (currentRevealIndex >= revealsRemaining.length) {
+      // All reveals complete - apply enhanced annotations if needed
+      let finalState = currentState
+
+      if (isEnhanced && target && revealsRemaining.length > 0) {
+        console.log(`[TRYST] Enhanced mode: Adding annotations for tiles closer to target (${target.x},${target.y})`)
+
+        // For each reveal, annotate closer unrevealed tiles
+        for (const { tile } of revealsRemaining) {
+          const revealedDistance = manhattanDistance(tile.position, target)
+          const revealedOwner = tile.owner
+
+          console.log(`[TRYST] Processing reveal: (${tile.position.x},${tile.position.y})[${revealedOwner}] at distance ${revealedDistance}`)
+
+          // Determine "not of type" annotation
+          let notOfTypeSubset: Set<'player' | 'rival' | 'neutral' | 'mine'>
+          if (revealedOwner === 'rival') {
+            notOfTypeSubset = new Set(['player', 'neutral', 'mine'])
+            console.log(`[TRYST] Revealed rival at distance ${revealedDistance}, marking closer tiles as "not rival"`)
+          } else if (revealedOwner === 'player') {
+            notOfTypeSubset = new Set(['neutral', 'rival', 'mine'])
+            console.log(`[TRYST] Revealed player at distance ${revealedDistance}, marking closer tiles as "not player"`)
+          } else {
+            console.log(`[TRYST] WARNING: Revealed tile is neither player nor rival (${revealedOwner}), skipping annotations`)
+            continue
+          }
+
+          // Find all tiles strictly closer to target (distance < revealedDistance)
+          let annotatedCount = 0
+          for (const boardTile of finalState.board.tiles.values()) {
+            if (boardTile.revealed || boardTile.owner === 'empty') {
+              continue
+            }
+
+            const tileDistance = manhattanDistance(boardTile.position, target)
+            if (tileDistance < revealedDistance) {
+              console.log(`[TRYST] Annotating tile (${boardTile.position.x},${boardTile.position.y})[${boardTile.owner}] at distance ${tileDistance} < ${revealedDistance}`)
+              finalState = addOwnerSubsetAnnotation(finalState, boardTile.position, notOfTypeSubset)
+              annotatedCount++
+            }
+          }
+          console.log(`[TRYST] Annotated ${annotatedCount} tiles closer than distance ${revealedDistance}`)
+        }
+      } else {
+        console.log(`[TRYST] Not adding annotations: enhanced=${isEnhanced}, target=${target ? 'present' : 'none'}, reveals=${revealsRemaining.length}`)
+      }
+
       // Animation complete - clear processing flag
       this.setState({
-        ...currentState,
+        ...finalState,
         trystAnimation: null,
         isProcessingCard: false
       })

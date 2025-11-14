@@ -4,7 +4,7 @@ import { triggerMopEffect, hasEquipment } from '../equipment'
 
 export function executeSweepEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
   let currentBoard = state.board
-  let tilesCleanedCount = 0  // Only count dirt, not goblins
+  let tilesCleanedCount = 0  // Count dirt, goblins, and surface mines for Mop
 
   // Enhanced: 7x7 area (-3 to +3), Normal: 5x5 area (-2 to +2)
   const range = card?.enhanced ? 3 : 2
@@ -28,6 +28,7 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
   for (const position of goblinPositions) {
     const { board: boardAfterGoblinMove } = cleanGoblin(currentBoard, position)
     currentBoard = boardAfterGoblinMove
+    tilesCleanedCount++  // Count goblin for Mop effect
   }
 
   // Second pass: clear dirt tiles and count for Mop

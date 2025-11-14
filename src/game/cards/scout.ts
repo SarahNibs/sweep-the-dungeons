@@ -9,13 +9,15 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
 
   let newState = state
 
-  // If this is a goblin tile, move it (but don't trigger Mop)
+  // If this is a goblin tile, move it and trigger Mop
   if (hasSpecialTile(tile, 'goblin')) {
     const { board: boardAfterGoblinMove } = cleanGoblin(state.board, target)
     newState = {
       ...state,
       board: boardAfterGoblinMove
     }
+    // Trigger Mop effect for cleaning goblin
+    newState = triggerMopEffect(newState, 1)
   }
 
   // If this is an extraDirty tile, clear the dirty state
@@ -135,6 +137,8 @@ export function executeScoutEffect(state: GameState, target: Position, card?: im
             ...stateAfterAdjacentClean,
             board: boardAfterGoblinMove
           }
+          // Trigger Mop effect for cleaning goblin
+          stateAfterAdjacentClean = triggerMopEffect(stateAfterAdjacentClean, 1)
         }
 
         // Clean dirt if present on adjacent tile

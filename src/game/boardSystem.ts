@@ -535,34 +535,65 @@ export function spawnGoblinsFromLairs(board: Board): Board {
   for (const lairTile of lairTiles) {
     const neighbors = getNeighbors(currentBoard, lairTile.position)
 
-    // Find all unrevealed adjacent tiles that are not mines and don't already have goblins
-    const validSpawnTargets = neighbors
+    // Priority 1: Unrevealed non-mined tiles WITHOUT surface mines
+    const priority1 = neighbors
       .map(pos => ({ pos, tile: getTile(currentBoard, pos) }))
-      .filter(({ tile }) =>
-        tile &&
-        !tile.revealed &&
-        tile.owner !== 'empty' &&
-        tile.owner !== 'mine' &&
-        !hasSpecialTile(tile, 'goblin')
+      .filter((entry): entry is { pos: Position; tile: Tile } =>
+        entry.tile !== undefined &&
+        !entry.tile.revealed &&
+        entry.tile.owner !== 'empty' &&
+        entry.tile.owner !== 'mine' &&
+        !hasSpecialTile(entry.tile, 'goblin') &&
+        !hasSpecialTile(entry.tile, 'surfaceMine')
       )
 
+    // Priority 2: Unrevealed mined tiles WITHOUT surface mines
+    const priority2 = neighbors
+      .map(pos => ({ pos, tile: getTile(currentBoard, pos) }))
+      .filter((entry): entry is { pos: Position; tile: Tile } =>
+        entry.tile !== undefined &&
+        !entry.tile.revealed &&
+        entry.tile.owner === 'mine' &&
+        !hasSpecialTile(entry.tile, 'goblin') &&
+        !hasSpecialTile(entry.tile, 'surfaceMine')
+      )
 
-    // If no valid non-mine targets, try spawning on mines as fallback
-    if (validSpawnTargets.length === 0) {
-      const mineSpawnTargets = neighbors
-        .map(pos => ({ pos, tile: getTile(currentBoard, pos) }))
-        .filter(({ tile }) =>
-          tile &&
-          !tile.revealed &&
-          tile.owner === 'mine' &&
-          !hasSpecialTile(tile, 'goblin')
-        )
+    // Priority 3: Unrevealed non-mined tiles WITH surface mines (will explode)
+    const priority3 = neighbors
+      .map(pos => ({ pos, tile: getTile(currentBoard, pos) }))
+      .filter((entry): entry is { pos: Position; tile: Tile } =>
+        entry.tile !== undefined &&
+        !entry.tile.revealed &&
+        entry.tile.owner !== 'empty' &&
+        entry.tile.owner !== 'mine' &&
+        !hasSpecialTile(entry.tile, 'goblin') &&
+        hasSpecialTile(entry.tile, 'surfaceMine')
+      )
 
-      if (mineSpawnTargets.length === 0) {
-        continue
-      }
+    // Priority 4: Unrevealed mined tiles WITH surface mines (will explode)
+    const priority4 = neighbors
+      .map(pos => ({ pos, tile: getTile(currentBoard, pos) }))
+      .filter((entry): entry is { pos: Position; tile: Tile } =>
+        entry.tile !== undefined &&
+        !entry.tile.revealed &&
+        entry.tile.owner === 'mine' &&
+        !hasSpecialTile(entry.tile, 'goblin') &&
+        hasSpecialTile(entry.tile, 'surfaceMine')
+      )
 
-      validSpawnTargets.push(...mineSpawnTargets)
+    // Select targets by priority
+    let validSpawnTargets: Array<{ pos: Position; tile: Tile }>
+    if (priority1.length > 0) {
+      validSpawnTargets = priority1
+    } else if (priority2.length > 0) {
+      validSpawnTargets = priority2
+    } else if (priority3.length > 0) {
+      validSpawnTargets = priority3
+    } else if (priority4.length > 0) {
+      validSpawnTargets = priority4
+    } else {
+      // No valid targets
+      continue
     }
 
     // Pick random target
@@ -570,11 +601,21 @@ export function spawnGoblinsFromLairs(board: Board): Board {
     const targetPos = validSpawnTargets[randomIndex].pos
     const targetTile = getTile(currentBoard, targetPos)!
 
-
-    // Spawn goblin on target tile
     const newTiles = new Map(currentBoard.tiles)
-    const updatedTile = addSpecialTile(targetTile, 'goblin')
-    newTiles.set(positionToKey(targetPos), updatedTile)
+
+    // Check if spawning on a surface mine - if so, explode it immediately
+    if (hasSpecialTile(targetTile, 'surfaceMine')) {
+      // Explode the surface mine (mark as destroyed, goblin doesn't spawn)
+      newTiles.set(positionToKey(targetPos), {
+        ...targetTile,
+        owner: 'empty',
+        specialTiles: ['destroyed']
+      })
+    } else {
+      // Normal spawn (no surface mine)
+      const updatedTile = addSpecialTile(targetTile, 'goblin')
+      newTiles.set(positionToKey(targetPos), updatedTile)
+    }
 
     currentBoard = {
       ...currentBoard,

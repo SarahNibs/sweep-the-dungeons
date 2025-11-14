@@ -1,12 +1,13 @@
-import { GameState } from '../../types'
+import { GameState, Tile } from '../../types'
 import { calculateAdjacency, removeSpecialTile } from '../boardSystem'
 import { hasEquipment } from './equipmentUtils'
 
-export function triggerDustBunnyEffect(state: GameState): GameState {
-  if (!hasEquipment(state, 'Dust Bunny')) {
-    return state
-  }
-
+/**
+ * Helper function to reveal a random unrevealed player tile (excluding dirty tiles).
+ * Automatically defuses surface mines if present.
+ * @returns Object containing updated state, the revealed tile (or null if none available), and copper gained from defusing
+ */
+function revealRandomPlayerTile(state: GameState): { state: GameState, revealedTile: Tile | null, copperGained: number } {
   // Find all unrevealed player tiles that are not dirty
   const unrevealedPlayerTiles = Array.from(state.board.tiles.values()).filter(tile =>
     tile.owner === 'player' &&
@@ -15,7 +16,7 @@ export function triggerDustBunnyEffect(state: GameState): GameState {
   )
 
   if (unrevealedPlayerTiles.length === 0) {
-    return state
+    return { state, revealedTile: null, copperGained: 0 }
   }
 
   // Select a random player tile
@@ -49,23 +50,35 @@ export function triggerDustBunnyEffect(state: GameState): GameState {
   // Calculate adjacency count using the board's adjacency rule
   const adjacencyCount = calculateAdjacency(currentState.board, tileToReveal.position, 'player')
 
-  newTiles.set(key, {
+  const revealedTile = {
     ...tileToReveal,
     revealed: true,
-    revealedBy: 'player',
+    revealedBy: 'player' as const,
     adjacencyCount
-  })
-
-  if (copperFromDefusing > 0) {
   }
+
+  newTiles.set(key, revealedTile)
 
   return {
-    ...currentState,
-    board: {
-      ...currentState.board,
-      tiles: newTiles
-    }
+    state: {
+      ...currentState,
+      board: {
+        ...currentState.board,
+        tiles: newTiles
+      }
+    },
+    revealedTile,
+    copperGained: copperFromDefusing
   }
+}
+
+export function triggerDustBunnyEffect(state: GameState): GameState {
+  if (!hasEquipment(state, 'Dust Bunny')) {
+    return state
+  }
+
+  const { state: newState } = revealRandomPlayerTile(state)
+  return newState
 }
 
 export function triggerTemporaryBunnyBuffs(state: GameState): GameState {
@@ -76,72 +89,20 @@ export function triggerTemporaryBunnyBuffs(state: GameState): GameState {
   // Reveal tiles for all buffs in a loop
   let currentState = state
   let buffsRemaining = state.temporaryBunnyBuffs
-  let totalCopperFromDefusing = 0
 
   while (buffsRemaining > 0) {
-    // Find all unrevealed player tiles that are not dirty
-    const unrevealedPlayerTiles = Array.from(currentState.board.tiles.values()).filter(tile =>
-      tile.owner === 'player' &&
-      !tile.revealed &&
-      !tile.specialTiles.includes('extraDirty')
-    )
+    const { state: newState, revealedTile } = revealRandomPlayerTile(currentState)
 
-    if (unrevealedPlayerTiles.length === 0) {
+    if (!revealedTile) {
       // No tiles to reveal, consume remaining buffs and exit
       return {
-        ...currentState,
+        ...newState,
         temporaryBunnyBuffs: 0
       }
     }
 
-    // Select a random player tile
-    const randomTile = unrevealedPlayerTiles[Math.floor(Math.random() * unrevealedPlayerTiles.length)]
-
-    // Check if this tile has a surface mine and defuse it first
-    const key = `${randomTile.position.x},${randomTile.position.y}`
-    let tileToReveal = randomTile
-
-    if (randomTile.specialTiles.includes('surfaceMine')) {
-      const newTiles = new Map(currentState.board.tiles)
-      const defusedTile = removeSpecialTile(randomTile, 'surfaceMine')
-      newTiles.set(key, defusedTile)
-      tileToReveal = defusedTile
-      currentState = {
-        ...currentState,
-        board: {
-          ...currentState.board,
-          tiles: newTiles
-        },
-        copper: currentState.copper + 3
-      }
-      totalCopperFromDefusing += 3
-    }
-
-    // Now reveal the tile (with surface mine removed if it had one)
-    const newTiles = new Map(currentState.board.tiles)
-
-    // Calculate adjacency count using the board's adjacency rule
-    const adjacencyCount = calculateAdjacency(currentState.board, tileToReveal.position, 'player')
-
-    newTiles.set(key, {
-      ...tileToReveal,
-      revealed: true,
-      revealedBy: 'player',
-      adjacencyCount
-    })
-
-    currentState = {
-      ...currentState,
-      board: {
-        ...currentState.board,
-        tiles: newTiles
-      }
-    }
-
+    currentState = newState
     buffsRemaining--
-  }
-
-  if (totalCopperFromDefusing > 0) {
   }
 
   return {
@@ -155,65 +116,8 @@ export function triggerMatedPairEffect(state: GameState): GameState {
     return state
   }
 
-  // Find all unrevealed player tiles that are not dirty
-  const unrevealedPlayerTiles = Array.from(state.board.tiles.values()).filter(tile =>
-    tile.owner === 'player' &&
-    !tile.revealed &&
-    !tile.specialTiles.includes('extraDirty')
-  )
-
-  if (unrevealedPlayerTiles.length === 0) {
-    return state
-  }
-
-  // Select a random player tile
-  const randomTile = unrevealedPlayerTiles[Math.floor(Math.random() * unrevealedPlayerTiles.length)]
-
-  // Check if this tile has a surface mine and defuse it first
-  let currentState = state
-  let copperFromDefusing = 0
-  const key = `${randomTile.position.x},${randomTile.position.y}`
-  let tileToReveal = randomTile
-
-  if (randomTile.specialTiles.includes('surfaceMine')) {
-    const newTiles = new Map(currentState.board.tiles)
-    const defusedTile = removeSpecialTile(randomTile, 'surfaceMine')
-    newTiles.set(key, defusedTile)
-    tileToReveal = defusedTile
-    currentState = {
-      ...currentState,
-      board: {
-        ...currentState.board,
-        tiles: newTiles
-      },
-      copper: currentState.copper + 3
-    }
-    copperFromDefusing = 3
-  }
-
-  // Now reveal the tile (with surface mine removed if it had one)
-  const newTiles = new Map(currentState.board.tiles)
-
-  // Calculate adjacency count using the board's adjacency rule
-  const adjacencyCount = calculateAdjacency(currentState.board, tileToReveal.position, 'player')
-
-  newTiles.set(key, {
-    ...tileToReveal,
-    revealed: true,
-    revealedBy: 'player',
-    adjacencyCount
-  })
-
-  if (copperFromDefusing > 0) {
-  }
-
-  return {
-    ...currentState,
-    board: {
-      ...currentState.board,
-      tiles: newTiles
-    }
-  }
+  const { state: newState } = revealRandomPlayerTile(state)
+  return newState
 }
 
 export function triggerBabyBunnyEffect(state: GameState): GameState {
@@ -221,63 +125,6 @@ export function triggerBabyBunnyEffect(state: GameState): GameState {
     return state
   }
 
-  // Find all unrevealed player tiles that are not dirty
-  const unrevealedPlayerTiles = Array.from(state.board.tiles.values()).filter(tile =>
-    tile.owner === 'player' &&
-    !tile.revealed &&
-    !tile.specialTiles.includes('extraDirty')
-  )
-
-  if (unrevealedPlayerTiles.length === 0) {
-    return state
-  }
-
-  // Select a random player tile
-  const randomTile = unrevealedPlayerTiles[Math.floor(Math.random() * unrevealedPlayerTiles.length)]
-
-  // Check if this tile has a surface mine and defuse it first
-  let currentState = state
-  let copperFromDefusing = 0
-  const key = `${randomTile.position.x},${randomTile.position.y}`
-  let tileToReveal = randomTile
-
-  if (randomTile.specialTiles.includes('surfaceMine')) {
-    const newTiles = new Map(currentState.board.tiles)
-    const defusedTile = removeSpecialTile(randomTile, 'surfaceMine')
-    newTiles.set(key, defusedTile)
-    tileToReveal = defusedTile
-    currentState = {
-      ...currentState,
-      board: {
-        ...currentState.board,
-        tiles: newTiles
-      },
-      copper: currentState.copper + 3
-    }
-    copperFromDefusing = 3
-  }
-
-  // Now reveal the tile (with surface mine removed if it had one)
-  const newTiles = new Map(currentState.board.tiles)
-
-  // Calculate adjacency count using the board's adjacency rule
-  const adjacencyCount = calculateAdjacency(currentState.board, tileToReveal.position, 'player')
-
-  newTiles.set(key, {
-    ...tileToReveal,
-    revealed: true,
-    revealedBy: 'player',
-    adjacencyCount
-  })
-
-  if (copperFromDefusing > 0) {
-  }
-
-  return {
-    ...currentState,
-    board: {
-      ...currentState.board,
-      tiles: newTiles
-    }
-  }
+  const { state: newState } = revealRandomPlayerTile(state)
+  return newState
 }

@@ -215,6 +215,8 @@ export interface GameState {
     highlightedTile: Position | null
     revealsRemaining: Array<{ tile: Tile; revealer: 'player' | 'rival' }>
     currentRevealIndex: number
+    isEnhanced?: boolean
+    target?: Position
   } | null
   adjacencyPatternAnimation: {
     isActive: boolean

@@ -1,5 +1,6 @@
 import { GameState, Position } from '../../types'
 import { getTile, getNeighbors } from '../boardSystem'
+import { addOwnerSubsetAnnotation } from '../cardEffects'
 
 export function executeEavesdroppingEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
   const targetTile = getTile(state.board, target)
@@ -8,13 +9,13 @@ export function executeEavesdroppingEffect(state: GameState, target: Position, c
     // Can't eavesdrop on empty spaces
     return state
   }
-  
+
   // Get all neighbor positions of the target tile
   const neighborPositions = getNeighbors(state.board, target)
-  
+
   // Count adjacent tiles by type
   const adjacencyInfo: { player?: number; neutral?: number; rival?: number; mine?: number } = {}
-  
+
   if (card?.enhanced) {
     // Enhanced version: show all adjacency info
     let playerCount = 0
@@ -78,12 +79,27 @@ export function executeEavesdroppingEffect(state: GameState, target: Position, c
     ...targetTile,
     annotations: newAnnotations
   })
-  
-  return {
+
+  let finalState = {
     ...state,
     board: {
       ...state.board,
       tiles: newTiles
     }
   }
+
+  // Add owner subset annotation based on actual tile owner
+  if (card?.enhanced) {
+    // Enhanced: Annotate with exact owner type
+    const ownerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>([targetTile.owner as 'player' | 'rival' | 'neutral' | 'mine'])
+    finalState = addOwnerSubsetAnnotation(finalState, target, ownerSubset)
+  } else {
+    // Basic: Annotate as 'player' or 'not-player'
+    const ownerSubset = targetTile.owner === 'player'
+      ? new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player'])
+      : new Set<'player' | 'rival' | 'neutral' | 'mine'>(['neutral', 'rival', 'mine'])
+    finalState = addOwnerSubsetAnnotation(finalState, target, ownerSubset)
+  }
+
+  return finalState
 }

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { UpgradeOption, Card as CardType } from '../types'
 import { Card } from './Card'
 import { PileViewingScreen } from './PileViewingScreen'
+import { Tooltip } from './Tooltip'
+import { getCardDescription } from '../game/gameRepository'
 
 interface UpgradeSelectionScreenProps {
   upgradeOptions: UpgradeOption[]
@@ -154,33 +156,37 @@ export function UpgradeSelectionScreen({
         alignItems: 'center',
         marginBottom: '40px'
       }}>
-        {upgradeOptions.map((option, index) => (
-          <div 
-            key={index} 
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '10px',
-              cursor: 'pointer',
-              padding: '20px',
-              borderRadius: '12px',
-              backgroundColor: 'rgba(0, 0, 0, 0.3)',
-              border: '2px solid transparent',
-              transition: 'all 0.2s',
-              minHeight: '280px',
-              width: '200px'
-            }}
-            onClick={() => onUpgradeSelect(option)}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#74b9ff'
-              e.currentTarget.style.backgroundColor = 'rgba(116, 185, 255, 0.1)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'transparent'
-              e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.3)'
-            }}
-          >
+        {upgradeOptions.map((option, index) => {
+          // Get tooltip text for card options
+          const tooltipText = option.displayCard ? getCardDescription(option.displayCard) : 'Remove a card from your deck'
+
+          return (
+          <Tooltip key={index} text={tooltipText} style={{ display: 'inline-block' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '10px',
+                cursor: 'pointer',
+                padding: '20px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                border: '2px solid transparent',
+                transition: 'all 0.2s',
+                minHeight: '280px',
+                width: '200px'
+              }}
+              onClick={() => onUpgradeSelect(option)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#74b9ff'
+                e.currentTarget.style.backgroundColor = 'rgba(116, 185, 255, 0.1)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'transparent'
+                e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.3)'
+              }}
+            >
             {option.type === 'remove_card' ? (
               <>
                 <div style={{
@@ -216,12 +222,13 @@ export function UpgradeSelectionScreen({
             ) : option.displayCard ? (
               <>
                 <div style={{ transform: 'scale(0.8)' }}>
-                  <Card 
+                  <Card
                     card={option.displayCard}
-                    onClick={() => {}} 
+                    onClick={() => {}}
                     isPlayable={true}
                     showUpgradeIndicator={option.type}
                     applyStatusEffects={false}
+                    disableTooltip={true}
                   />
                 </div>
                 <div style={{
@@ -245,8 +252,10 @@ export function UpgradeSelectionScreen({
                 </div>
               </>
             ) : null}
-          </div>
-        ))}
+            </div>
+          </Tooltip>
+          )
+        })}
       </div>
 
       {/* View Deck button */}

@@ -8,14 +8,19 @@ interface PromptWidgetProps {
   currentLevel: string
   onAdvanceLevel?: () => void
   isEspressoForcedPlay?: boolean
+  saturationConfirmation: { position: Position } | null
+  onConfirmSaturation: () => void
+  onCancelSaturation: () => void
 }
 
-export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel, onAdvanceLevel, isEspressoForcedPlay }: PromptWidgetProps) {
+export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel, onAdvanceLevel, isEspressoForcedPlay, saturationConfirmation, onConfirmSaturation, onCancelSaturation }: PromptWidgetProps) {
   const levelConfig = getLevelConfig(currentLevel)
   const levelNumber = levelConfig?.levelNumber || currentLevel
-  
+
   const getDisplayText = () => {
-    if (gameStatus.status === 'player_won') {
+    if (saturationConfirmation) {
+      return 'That tile is ruled out by information on an adjacent tile, are you sure?'
+    } else if (gameStatus.status === 'player_won') {
       const rivalLeft = gameStatus.rivalTilesLeft || 0
       const isGameWon = levelConfig?.uponFinish?.winTheGame || false
 
@@ -50,6 +55,7 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel
   const displayText = getDisplayText()
 
   const getBackgroundColor = () => {
+    if (saturationConfirmation) return '#4a69bd' // Blue for saturation confirmation
     if (gameStatus.status === 'player_won') return '#28a745' // Green for victory
     if (gameStatus.status === 'player_lost') return '#dc3545' // Red for defeat
     return '#636e72' // Default gray
@@ -67,11 +73,11 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel
       minHeight: '48px',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: (targetingInfo && gameStatus.status === 'playing') || (gameStatus.status === 'player_won') ? 'space-between' : 'center',
+      justifyContent: (targetingInfo && gameStatus.status === 'playing') || (gameStatus.status === 'player_won') || saturationConfirmation ? 'space-between' : 'center',
       margin: '20px 0',
       width: '100%',
       border: '2px solid #74b9ff',
-      gap: (targetingInfo && gameStatus.status === 'playing') || (gameStatus.status === 'player_won') ? '20px' : '0'
+      gap: (targetingInfo && gameStatus.status === 'playing') || (gameStatus.status === 'player_won') || saturationConfirmation ? '20px' : '0'
     }}>
       <div style={{ flex: 1 }}>
         {displayText}
@@ -111,6 +117,41 @@ export function PromptWidget({ targetingInfo, onCancel, gameStatus, currentLevel
         >
           Next Floor
         </button>
+      )}
+
+      {saturationConfirmation && (
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={onConfirmSaturation}
+            style={{
+              padding: '8px 16px',
+              fontSize: '14px',
+              backgroundColor: '#e74c3c',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            Reveal Anyway
+          </button>
+          <button
+            onClick={onCancelSaturation}
+            style={{
+              padding: '8px 16px',
+              fontSize: '14px',
+              backgroundColor: '#95a5a6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            Cancel
+          </button>
+        </div>
       )}
     </div>
   )

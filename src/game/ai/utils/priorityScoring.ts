@@ -1,18 +1,27 @@
 import { Tile, ClueResult, Position, GameState } from '../../../types'
+import { positionToKey } from '../../boardSystem'
 
 /**
  * Calculate the priority score for a tile based on AI clues
  * Higher score = more likely to be a rival tile = AI should reveal it
+ *
+ * Rival clue decay formula:
+ * - Current turn clues: full pip count
+ * - Past turn clues: max(pips - 1, 0)
  */
 export function calculateTilePriority(
   tile: Tile,
-  hiddenRivalCluesPairs: { clueResult: ClueResult, targetPosition: Position }[]
+  currentTurnCluesPairs: { clueResult: ClueResult, targetPosition: Position }[],
+  state: GameState,
+  logDetails: boolean = false
 ): number {
   // Only use player clues and hidden rival clues for AI decisions
   // Completely ignore visible rival clues (X marks)
 
   let playerScore = 0
   let rivalScore = 0
+  let currentTurnRivalPips = 0
+  let historicalRivalPips = 0
 
   // Get player clue strength for this tile
   const playerClueAnnotations = tile.annotations.find(a => a.type === 'clue_results')
@@ -24,12 +33,32 @@ export function calculateTilePriority(
     })
   }
 
-  // Get hidden rival clue strength for this tile using proper mapping
-  hiddenRivalCluesPairs.forEach(({ clueResult, targetPosition }) => {
-    if (targetPosition.x === tile.position.x && targetPosition.y === tile.position.y) {
-      rivalScore += clueResult.strengthForThisTile
+  const tileKey = positionToKey(tile.position)
+
+  // Step 1: Process CURRENT turn clues (from parameter) - use full pip count
+  // These clues are NOT in state.rivalHiddenClues[] yet
+  for (const { clueResult, targetPosition } of currentTurnCluesPairs) {
+    if (positionToKey(targetPosition) === tileKey) {
+      currentTurnRivalPips += clueResult.strengthForThisTile
     }
-  })
+  }
+  rivalScore += currentTurnRivalPips
+
+  // Step 2: Process PAST turn clues (from state) - use max(pips - 1, 0)
+  // These are all previous turns' clues
+  for (const historicalClue of state.rivalHiddenClues) {
+    // Find all tiles affected by this clue and get the pip count for our tile
+    for (let i = 0; i < historicalClue.allAffectedTiles.length; i++) {
+      const affectedPos = historicalClue.allAffectedTiles[i]
+      if (positionToKey(affectedPos) === tileKey) {
+        // This clue affects our tile - apply decay
+        const pips = historicalClue.strengthForThisTile
+        historicalRivalPips += Math.max(pips - 1, 0)
+        break
+      }
+    }
+  }
+  rivalScore += historicalRivalPips
 
   // Apply mine penalty: -0.002 if tile is a mine
   const minePenalty = tile.owner === 'mine' ? -0.002 : 0
@@ -37,36 +66,35 @@ export function calculateTilePriority(
   // Prefer tiles that are likely to be rival tiles based on AI's knowledge
   const priorityScore = rivalScore - Math.max(0, playerScore - 1) + minePenalty
 
+  if (logDetails) {
+    console.log(`[PRIORITY-SCORE] Tile (${tile.position.x},${tile.position.y})[${tile.owner}]: playerPips=${playerScore.toFixed(2)}, currentRivalPips=${currentTurnRivalPips.toFixed(2)}, historicalRivalPips=${historicalRivalPips.toFixed(2)}, minePenalty=${minePenalty.toFixed(3)} => base=${priorityScore.toFixed(2)}`)
+  }
+
   return priorityScore
 }
 
 /**
- * Apply random boost to priority based on Ramble effects, Eyeshadow equipment, and Mascara equipment
+ * Apply Distraction noise to priority (generates independent random values per tile)
  */
-export function applyRandomBoost(
+export function applyDistractionNoise(
   basePriority: number,
-  ramblePriorityBoosts: number[],
-  hasEyeshadow: boolean,
-  hasMascara: boolean
+  distractionStackCount: number,
+  logDetails: boolean = false
 ): number {
   let randomBoost = 0
 
-  // Apply Ramble boosts if active
-  if (ramblePriorityBoosts.length > 0) {
-    // For each Ramble boost, generate a separate random draw for this tile and sum them
-    randomBoost = ramblePriorityBoosts.reduce((sum, maxBoost) => sum + Math.random() * maxBoost, 0)
+  // Generate independent random noise for each Distraction stack
+  // IMPORTANT: Each tile gets its own independent random draws
+  if (distractionStackCount > 0) {
+    for (let i = 0; i < distractionStackCount; i++) {
+      randomBoost += Math.random() * 1.5
+    }
   } else {
     randomBoost = Math.random() * 0.01 // Small random tiebreaker
   }
 
-  // Apply Eyeshadow boost if equipment is present (permanent half-Ramble: random [0-1.2])
-  if (hasEyeshadow) {
-    randomBoost += Math.random() * 1.2
-  }
-
-  // Apply Mascara boost if equipment is present (additional random [0-0.5])
-  if (hasMascara) {
-    randomBoost += Math.random() * 0.5
+  if (logDetails) {
+    console.log(`[PRIORITY-SCORE] Distraction noise: ${distractionStackCount} stacks => +${randomBoost.toFixed(3)}`)
   }
 
   return basePriority + randomBoost
@@ -77,24 +105,29 @@ export function applyRandomBoost(
  */
 export function calculateTilePriorities(
   state: GameState,
-  hiddenRivalCluesPairs: { clueResult: ClueResult, targetPosition: Position }[]
+  currentTurnCluesPairs: { clueResult: ClueResult, targetPosition: Position }[]
 ): Array<{ tile: Tile; priority: number }> {
+  console.log(`\n[PRIORITY-SCORE] ========== calculateTilePriorities ==========`)
+  console.log(`[PRIORITY-SCORE] Current turn clues: ${currentTurnCluesPairs.length}, Historical clues: ${state.rivalHiddenClues.length}, Distraction stacks: ${state.distractionStackCount}`)
+
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
 
+  console.log(`[PRIORITY-SCORE] Evaluating ${unrevealedTiles.length} unrevealed tiles`)
+
   if (unrevealedTiles.length === 0) return []
 
-  // Check if player has Eyeshadow and Mascara equipment
-  const hasEyeshadow = state.equipment.some(equipment => equipment.name === 'Eyeshadow')
-  const hasMascara = state.equipment.some(equipment => equipment.name === 'Mascara')
+  // Calculate priorities using player clues + all rival clues (current + past with decay)
+  // Add Distraction noise (independent random values generated per tile for each stack)
+  const tilesWithPriority = unrevealedTiles.map((tile, index) => {
+    const logDetails = index < 10 // Log first 10 tiles in detail
+    const basePriority = calculateTilePriority(tile, currentTurnCluesPairs, state, logDetails)
+    const finalPriority = applyDistractionNoise(basePriority, state.distractionStackCount, logDetails)
 
-  // Calculate priorities using only player clues and hidden rival clues
-  // Add ramble priority boost if active (each tile gets sum of separate random draws per boost), otherwise small random tiebreaker
-  // Add Eyeshadow boost if equipment present (permanent half-Ramble effect)
-  // Add Mascara boost if equipment present (additional random [0-0.5])
-  const tilesWithPriority = unrevealedTiles.map(tile => {
-    const basePriority = calculateTilePriority(tile, hiddenRivalCluesPairs)
-    const finalPriority = applyRandomBoost(basePriority, state.ramblePriorityBoosts, hasEyeshadow, hasMascara)
+    if (logDetails) {
+      console.log(`[PRIORITY-SCORE] => Final priority: ${finalPriority.toFixed(3)}`)
+    }
+
     return {
       tile,
       priority: finalPriority
@@ -103,6 +136,11 @@ export function calculateTilePriorities(
 
   // Sort by priority (highest first - most likely to be rival)
   tilesWithPriority.sort((a, b) => b.priority - a.priority)
+
+  console.log(`[PRIORITY-SCORE] Top 5 priorities after sorting:`)
+  tilesWithPriority.slice(0, 5).forEach((tp, i) => {
+    console.log(`  ${i + 1}. (${tp.tile.position.x},${tp.tile.position.y})[${tp.tile.owner}]: ${tp.priority.toFixed(3)}`)
+  })
 
   return tilesWithPriority
 }

@@ -1,4 +1,4 @@
-import { GameState } from '../../../types'
+import { GameState, ClueResult, Position } from '../../../types'
 import { positionToKey } from '../../boardSystem'
 import { MonteCarloResults, TilePriority, ExclusionAnalysis } from './types'
 import { countRemainingTiles } from './utils'
@@ -29,21 +29,29 @@ export function calculatePriorities(
   basePriorities: Map<string, number>,
   rivalCluePipsThisTurn: Map<string, number>
 ): TilePriority[] {
+  console.log(`\n[PRIORITY] ========== calculatePriorities ==========`)
+
   const priorities: TilePriority[] = []
 
   // Count remaining tiles for bias calculations
   const remaining = countRemainingTiles(state.board.tiles)
+
+  console.log(`[PRIORITY] Remaining tiles: ${remaining.unrevealed} total, ${remaining.rival} rival, ${remaining.mine} mine`)
 
   // Bias terms for numerical stability
   const rivalBias = (remaining.rival / 100) + 0.001
   const mineBias = (remaining.mine / 100) + 0.001
   const denomBias = (remaining.unrevealed / 100) + 0.001
 
+  console.log(`[PRIORITY] Bias terms: rival=${rivalBias.toFixed(4)}, mine=${mineBias.toFixed(4)}, denom=${denomBias.toFixed(4)}`)
+
   // Get guaranteed rival position keys (to exclude from priority calculation)
   const guaranteedKeys = new Set<string>()
   for (const tile of analysis.guaranteedRivals) {
     guaranteedKeys.add(positionToKey(tile.position))
   }
+
+  console.log(`[PRIORITY] Excluding ${guaranteedKeys.size} guaranteed rivals from priority calculation`)
 
   // Process each tile in Monte Carlo results
   for (const [key, counts] of monteCarloResults.ownerCounts) {
@@ -57,7 +65,7 @@ export function calculatePriorities(
     const tile = state.board.tiles.get(key)
     if (!tile || tile.revealed || tile.owner === 'empty') continue
 
-    // Get pre-calculated base priority (includes Ramble, Eyeshadow, etc.)
+    // Get pre-calculated base priority (includes rival clue pips and Distraction noise)
     const basePriority = basePriorities.get(key) || 0
 
     // Calculate rival bonus: log₂((rival_count + bias) / (20 + denom_bias))
@@ -78,6 +86,11 @@ export function calculatePriorities(
     // Calculate final priority
     const priority = basePriority + rivalBonus - minePenalty + noClueMinePenalty
 
+    // Log detailed breakdown for first 10 tiles
+    if (priorities.length < 10) {
+      console.log(`[PRIORITY] Tile (${tile.position.x},${tile.position.y})[${tile.owner}]: base=${basePriority.toFixed(2)}, rivalBonus=${rivalBonus.toFixed(2)}, minePenalty=${minePenalty.toFixed(2)}, noClueMinePenalty=${noClueMinePenalty.toFixed(2)} => final=${priority.toFixed(2)}`)
+    }
+
     priorities.push({
       tile,
       priority,
@@ -93,6 +106,8 @@ export function calculatePriorities(
   // Sort by priority (highest first)
   priorities.sort((a, b) => b.priority - a.priority)
 
+  console.log(`[PRIORITY] Calculated ${priorities.length} total priorities, sorted by final score`)
+
   return priorities
 }
 
@@ -100,22 +115,28 @@ export function calculatePriorities(
  * Calculate base priorities for all unrevealed tiles upfront
  *
  * Base priority includes:
- * - Rival clue pips (from hidden clues)
- * - Ramble bonus (applied to ALL tiles)
- * - Eyeshadow bonus (applied to ALL tiles)
- * - Any other future effects (applied to ALL tiles)
+ * - Rival clue pips (current turn: full pips, past turns: max(pips - 1, 0))
+ * - Distraction noise (independent random values per tile per stack)
  *
- * These priorities remain constant throughout the rival's turn, even if multiple
- * tiles are revealed. They are calculated once at the start of the turn.
+ * IMPORTANT: Distraction noise is generated independently for EACH tile.
+ * Each Distraction stack generates a fresh [0, 1.5] random value per tile.
+ * This means every tile gets different noise values, ensuring priorities are differentiated.
+ *
+ * Rival clue decay formula:
+ * - Current turn clues (from parameter): full pip count
+ * - Past turn clues (from state.rivalHiddenClues[]): max(pips - 1, 0)
  *
  * @param state Current game state
- * @param rivalCluePipsThisTurn Map of pips added this turn
+ * @param currentTurnClues Current turn clue pairs (NOT yet in state.rivalHiddenClues[])
  * @returns Map from position key to base priority
  */
 export function calculateBasePriorities(
   state: GameState,
-  rivalCluePipsThisTurn: Map<string, number>
+  currentTurnClues: { clueResult: ClueResult; targetPosition: Position }[]
 ): Map<string, number> {
+  console.log(`\n[PRIORITY] ========== calculateBasePriorities ==========`)
+  console.log(`[PRIORITY] Processing ${currentTurnClues.length} current turn clues, ${state.rivalHiddenClues.length} historical clues, ${state.distractionStackCount} distraction stacks`)
+
   const basePriorities = new Map<string, number>()
 
   // Process all unrevealed tiles
@@ -123,22 +144,52 @@ export function calculateBasePriorities(
     if (tile.owner === 'empty' || tile.revealed) continue
 
     const key = positionToKey(tile.position)
+    let basePriority = 0
+    let currentTurnPips = 0
+    let historicalPips = 0
+    let distractionNoise = 0
 
-    // Start with rival clue pips from this turn
-    let basePriority = rivalCluePipsThisTurn.get(key) || 0
-
-    // Add Ramble bonuses (applied to ALL tiles, not just those with pips)
-    // Ramble provides priority boost based on ramblePriorityBoosts array
-    for (const rambleBoost of state.ramblePriorityBoosts) {
-      basePriority += rambleBoost
+    // Step 1: Process CURRENT turn clues (from parameter) - use full pip count
+    // These clues are NOT in state.rivalHiddenClues[] yet
+    for (const { clueResult, targetPosition } of currentTurnClues) {
+      if (positionToKey(targetPosition) === key) {
+        currentTurnPips += clueResult.strengthForThisTile
+      }
     }
+    basePriority += currentTurnPips
 
-    // Add Eyeshadow bonus if applicable (applied to ALL tiles)
-    // TODO: Implement Eyeshadow bonus when that equipment is added
-    // Note: According to spec, these bonuses apply to ALL tiles, not just those with clue pips
+    // Step 2: Process PAST turn clues (from state) - use max(pips - 1, 0)
+    // These are all previous turns' clues
+    for (const historicalClue of state.rivalHiddenClues) {
+      // Find if this clue affects our tile
+      for (let i = 0; i < historicalClue.allAffectedTiles.length; i++) {
+        const affectedPos = historicalClue.allAffectedTiles[i]
+        if (positionToKey(affectedPos) === key) {
+          // This clue affects our tile - apply decay
+          const pips = historicalClue.strengthForThisTile
+          historicalPips += Math.max(pips - 1, 0)
+          break
+        }
+      }
+    }
+    basePriority += historicalPips
+
+    // Generate independent Distraction noise for THIS tile
+    // Each stack generates a fresh random [0, 1.5] value
+    for (let i = 0; i < state.distractionStackCount; i++) {
+      distractionNoise += Math.random() * 1.5
+    }
+    basePriority += distractionNoise
+
+    // Log first 10 tiles with non-zero base priority
+    if (basePriority > 0 && basePriorities.size < 10) {
+      console.log(`[PRIORITY] Tile (${tile.position.x},${tile.position.y}): currentPips=${currentTurnPips.toFixed(2)}, historicalPips=${historicalPips.toFixed(2)}, distraction=${distractionNoise.toFixed(2)} => base=${basePriority.toFixed(2)}`)
+    }
 
     basePriorities.set(key, basePriority)
   }
+
+  console.log(`[PRIORITY] Calculated base priorities for ${basePriorities.size} tiles`)
 
   return basePriorities
 }

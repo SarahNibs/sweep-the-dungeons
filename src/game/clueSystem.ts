@@ -2,7 +2,7 @@ import { GameState, Position, Tile, ClueResult, Board } from '../types'
 import { getNeighbors, positionToKey } from './boardSystem'
 
 export interface ClueParams {
-  cardType: 'solid_clue' | 'stretch_clue' | 'rival_clue' | 'sarcastic_orders'
+  cardType: 'imperious_instructions' | 'vague_instructions' | 'rival_clue' | 'sarcastic_instructions'
   enhanced: boolean
   clueOrder: number
   clueRowPosition: number
@@ -228,13 +228,13 @@ export function generateClueFromBag(
   }
 }
 
-export function generatePlayerSolidClue(
+export function generatePlayerImperiousInstructions(
   state: GameState,
   clueOrder: number,
   clueRowPosition: number,
   enhanced: boolean = false
 ): ClueGenerationResult {
-  console.log(`\n[CLUE-GEN] ========== generatePlayerSolidClue (${enhanced ? 'enhanced' : 'basic'}) ==========`)
+  console.log(`\n[CLUE-GEN] ========== generatePlayerImperiousInstructions (${enhanced ? 'enhanced' : 'basic'}) ==========`)
 
   // Get positions to exclude based on adjacency info
   const excludedPositions = getExcludedPositionsByAdjacency(state.board, 'player')
@@ -278,7 +278,7 @@ export function generatePlayerSolidClue(
   const guaranteedTiles = [...chosenPlayerTiles]
 
   const params: ClueParams = {
-    cardType: 'solid_clue',
+    cardType: 'imperious_instructions',
     enhanced,
     clueOrder,
     clueRowPosition
@@ -287,13 +287,13 @@ export function generatePlayerSolidClue(
   return generateClueFromBag([...chosenPlayerTiles, ...chosenRandomTiles], guaranteedTiles, bag, 10, params)
 }
 
-export function generatePlayerStretchClue(
+export function generatePlayerVagueInstructions(
   state: GameState,
   clueOrder: number,
   clueRowPosition: number,
   enhanced: boolean = false
 ): ClueGenerationResult {
-  console.log(`\n[CLUE-GEN] ========== generatePlayerStretchClue (${enhanced ? 'enhanced' : 'basic'}) ==========`)
+  console.log(`\n[CLUE-GEN] ========== generatePlayerVagueInstructions (${enhanced ? 'enhanced' : 'basic'}) ==========`)
 
   // Get positions to exclude based on adjacency info
   const excludedPositions = getExcludedPositionsByAdjacency(state.board, 'player')
@@ -330,7 +330,7 @@ export function generatePlayerStretchClue(
   console.log(`[CLUE-GEN] Guaranteed tiles: ${guaranteedTiles.length} (${enhanced ? 'enhanced: all 5' : 'basic: first 3'})`)
   
   const params: ClueParams = {
-    cardType: 'stretch_clue',
+    cardType: 'vague_instructions',
     enhanced,
     clueOrder,
     clueRowPosition

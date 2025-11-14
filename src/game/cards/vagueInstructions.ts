@@ -1,10 +1,10 @@
 import { GameState, Card } from '../../types'
-import { generatePlayerStretchClue } from '../clueSystem'
+import { generatePlayerVagueInstructions } from '../clueSystem'
 import { addClueResult } from '../cardEffects'
 
-export function executeStretchClueEffect(state: GameState, card?: Card): GameState {
+export function executeVagueInstructionsEffect(state: GameState, card?: Card): GameState {
   const enhanced = card?.enhanced || false
-  const result = generatePlayerStretchClue(state, state.clueCounter + 1, state.playerClueCounter + 1, enhanced)
+  const result = generatePlayerVagueInstructions(state, state.clueCounter + 1, state.playerClueCounter + 1, enhanced)
   
   let newState = {
     ...state,

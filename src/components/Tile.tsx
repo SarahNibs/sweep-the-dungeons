@@ -19,11 +19,11 @@ interface TileProps {
 
 // Helper function to get hover text for clue pips
 const getClueHoverText = (clueResult: ClueResult): string => {
-  if (clueResult.cardType === 'solid_clue') {
+  if (clueResult.cardType === 'imperious_instructions') {
     return clueResult.enhanced ? 'Imperious+' : 'Imperious'
-  } else if (clueResult.cardType === 'stretch_clue') {
+  } else if (clueResult.cardType === 'vague_instructions') {
     return clueResult.enhanced ? 'Vague+' : 'Vague'
-  } else if (clueResult.cardType === 'sarcastic_orders') {
+  } else if (clueResult.cardType === 'sarcastic_instructions') {
     const antiClueText = clueResult.isAntiClue ? " (CLUED *AGAINST*)" : ''
     return (clueResult.enhanced ? 'Sarcastic+' : 'Sarcastic') + antiClueText
   }

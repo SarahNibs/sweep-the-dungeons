@@ -15,11 +15,11 @@ import { revealTileWithEquipmentEffects } from './cardEffects'
 function getCardEffectType(cardName: string): string {
   switch (cardName) {
     case 'Imperious Instructions':
-      return 'solid_clue'
+      return 'imperious_instructions'
     case 'Vague Instructions':
-      return 'stretch_clue'
+      return 'vague_instructions'
     case 'Sarcastic Instructions':
-      return 'sarcastic_orders'
+      return 'sarcastic_instructions'
     case 'Energized':
       return 'energized'
     case 'Options':
@@ -262,7 +262,7 @@ export function selectCardForMasking(state: GameState, targetCardId: string): Ga
         effectType = 'scout'
         break
       case 'Scurry':
-        effectType = 'quantum'
+        effectType = 'scurry'
         break
       case 'Brush':
         effectType = 'brush'
@@ -328,13 +328,13 @@ export function selectCardForMasking(state: GameState, targetCardId: string): Ga
       // Tingle needs animation - store will handle it
       break
     case 'Imperious Instructions':
-      newState = { ...newState, ...executeCardEffect(newState, { type: 'solid_clue' }, targetCard) }
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'imperious_instructions' }, targetCard) }
       break
     case 'Vague Instructions':
-      newState = { ...newState, ...executeCardEffect(newState, { type: 'stretch_clue' }, targetCard) }
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'vague_instructions' }, targetCard) }
       break
     case 'Sarcastic Instructions':
-      newState = { ...newState, ...executeCardEffect(newState, { type: 'sarcastic_orders' }, targetCard) }
+      newState = { ...newState, ...executeCardEffect(newState, { type: 'sarcastic_instructions' }, targetCard) }
       break
     case 'Energized':
       newState = { ...newState, ...executeCardEffect(newState, { type: 'energized' }, targetCard) }
@@ -477,7 +477,7 @@ export function playCard(state: GameState, cardId: string): GameState {
         effectType = 'scout'
         break
       case 'Scurry':
-        effectType = 'quantum'
+        effectType = 'scurry'
         break
       case 'Brush':
         effectType = 'brush'
@@ -609,13 +609,13 @@ export function playCard(state: GameState, cardId: string): GameState {
       newState = state
       break
     case 'Imperious Instructions':
-      newState = executeCardEffect(state, { type: 'solid_clue' }, card)
+      newState = executeCardEffect(state, { type: 'imperious_instructions' }, card)
       break
     case 'Vague Instructions':
-      newState = executeCardEffect(state, { type: 'stretch_clue' }, card)
+      newState = executeCardEffect(state, { type: 'vague_instructions' }, card)
       break
     case 'Sarcastic Instructions':
-      newState = executeCardEffect(state, { type: 'sarcastic_orders' }, card)
+      newState = executeCardEffect(state, { type: 'sarcastic_instructions' }, card)
       break
     case 'Energized':
       newState = executeCardEffect(state, { type: 'energized' }, card)
@@ -952,7 +952,7 @@ export function createInitialState(
   preservedStatusEffects?: import('../types').StatusEffect[],
   shopVisitCount: number = 0,
   playerTilesRevealedCount: number = 0,
-  debugFlags?: { adjacencyColor: boolean; adjacencyStyle: 'palette' | 'dark'; easyMode: boolean; sarcasticOrdersAlternate: boolean }
+  debugFlags?: { adjacencyColor: boolean; adjacencyStyle: 'palette' | 'dark'; easyMode: boolean; sarcasticInstructionsAlternate: boolean }
 ): GameState {
   const startingPersistentDeck = persistentDeck || createStartingDeck()
   const startingEquipment = equipment || []
@@ -1053,7 +1053,7 @@ export function createInitialState(
       adjacencyColor: false, // Default: black text
       adjacencyStyle: 'dark', // Default: gradient mode (light to desaturated diagonal gradient)
       easyMode: false, // Default: no easy mode
-      sarcasticOrdersAlternate: true // Default: alternate implementation (doubled draws, no green pips)
+      sarcasticInstructionsAlternate: true // Default: alternate implementation (doubled draws, no green pips)
     },
     selectedAnnotationTileType: 'player', // Default to player selected
     isProcessingCard: false,

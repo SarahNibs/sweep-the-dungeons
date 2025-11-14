@@ -85,7 +85,11 @@ function App() {
     espressoSpecialCard,
     executeTrystWithAnimation,
     itemHelpModal,
-    closeItemHelp
+    showItemHelp,
+    closeItemHelp,
+    saturationConfirmation,
+    confirmSaturationReveal,
+    cancelSaturationReveal
   } = useGameStore()
 
   // Determine current screen: check modal stack first, then fall back to gamePhase
@@ -285,6 +289,9 @@ function App() {
           currentLevel={currentLevelId}
           onAdvanceLevel={startCardSelection}
           isEspressoForcedPlay={!!espressoForcedPlay}
+          saturationConfirmation={saturationConfirmation}
+          onConfirmSaturation={confirmSaturationReveal}
+          onCancelSaturation={cancelSaturationReveal}
         />
 
         {/* Board area with side strips */}
@@ -348,6 +355,11 @@ function App() {
             {equipment.map((equipmentItem, index) => (
               <Tooltip key={index} text={equipmentItem.hoverText} style={{ display: 'block', margin: '0 auto' }}>
                 <div
+                  onContextMenu={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    showItemHelp(equipmentItem.name, 'equipment')
+                  }}
                   style={{
                     width: '50px',
                     height: '50px',
@@ -944,22 +956,22 @@ function App() {
                 Easy Mode: {debugFlags.easyMode ? 'On' : 'Off'}
               </button>
 
-              {/* Sarcastic Orders Alternate Toggle */}
+              {/* Sarcastic Instructions Alternate Toggle */}
               <button
-                onClick={() => toggleDebugFlag('sarcasticOrdersAlternate')}
+                onClick={() => toggleDebugFlag('sarcasticInstructionsAlternate')}
                 style={{
                   padding: '12px',
                   border: '2px solid #ccc',
                   borderRadius: '5px',
-                  backgroundColor: debugFlags.sarcasticOrdersAlternate ? '#28a745' : '#f8f9fa',
-                  color: debugFlags.sarcasticOrdersAlternate ? 'white' : 'black',
+                  backgroundColor: debugFlags.sarcasticInstructionsAlternate ? '#28a745' : '#f8f9fa',
+                  color: debugFlags.sarcasticInstructionsAlternate ? 'white' : 'black',
                   cursor: 'pointer',
                   fontSize: '14px',
                   fontWeight: 'bold',
                   textAlign: 'left'
                 }}
               >
-                Sarcastic Instructions: {debugFlags.sarcasticOrdersAlternate ? 'Alternate' : 'Original'}
+                Sarcastic Instructions: {debugFlags.sarcasticInstructionsAlternate ? 'Alternate (Default)' : 'Original'}
               </button>
             </div>
 

@@ -2,7 +2,7 @@ import { GameState, Position, Tile } from '../../types'
 import { getTile } from '../boardSystem'
 import { revealTileWithEquipmentEffects, addOwnerSubsetAnnotation } from '../cardEffects'
 
-export function executeQuantumEffect(state: GameState, targets: Position[]): GameState {
+export function executeScurryEffect(state: GameState, targets: Position[]): GameState {
   // Get all valid tiles
   const validTiles = targets
     .map(pos => ({ pos, tile: getTile(state.board, pos) }))

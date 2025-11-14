@@ -11,11 +11,11 @@ export interface Card {
 
 export type CardEffect =
   | { type: 'scout'; target: Position }
-  | { type: 'quantum'; targets: Position[] }
+  | { type: 'scurry'; targets: Position[] }
   | { type: 'report' }
-  | { type: 'solid_clue' }
-  | { type: 'stretch_clue' }
-  | { type: 'sarcastic_orders' }
+  | { type: 'imperious_instructions' }
+  | { type: 'vague_instructions' }
+  | { type: 'sarcastic_instructions' }
   | { type: 'energized' }
   | { type: 'options' }
   | { type: 'brush'; target: Position }
@@ -43,7 +43,7 @@ export type CardEffect =
 
 export interface ClueResult {
   id: string // Unique identifier for this clue cast
-  cardType: 'solid_clue' | 'stretch_clue' | 'rival_clue' | 'sarcastic_orders'
+  cardType: 'imperious_instructions' | 'vague_instructions' | 'rival_clue' | 'sarcastic_instructions'
   enhanced: boolean // Whether this clue came from an enhanced card
   strengthForThisTile: number // How many pips this clue contributed to this specific tile
   allAffectedTiles: Position[] // All tiles that got pips from this clue
@@ -261,7 +261,7 @@ export interface GameState {
     adjacencyColor: boolean // If true, adjacency text is white; if false, black
     adjacencyStyle: 'palette' | 'dark' // 'palette' = darker/desaturated bg + white text, 'dark' = dark bg + colored text
     easyMode: boolean // If true, reveal random tile owner at turn start
-    sarcasticOrdersAlternate: boolean // If true, use alternate Sarcastic Instructions implementation
+    sarcasticInstructionsAlternate: boolean // If true, use alternate Sarcastic Instructions implementation
   }
 
   // Player annotation: which tile type is currently selected

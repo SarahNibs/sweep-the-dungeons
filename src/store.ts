@@ -56,7 +56,7 @@ interface GameStore extends GameState {
   debugGiveCard: (cardName: string, upgrades?: { energyReduced?: boolean; enhanced?: boolean }) => void
   debugSetAIType: (aiType: string) => void
   debugSkipToLevel: (levelId: string) => void
-  toggleDebugFlag: (flagName: 'adjacencyColor' | 'easyMode' | 'sarcasticOrdersAlternate') => void
+  toggleDebugFlag: (flagName: 'adjacencyColor' | 'easyMode' | 'sarcasticInstructionsAlternate') =>void
   cycleAdjacencyStyle: () => void
   startEquipmentSelection: () => void
   selectEquipment: (equipmentItem: Equipment) => void
@@ -417,7 +417,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     const selected: Position[] = []
     const effect = currentState.pendingCardEffect
 
-    if (effect.type === 'quantum' && 'targets' in effect) {
+    if (effect.type === 'scurry' && 'targets' in effect) {
       selected.push(...effect.targets)
     }
 
@@ -634,7 +634,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     debugController.debugSkipToLevel(levelId)
   },
 
-  toggleDebugFlag: (flagName: 'adjacencyColor' | 'easyMode' | 'sarcasticOrdersAlternate') => {
+  toggleDebugFlag: (flagName: 'adjacencyColor' | 'easyMode' | 'sarcasticInstructionsAlternate') =>{
     const currentState = get()
     set({
       ...currentState,

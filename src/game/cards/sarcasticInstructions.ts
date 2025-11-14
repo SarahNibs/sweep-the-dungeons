@@ -712,11 +712,11 @@ function generateMethod2(state: GameState, _enhanced: boolean, useAlternate: boo
   }
 }
 
-export function executeSarcasticOrdersEffect(state: GameState, card?: Card): GameState {
-  console.log(`\n[SARCASTIC] ========== executeSarcasticOrdersEffect (${card?.enhanced ? 'enhanced' : 'basic'}) ==========`)
+export function executeSarcasticInstructionsEffect(state: GameState, card?: Card): GameState {
+  console.log(`\n[SARCASTIC] ========== executeSarcasticInstructionsEffect (${card?.enhanced ? 'enhanced' : 'basic'}) ==========`)
 
   const enhanced = card?.enhanced || false
-  const useAlternate = state.debugFlags.sarcasticOrdersAlternate
+  const useAlternate = state.debugFlags.sarcasticInstructionsAlternate
 
   // Generate both methods
   const method1 = generateMethod1(state, useAlternate)
@@ -768,7 +768,7 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
 
       const clueResult: ClueResult = {
         id: redClueId,
-        cardType: 'sarcastic_orders',
+        cardType: 'sarcastic_instructions',
         enhanced,
         strengthForThisTile: strength, // Use actual pip count
         allAffectedTiles: method1.redClueTargets.map(t => t.position),
@@ -786,7 +786,7 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
     for (const [position, strength] of method1.greenClueTargets) {
       const clueResult: ClueResult = {
         id: greenClueId,
-        cardType: 'sarcastic_orders',
+        cardType: 'sarcastic_instructions',
         enhanced,
         strengthForThisTile: strength,
         allAffectedTiles: allGreenPositions,
@@ -808,7 +808,7 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
 
       const clueResult: ClueResult = {
         id: redClueId,
-        cardType: 'sarcastic_orders',
+        cardType: 'sarcastic_instructions',
         enhanced,
         strengthForThisTile: strength, // Use actual pip count
         allAffectedTiles: method2.redClueTargets.map(t => t.position),
@@ -826,7 +826,7 @@ export function executeSarcasticOrdersEffect(state: GameState, card?: Card): Gam
     for (const [position, strength] of method2.greenClueTargets) {
       const clueResult: ClueResult = {
         id: greenClueId,
-        cardType: 'sarcastic_orders',
+        cardType: 'sarcastic_instructions',
         enhanced,
         strengthForThisTile: strength,
         allAffectedTiles: allGreenPositions,

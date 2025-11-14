@@ -4,11 +4,11 @@ import { triggerDoubleBroomEffect, checkFrillyDressEffect } from './equipment'
 import { removeStatusEffect, createCard } from './gameRepository'
 import { getLevelConfig } from './levelSystem'
 import { executeScoutEffect } from './cards/scout'
-import { executeQuantumEffect } from './cards/quantumChoice'
+import { executeScurryEffect } from './cards/scurry'
 import { executeReportEffect } from './cards/report'
-import { executeSolidClueEffect } from './cards/solidClue'
-import { executeStretchClueEffect } from './cards/stretchClue'
-import { executeSarcasticOrdersEffect } from './cards/sarcasticOrders'
+import { executeImperiousInstructionsEffect } from './cards/imperiousInstructions'
+import { executeVagueInstructionsEffect } from './cards/vagueInstructions'
+import { executeSarcasticInstructionsEffect } from './cards/sarcasticInstructions'
 import { executeEnergizedEffect } from './cards/energized'
 import { executeOptionsEffect } from './cards/options'
 import { executeBrushEffect } from './cards/brush'
@@ -669,16 +669,16 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
   switch (effect.type) {
     case 'scout':
       return executeScoutEffect(state, effect.target, card)
-    case 'quantum':
-      return executeQuantumEffect(state, effect.targets)
+    case 'scurry':
+      return executeScurryEffect(state, effect.targets)
     case 'report':
       return executeReportEffect(state)
-    case 'solid_clue':
-      return executeSolidClueEffect(state, card)
-    case 'stretch_clue':
-      return executeStretchClueEffect(state, card)
-    case 'sarcastic_orders':
-      return executeSarcasticOrdersEffect(state, card)
+    case 'imperious_instructions':
+      return executeImperiousInstructionsEffect(state, card)
+    case 'vague_instructions':
+      return executeVagueInstructionsEffect(state, card)
+    case 'sarcastic_instructions':
+      return executeSarcasticInstructionsEffect(state, card)
     case 'energized':
       return executeEnergizedEffect(state, card)
     case 'options':
@@ -686,15 +686,9 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
     case 'brush':
       return executeBrushEffect(state, effect.target, card)
     case 'ramble':
-      const maxBoost = card?.enhanced ? 4 : 2
-      const stateWithRamble = {
-        ...state,
-        rambleActive: true,
-        ramblePriorityBoosts: [...state.ramblePriorityBoosts, maxBoost] // Collect boost values
-      }
-      // Remove existing ramble status effect first, then add updated one with count
-      const stateWithoutOldRamble = removeStatusEffect(stateWithRamble, 'ramble_active')
-      return addRambleStatusEffectWithCount(stateWithoutOldRamble, card?.enhanced)
+      // Ramble now adds Distraction stacks: 2 for basic, 4 for enhanced
+      const stacksToAdd = card?.enhanced ? 4 : 2
+      return addDistractionStacks(state, stacksToAdd)
     case 'sweep':
       return executeSweepEffect(state, effect.target, card)
     case 'underwire':
@@ -792,24 +786,48 @@ export function getTargetingInfo(cardName: string, enhanced?: boolean): { count:
   }
 }
 
-function addRambleStatusEffectWithCount(state: GameState, enhanced?: boolean): GameState {
-  const rambleCount = state.ramblePriorityBoosts.length
-  
-  // Create custom status effect with count in the name/description
-  const rambleStatusEffect = {
-    id: crypto.randomUUID(),
-    type: 'ramble_active' as const,
-    icon: '🌀',
-    name: rambleCount > 1 ? `Ramble Active (×${rambleCount})` : 'Ramble Active',
-    description: rambleCount > 1 
-      ? `Rival's guaranteed bag pulls are disrupted for their next turn (${rambleCount} rambles played)`
-      : "Rival's guaranteed bag pulls are disrupted for their next turn",
-    enhanced
-  }
-  
-  return {
-    ...state,
-    activeStatusEffects: [...state.activeStatusEffects, rambleStatusEffect]
+/**
+ * Add Distraction stacks to the game state.
+ * Creates or updates the Distraction status effect.
+ */
+function addDistractionStacks(state: GameState, stacks: number): GameState {
+  // Find existing Distraction status effect
+  const existingDistraction = state.activeStatusEffects.find(e => e.type === 'distraction')
+
+  if (existingDistraction) {
+    // Update existing Distraction with increased count
+    const newCount = (existingDistraction.count || 0) + stacks
+    const updatedEffects = state.activeStatusEffects.map(e =>
+      e.type === 'distraction'
+        ? {
+            ...e,
+            count: newCount,
+            name: `Distraction (×${newCount})`,
+            description: `Rival's tile priorities are disrupted for their next turn (${newCount} stack${newCount > 1 ? 's' : ''})`
+          }
+        : e
+    )
+    return {
+      ...state,
+      activeStatusEffects: updatedEffects
+    }
+  } else {
+    // Create new Distraction status effect
+    const distractionEffect = {
+      id: crypto.randomUUID(),
+      type: 'distraction' as const,
+      icon: '🌀',
+      name: stacks > 1 ? `Distraction (×${stacks})` : 'Distraction',
+      description: stacks > 1
+        ? `Rival's tile priorities are disrupted for their next turn (${stacks} stacks)`
+        : "Rival's tile priorities are disrupted for their next turn",
+      count: stacks
+    }
+
+    return {
+      ...state,
+      activeStatusEffects: [...state.activeStatusEffects, distractionEffect]
+    }
   }
 }
 

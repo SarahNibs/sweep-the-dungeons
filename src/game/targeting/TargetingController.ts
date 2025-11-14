@@ -21,7 +21,7 @@ const TARGETING_CONFIG: Record<string, TargetingConfig> = {
     maxTargets: () => 1,
     executeImmediate: true
   },
-  quantum: {
+  scurry: {
     maxTargets: (enhanced) => enhanced ? 3 : 2,
     executeImmediate: false // Execute when all targets collected
   },
@@ -184,8 +184,8 @@ export class TargetingController {
     isEnhanced: boolean,
     config: TargetingConfig
   ): { newEffect: CardEffect | null; shouldExecute: boolean } {
-    // Handle quantum (multi-target) specially
-    if (effect.type === 'quantum') {
+    // Handle scurry (multi-target) specially
+    if (effect.type === 'scurry') {
       const existingTargets = 'targets' in effect ? effect.targets : []
       const maxTargets = config.maxTargets(isEnhanced)
 
@@ -204,7 +204,7 @@ export class TargetingController {
         newTargets = [...existingTargets, position]
       }
 
-      const newEffect: CardEffect = { type: 'quantum', targets: newTargets }
+      const newEffect: CardEffect = { type: 'scurry', targets: newTargets }
       // Only execute when we have exactly the right number of targets
       const shouldExecute = newTargets.length === maxTargets
 
@@ -317,8 +317,8 @@ export class TargetingController {
     effectState: GameState,
     effect: CardEffect
   ): boolean {
-    // Check quantum-specific turn ending
-    if (effect.type === 'quantum' && 'targets' in effect) {
+    // Check scurry-specific turn ending
+    if (effect.type === 'scurry' && 'targets' in effect) {
       // Check all targets (base has 2, enhanced has 3)
       for (const pos of effect.targets) {
         const tileBefore = currentState.board.tiles.get(positionToKey(pos))

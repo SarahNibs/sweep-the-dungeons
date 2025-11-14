@@ -1,11 +1,11 @@
 import { GameState, Card } from '../../types'
-import { generatePlayerSolidClue } from '../clueSystem'
+import { generatePlayerImperiousInstructions } from '../clueSystem'
 import { addClueResult, addOwnerSubsetAnnotation } from '../cardEffects'
 import { positionToKey } from '../boardSystem'
 
-export function executeSolidClueEffect(state: GameState, card?: Card): GameState {
+export function executeImperiousInstructionsEffect(state: GameState, card?: Card): GameState {
   const enhanced = card?.enhanced || false
-  const result = generatePlayerSolidClue(state, state.clueCounter + 1, state.playerClueCounter + 1, enhanced)
+  const result = generatePlayerImperiousInstructions(state, state.clueCounter + 1, state.playerClueCounter + 1, enhanced)
 
   let newState = {
     ...state,

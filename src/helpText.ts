@@ -12,7 +12,7 @@ Let your rival finish her tiles before yours and you lose.
 
 Right-click tiles to mark off the ones that aren't yours so you don't forget.
 Hover over things to see what they are; right click cards and equipment for
-more detail. The grid of four boxed in the upper right tells you how many of
+more detail. The grid of four boxes in the upper right tells you how many of
 each tile type remain.
 
 Gain copper based on how many of your rival tiles are unrevealed when you

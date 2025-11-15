@@ -61,52 +61,74 @@ export function selectTrystTiles(state: GameState, target?: Position, enhanced?:
 }
 
 export function executeTrystEffect(state: GameState, target?: Position, card?: import('../../types').Card): GameState {
+  if (state.debugFlags.debugLogging) {
   console.log(`\n[TRYST] ========== executeTrystEffect ==========`)
+  }
+  if (state.debugFlags.debugLogging) {
   console.log(`[TRYST] Enhanced: ${card?.enhanced}, Target: ${target ? `(${target.x},${target.y})` : 'none'}`)
+  }
 
   const reveals = selectTrystTiles(state, target, card?.enhanced)
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[TRYST] Selected ${reveals.length} tiles to reveal:`)
+  }
   reveals.forEach(({ tile, revealer }, i) => {
+    if (state.debugFlags.debugLogging) {
     console.log(`  ${i + 1}. (${tile.position.x},${tile.position.y})[${tile.owner}] revealed by ${revealer}`)
+    }
   })
 
   if (reveals.length === 0) {
+    if (state.debugFlags.debugLogging) {
     console.log(`[TRYST] No tiles to reveal, returning unchanged state`)
+    }
     return state
   }
 
   let currentState = state
 
   for (const { tile, revealer } of reveals) {
+    if (state.debugFlags.debugLogging) {
     console.log(`[TRYST] Revealing tile (${tile.position.x},${tile.position.y}) with revealer=${revealer}`)
+    }
     currentState = revealTileWithEquipmentEffects(currentState, tile.position, revealer, false)
   }
 
   // Enhanced: Annotate tiles closer to target as "not of the type revealed"
   if (card?.enhanced && target && reveals.length > 0) {
+    if (state.debugFlags.debugLogging) {
     console.log(`[TRYST] Enhanced mode: Adding annotations for tiles closer to target (${target.x},${target.y})`)
+    }
 
     // For each reveal, annotate closer unrevealed tiles
     for (const { tile } of reveals) {
       const revealedDistance = manhattanDistance(tile.position, target)
       const revealedOwner = tile.owner // What was revealed (player or rival)
 
+      if (state.debugFlags.debugLogging) {
       console.log(`[TRYST] Processing reveal: (${tile.position.x},${tile.position.y})[${revealedOwner}] at distance ${revealedDistance}`)
+      }
 
       // Determine "not of type" annotation
       let notOfTypeSubset: Set<'player' | 'rival' | 'neutral' | 'mine'>
       if (revealedOwner === 'rival') {
         // Revealed a rival tile, so closer tiles are "not rival"
         notOfTypeSubset = new Set(['player', 'neutral', 'mine'])
+        if (state.debugFlags.debugLogging) {
         console.log(`[TRYST] Revealed rival at distance ${revealedDistance}, marking closer tiles as "not rival"`)
+        }
       } else if (revealedOwner === 'player') {
         // Revealed a player tile, so closer tiles are "not player"
         notOfTypeSubset = new Set(['neutral', 'rival', 'mine'])
+        if (state.debugFlags.debugLogging) {
         console.log(`[TRYST] Revealed player at distance ${revealedDistance}, marking closer tiles as "not player"`)
+        }
       } else {
         // Shouldn't happen for Tryst, but handle gracefully
+        if (state.debugFlags.debugLogging) {
         console.log(`[TRYST] WARNING: Revealed tile is neither player nor rival (${revealedOwner}), skipping annotations`)
+        }
         continue
       }
 
@@ -121,17 +143,25 @@ export function executeTrystEffect(state: GameState, target?: Position, card?: i
         const tileDistance = manhattanDistance(boardTile.position, target)
         if (tileDistance < revealedDistance) {
           // This tile is strictly closer, annotate it
+          if (state.debugFlags.debugLogging) {
           console.log(`[TRYST] Annotating tile (${boardTile.position.x},${boardTile.position.y})[${boardTile.owner}] at distance ${tileDistance} < ${revealedDistance}`)
+          }
           currentState = addOwnerSubsetAnnotation(currentState, boardTile.position, notOfTypeSubset)
           annotatedCount++
         }
       }
+      if (state.debugFlags.debugLogging) {
       console.log(`[TRYST] Annotated ${annotatedCount} tiles closer than distance ${revealedDistance}`)
+      }
     }
   } else {
+    if (state.debugFlags.debugLogging) {
     console.log(`[TRYST] Not adding annotations: enhanced=${card?.enhanced}, target=${target ? 'present' : 'none'}, reveals=${reveals.length}`)
+    }
   }
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[TRYST] Returning state with ${reveals.length} reveals and annotations applied`)
+  }
   return currentState
 }

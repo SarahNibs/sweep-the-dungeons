@@ -973,6 +973,24 @@ function App() {
               >
                 Sarcastic Instructions: {debugFlags.sarcasticInstructionsAlternate ? 'Alternate (Default)' : 'Original'}
               </button>
+
+              {/* Debug Logging Toggle */}
+              <button
+                onClick={() => toggleDebugFlag('debugLogging')}
+                style={{
+                  padding: '12px',
+                  border: '2px solid #ccc',
+                  borderRadius: '5px',
+                  backgroundColor: debugFlags.debugLogging ? '#28a745' : '#f8f9fa',
+                  color: debugFlags.debugLogging ? 'white' : 'black',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  textAlign: 'left'
+                }}
+              >
+                Debug Logging: {debugFlags.debugLogging ? 'On' : 'Off'}
+              </button>
             </div>
 
             <button

@@ -24,7 +24,9 @@ interface Method2Result {
  * Finds tiles with mostly player-owned neighbors and marks them with red dots
  */
 function generateMethod1(state: GameState, useAlternate: boolean = false): Method1Result {
+  if (state.debugFlags.debugLogging) {
   console.log(`\n[SARCASTIC-M1] Generating Method 1 (anti-clue bag system)`)
+  }
 
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
@@ -32,7 +34,9 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
   const playerTiles = unrevealedTiles.filter(t => t.owner === 'player')
   const totalPlayerTilesRemaining = playerTiles.length
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] ${unrevealedTiles.length} unrevealed tiles, ${totalPlayerTilesRemaining} player tiles`)
+  }
 
   // Find candidate tiles
   const candidates: Array<{
@@ -98,10 +102,14 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
     }
   }
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] Found ${candidates.length} candidate tiles`)
+  }
 
   if (candidates.length === 0) {
+    if (state.debugFlags.debugLogging) {
     console.log(`[SARCASTIC-M1] No valid candidates found - method not available`)
+    }
     return {
       exists: false,
       candidateTiles: [],
@@ -130,9 +138,13 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
   // Limit to at most the best 2 candidates
   const limitedCandidates = candidates.slice(0, 2)
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] Top candidates:`)
+  }
   limitedCandidates.forEach((c, i) => {
+    if (state.debugFlags.debugLogging) {
     console.log(`  ${i + 1}. (${c.tile.position.x},${c.tile.position.y})[${c.tile.owner}]: ${c.adjacentPlayer} player, ${c.adjacentRival} rival, ${c.adjacentNeutral} neutral (${c.adjacentUnrevealed} total unrevealed adjacent)`)
+    }
   })
 
   // Collect candidates until reaching 2+ adjacent rivals OR 4+ adjacent non-players
@@ -151,8 +163,12 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
     }
   }
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] Selected ${selectedTiles.length} candidate tile(s): ${selectedTiles.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`).join(', ')}`)
+  }
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] Total adjacent: ${totalAdjacentRivals} rivals, ${totalAdjacentNonPlayers} non-players`)
+  }
 
   // Calculate score: total player-owned tiles adjacent to selected tiles
   let score = 0
@@ -175,33 +191,43 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
 
   // === GENERATE RED PIPS USING BAG SYSTEM ===
 
-  // Alternate: 20 instances + 10 from spoilers (2 each), draw 10
+  // Alternate: 20 instances + 20 from spoilers (2 each), draw 10
   // Original: 10 instances + 5 from spoilers (1 each), draw 5
   const candidateInstances = useAlternate ? 20 : 10
-  const spoilerDrawCount = useAlternate ? 5 : 5
+  const spoilerDrawCount = useAlternate ? 10 : 5
   const copiesPerSpoiler = useAlternate ? 2 : 1
   const finalDrawCount = useAlternate ? 10 : 5
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] === BAG SYSTEM (${useAlternate ? 'Alternate' : 'Original'}) ===`)
+  }
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] Parameters: ${candidateInstances} candidate instances, draw ${spoilerDrawCount} spoilers (×${copiesPerSpoiler}), final draw ${finalDrawCount}`)
+  }
 
   // Create RedClues bag: instances distributed evenly among candidate tiles
   const redCluesBag: Tile[] = []
   const instancesPerCandidate = Math.floor(candidateInstances / selectedTiles.length)
   const extraInstances = candidateInstances % selectedTiles.length
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] Initial bag from candidates: ${instancesPerCandidate} copies per candidate, ${extraInstances} extra`)
+  }
 
   for (let i = 0; i < selectedTiles.length; i++) {
     const tile = selectedTiles[i]
     const copies = instancesPerCandidate + (i < extraInstances ? 1 : 0)
+    if (state.debugFlags.debugLogging) {
     console.log(`  (${tile.position.x},${tile.position.y})[${tile.owner}]: ${copies} copies`)
+    }
     for (let j = 0; j < copies; j++) {
       redCluesBag.push(tile)
     }
   }
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] Initial bag size: ${redCluesBag.length}`)
+  }
 
   // Add spoiler tiles from rest of board
   const candidatePositions = new Set(selectedTiles.map(t => `${t.position.x},${t.position.y}`))
@@ -219,7 +245,9 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
     }
   }
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] Spoiler bag: ${spoilersBag.length} total copies from ${spoilerTiles.length} non-candidate tiles`)
+  }
 
   const spoilersBagCopy = [...spoilersBag]
   const drawnSpoilers: Tile[] = []
@@ -234,16 +262,24 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
     spoilersBagCopy.splice(randomIndex, 1)
   }
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] Drew ${drawnSpoilers.length} spoilers: ${drawnSpoilers.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`).join(', ')}`)
+  }
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] Added ${drawnSpoilers.length * copiesPerSpoiler} spoiler copies to bag (${copiesPerSpoiler} per spoiler)`)
+  }
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] Final bag size: ${redCluesBag.length}`)
+  }
 
 
   // Draw from RedClues bag → red pips
   const redPipTargets: Tile[] = []
   const redCluesBagCopy = [...redCluesBag]
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] Drawing ${finalDrawCount} tiles from final bag for red pips...`)
+  }
 
   if (useAlternate) {
     // Alternate: Skip duplicate player tiles (they should only get 1 red pip max)
@@ -262,14 +298,18 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
         const posKey = `${drawnTile.position.x},${drawnTile.position.y}`
         if (drawnPlayerTiles.has(posKey)) {
           // Skip this draw, don't count it
+          if (state.debugFlags.debugLogging) {
           console.log(`  Draw ${totalDrawAttempts}: (${drawnTile.position.x},${drawnTile.position.y})[player] - SKIPPED (duplicate player tile)`)
+          }
           continue
         }
         drawnPlayerTiles.add(posKey)
       }
 
       // Valid draw - add to targets
+      if (state.debugFlags.debugLogging) {
       console.log(`  Draw ${totalDrawAttempts} (valid ${validDraws + 1}): (${drawnTile.position.x},${drawnTile.position.y})[${drawnTile.owner}]`)
+      }
       redPipTargets.push(drawnTile)
       validDraws++
     }
@@ -278,7 +318,9 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
     for (let i = 0; i < Math.min(finalDrawCount, redCluesBagCopy.length); i++) {
       const randomIndex = Math.floor(Math.random() * redCluesBagCopy.length)
       const drawnTile = redCluesBagCopy[randomIndex]
+      if (state.debugFlags.debugLogging) {
       console.log(`  Draw ${i + 1}: (${drawnTile.position.x},${drawnTile.position.y})[${drawnTile.owner}]`)
+      }
       redPipTargets.push(drawnTile)
       redCluesBagCopy.splice(randomIndex, 1)
     }
@@ -292,11 +334,15 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
     redPipCounts.set(key, (redPipCounts.get(key) || 0) + 1)
   }
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] Red pip distribution BEFORE redistribution:`)
+  }
   for (const [posKey, count] of redPipCounts) {
     const [x, y] = posKey.split(',').map(Number)
     const tile = getTile(state.board, { x, y })
+    if (state.debugFlags.debugLogging) {
     console.log(`  (${x},${y})[${tile?.owner}]: ${count} pip${count > 1 ? 's' : ''}`)
+    }
   }
 
 
@@ -312,7 +358,9 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
   }
 
   // === REDISTRIBUTE ONE PIP TO ADJACENT NON-PLAYER TILE ===
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] === REDISTRIBUTION ===`)
+  }
 
   // Find non-player tiles adjacent to candidate tiles
   const adjacentNonPlayerTiles: Tile[] = []
@@ -335,7 +383,9 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
     }
   }
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] Found ${adjacentNonPlayerTiles.length} adjacent non-player tiles to consider for redistribution`)
+  }
 
   if (adjacentNonPlayerTiles.length > 0 && redPipCounts.size > 0) {
     // Find the minimum pip count (including 0)
@@ -357,19 +407,27 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
       return Math.random() - 0.5
     })
 
+    if (state.debugFlags.debugLogging) {
     console.log(`[SARCASTIC-M1] Minimum pip count among adjacent non-players: ${minCount}`)
+    }
+    if (state.debugFlags.debugLogging) {
     console.log(`[SARCASTIC-M1] ${candidates.length} candidate(s) with ${minCount} pips for redistribution`)
+    }
 
     if (candidates.length > 0) {
       const chosenTile = candidates[0]
       const chosenPosKey = `${chosenTile.position.x},${chosenTile.position.y}`
       const initialChosenPips = redPipCounts.get(chosenPosKey) || 0
 
+      if (state.debugFlags.debugLogging) {
       console.log(`[SARCASTIC-M1] Chosen redistribution target: (${chosenTile.position.x},${chosenTile.position.y})[${chosenTile.owner}] (currently ${initialChosenPips} pips)`)
+      }
 
       // Redistribute pips: 1 for original, 2 for alternate
       const pipsToRedistribute = useAlternate ? 2 : 1
+      if (state.debugFlags.debugLogging) {
       console.log(`[SARCASTIC-M1] Redistributing ${pipsToRedistribute} pip${pipsToRedistribute > 1 ? 's' : ''}...`)
+      }
 
       for (let pipIndex = 0; pipIndex < pipsToRedistribute; pipIndex++) {
         // Find a tile to steal a pip from (prioritize spoilers, then candidates)
@@ -391,7 +449,9 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
           const sourceTile = getTile(state.board, { x: sourceX, y: sourceY })
           const isFromSpoiler = !candidateSet.has(sourcePosKey)
 
+          if (state.debugFlags.debugLogging) {
           console.log(`  Pip ${pipIndex + 1}: Moving from (${sourceX},${sourceY})[${sourceTile?.owner}] (${isFromSpoiler ? 'spoiler' : 'candidate'}, had ${sourceCount} pips) to (${chosenTile.position.x},${chosenTile.position.y})[${chosenTile.owner}]`)
+          }
 
           // Update pip counts
           redPipCounts.set(sourcePosKey, sourceCount - 1)
@@ -418,14 +478,20 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
       }
     }
   } else {
+    if (state.debugFlags.debugLogging) {
     console.log(`[SARCASTIC-M1] No redistribution (no adjacent non-player tiles or no pips to redistribute)`)
+    }
   }
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC-M1] Red pip distribution AFTER redistribution:`)
+  }
   for (const [posKey, count] of redPipCounts) {
     const [x, y] = posKey.split(',').map(Number)
     const tile = getTile(state.board, { x, y })
+    if (state.debugFlags.debugLogging) {
     console.log(`  (${x},${y})[${tile?.owner}]: ${count} pip${count > 1 ? 's' : ''}`)
+    }
   }
 
   // === GENERATE GREEN PIPS USING BAG SYSTEM ===
@@ -774,7 +840,9 @@ function generateMethod2(state: GameState, _enhanced: boolean, useAlternate: boo
 }
 
 export function executeSarcasticInstructionsEffect(state: GameState, card?: Card): GameState {
+  if (state.debugFlags.debugLogging) {
   console.log(`\n[SARCASTIC] ========== executeSarcasticInstructionsEffect (${card?.enhanced ? 'enhanced' : 'basic'}) ==========`)
+  }
 
   const enhanced = card?.enhanced || false
   const useAlternate = state.debugFlags.sarcasticInstructionsAlternate
@@ -783,13 +851,19 @@ export function executeSarcasticInstructionsEffect(state: GameState, card?: Card
   const method1 = generateMethod1(state, useAlternate)
   const method2 = generateMethod2(state, enhanced, useAlternate)
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC] Method 1 (anti-clue): exists=${method1.exists}, score=${method1.score}`)
+  }
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC] Method 2 (stretch): score=${method2.score}`)
+  }
 
   // Choose best method
   const useMethod1 = method1.exists && method1.score > method2.score
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[SARCASTIC] Selected: ${useMethod1 ? 'Method 1 (anti-clue system)' : 'Method 2 (stretch system)'}`)
+  }
 
 
   let newState = {

@@ -9,7 +9,9 @@ Click on your cards to play them for energy. Click on tiles to reveal them.
 If they're yours (green), get info about how many adjacent tiles are yours
 and continue your turn. Otherwise your turn ends. Reveal a mine and you lose.
 Right-click tiles to mark off the ones that aren't yours so you don't forget.
-Finish 21 floors to win. Click and hold the title banner for a new game.
+Hover over things to see what they are; right click cards and equipment for
+more detail. The grid of four boxed in the upper right tells you how many of
+each tile type remain. Finish 21 floors to win.
 
 ## The Floor
 A floor is a few dozen tiles, many of which you need to clean (reveal).
@@ -36,8 +38,18 @@ that means you have seen information indicating the tile can only be either
 yours to clean or a neutral tile, it can't be your rivals to clean and it
 can't be mined. When a tile is definitely not yours to clean, a black slash
 will appear over it. You may also right-click tiles to toggle this black
-slash at your whim; the game does not do any adjacency information deduction
-for you, that you must perform yourself.
+slash at your whim; the game does not do any interesting adjacency
+information deduction for you, most of that you must perform yourself.
+
+## Annotation
+Mostly you'll just want to right click on a tile to slash it out for ease
+of seeing which tiles aren't yours. But if you right click again, you get
+a big green circle, nominally meaning that the tile is yours but you don't
+want to reveal it quite yet for some reason. And if you select other squares
+in the tile-types-remaining grid to the upper right of the board, you will
+switch to cycling between nothing, not-that-type, and definitely-that-type.
+But that UI and interface needs work. Also it's rarely all that useful.
+Ahem.
 
 ## Cards
 You have many cards which will help you determine which tiles are yours
@@ -88,8 +100,8 @@ losing. You might want to clean up the Evidence cards this adds to your draw
 and discard pile, though, or your pay will be docked!
 
 ## Copper
-You gain copper for cleaning. The primary ways you'll gain copper are by
-completing a floor faster than your rival and by cleaning up your tiles.
+You gain copper as you progress. The primary ways you'll gain copper are by
+completing a floor faster than your rival and by revealing your tiles.
 Whenever you complete a floor, you gain 1 copper per tile your rival still
 hasn't revealed. And for every 5 of your own tiles that are revealed, you
 gain 1 copper. Even if it's your rival cleaning up your tiles! Copper may be

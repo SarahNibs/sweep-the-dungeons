@@ -62,7 +62,9 @@ export function calculateTilePriority(
   const priorityScore = rivalScore - Math.max(0, playerScore - 1) + minePenalty
 
   if (logDetails) {
+    if (state.debugFlags.debugLogging) {
     console.log(`[PRIORITY-SCORE] Tile (${tile.position.x},${tile.position.y})[${tile.owner}]: playerPips=${playerScore.toFixed(2)}, currentRivalPips=${currentTurnRivalPips.toFixed(2)}, historicalRivalPips=${historicalRivalPips.toFixed(2)}, minePenalty=${minePenalty.toFixed(3)} => base=${priorityScore.toFixed(2)}`)
+    }
   }
 
   return priorityScore
@@ -88,6 +90,8 @@ export function applyDistractionNoise(
     randomBoost = Math.random() * 0.01 // Small random tiebreaker
   }
 
+  // Note: This function doesn't have access to state, so we can't check debugLogging
+  // The caller (calculateTilePriorities) should handle logging if needed
   if (logDetails) {
     console.log(`[PRIORITY-SCORE] Distraction noise: ${distractionStackCount} stacks => +${randomBoost.toFixed(3)}`)
   }
@@ -102,13 +106,19 @@ export function calculateTilePriorities(
   state: GameState,
   currentTurnCluesPairs: { clueResult: ClueResult, targetPosition: Position }[]
 ): Array<{ tile: Tile; priority: number }> {
+  if (state.debugFlags.debugLogging) {
   console.log(`\n[PRIORITY-SCORE] ========== calculateTilePriorities ==========`)
+  }
+  if (state.debugFlags.debugLogging) {
   console.log(`[PRIORITY-SCORE] Current turn clues: ${currentTurnCluesPairs.length}, Historical clues: ${state.rivalHiddenClues.length}, Distraction stacks: ${state.distractionStackCount}`)
+  }
 
   const unrevealedTiles = Array.from(state.board.tiles.values())
     .filter(tile => !tile.revealed && tile.owner !== 'empty')
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[PRIORITY-SCORE] Evaluating ${unrevealedTiles.length} unrevealed tiles`)
+  }
 
   if (unrevealedTiles.length === 0) return []
 
@@ -120,7 +130,9 @@ export function calculateTilePriorities(
     const finalPriority = applyDistractionNoise(basePriority, state.distractionStackCount, logDetails)
 
     if (logDetails) {
+      if (state.debugFlags.debugLogging) {
       console.log(`[PRIORITY-SCORE] => Final priority: ${finalPriority.toFixed(3)}`)
+      }
     }
 
     return {
@@ -132,9 +144,13 @@ export function calculateTilePriorities(
   // Sort by priority (highest first - most likely to be rival)
   tilesWithPriority.sort((a, b) => b.priority - a.priority)
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[PRIORITY-SCORE] Top 5 priorities after sorting:`)
+  }
   tilesWithPriority.slice(0, 5).forEach((tp, i) => {
+    if (state.debugFlags.debugLogging) {
     console.log(`  ${i + 1}. (${tp.tile.position.x},${tp.tile.position.y})[${tp.tile.owner}]: ${tp.priority.toFixed(3)}`)
+    }
   })
 
   return tilesWithPriority

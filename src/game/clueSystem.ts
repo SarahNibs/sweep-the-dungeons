@@ -234,7 +234,9 @@ export function generatePlayerImperiousInstructions(
   clueRowPosition: number,
   enhanced: boolean = false
 ): ClueGenerationResult {
-  console.log(`\n[CLUE-GEN] ========== generatePlayerImperiousInstructions (${enhanced ? 'enhanced' : 'basic'}) ==========`)
+  if (state.debugFlags.debugLogging) {
+    console.log(`\n[CLUE-GEN] ========== generatePlayerImperiousInstructions (${enhanced ? 'enhanced' : 'basic'}) ==========`)
+  }
 
   // Get positions to exclude based on adjacency info
   const excludedPositions = getExcludedPositionsByAdjacency(state.board, 'player')
@@ -244,7 +246,9 @@ export function generatePlayerImperiousInstructions(
     .filter(tile => !excludedPositions.has(positionToKey(tile.position)))
   const playerTiles = unrevealedTiles.filter(tile => tile.owner === 'player')
 
-  console.log(`[CLUE-GEN] Available tiles: ${unrevealedTiles.length} total, ${playerTiles.length} player tiles`)
+  if (state.debugFlags.debugLogging) {
+    console.log(`[CLUE-GEN] Available tiles: ${unrevealedTiles.length} total, ${playerTiles.length} player tiles`)
+  }
 
   // Choose 2 player tiles
   const chosenPlayerTiles = selectTilesForClue(playerTiles, 2)
@@ -265,8 +269,10 @@ export function generatePlayerImperiousInstructions(
   })
   const chosenRandomTiles = selectTilesForClue(remainingTiles, 6)
 
-  console.log(`[CLUE-GEN] Chosen 2 player tiles:`, chosenPlayerTiles.map(t => `(${t.position.x},${t.position.y})`))
-  console.log(`[CLUE-GEN] Chosen 6 random tiles:`, chosenRandomTiles.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`))
+  if (state.debugFlags.debugLogging) {
+    console.log(`[CLUE-GEN] Chosen 2 player tiles:`, chosenPlayerTiles.map(t => `(${t.position.x},${t.position.y})`))
+    console.log(`[CLUE-GEN] Chosen 6 random tiles:`, chosenRandomTiles.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`))
+  }
 
   // Create bag: 12 copies of each player tile + 4 copies of each random tile (with spoiler adjustments)
   const bag: Tile[] = [
@@ -293,7 +299,9 @@ export function generatePlayerVagueInstructions(
   clueRowPosition: number,
   enhanced: boolean = false
 ): ClueGenerationResult {
-  console.log(`\n[CLUE-GEN] ========== generatePlayerVagueInstructions (${enhanced ? 'enhanced' : 'basic'}) ==========`)
+  if (state.debugFlags.debugLogging) {
+    console.log(`\n[CLUE-GEN] ========== generatePlayerVagueInstructions (${enhanced ? 'enhanced' : 'basic'}) ==========`)
+  }
 
   // Get positions to exclude based on adjacency info
   const excludedPositions = getExcludedPositionsByAdjacency(state.board, 'player')
@@ -303,7 +311,9 @@ export function generatePlayerVagueInstructions(
     .filter(tile => !excludedPositions.has(positionToKey(tile.position)))
   const playerTiles = unrevealedTiles.filter(tile => tile.owner === 'player')
 
-  console.log(`[CLUE-GEN] Available tiles: ${unrevealedTiles.length} total, ${playerTiles.length} player tiles`)
+  if (state.debugFlags.debugLogging) {
+    console.log(`[CLUE-GEN] Available tiles: ${unrevealedTiles.length} total, ${playerTiles.length} player tiles`)
+  }
 
   // Choose 5 player tiles
   const chosenPlayerTiles = selectTilesForClue(playerTiles, 5)
@@ -316,8 +326,10 @@ export function generatePlayerVagueInstructions(
   )
   const chosenRandomTiles = selectTilesForClue(remainingTiles, 14)
 
-  console.log(`[CLUE-GEN] Chosen 5 player tiles:`, chosenPlayerTiles.map(t => `(${t.position.x},${t.position.y})`))
-  console.log(`[CLUE-GEN] Chosen 14 random tiles:`, chosenRandomTiles.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`))
+  if (state.debugFlags.debugLogging) {
+    console.log(`[CLUE-GEN] Chosen 5 player tiles:`, chosenPlayerTiles.map(t => `(${t.position.x},${t.position.y})`))
+    console.log(`[CLUE-GEN] Chosen 14 random tiles:`, chosenRandomTiles.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`))
+  }
 
   // Create bag: 4 copies of each player tile + 2 copies of each random tile (with spoiler adjustments)
   const bag: Tile[] = [
@@ -327,7 +339,9 @@ export function generatePlayerVagueInstructions(
 
   // Guarantee first 3 draws are from chosen player tiles (5 if enhanced)
   const guaranteedTiles = chosenPlayerTiles.slice(0, enhanced ? 5 : 3)
-  console.log(`[CLUE-GEN] Guaranteed tiles: ${guaranteedTiles.length} (${enhanced ? 'enhanced: all 5' : 'basic: first 3'})`)
+  if (state.debugFlags.debugLogging) {
+    console.log(`[CLUE-GEN] Guaranteed tiles: ${guaranteedTiles.length} (${enhanced ? 'enhanced: all 5' : 'basic: first 3'})`)
+  }
   
   const params: ClueParams = {
     cardType: 'vague_instructions',
@@ -371,7 +385,9 @@ export function prepareRivalClueSetup(state: GameState): {
   chosenRivalTiles: Tile[]
   chosenRandomTiles: Tile[]
 } {
-  console.log(`\n[RIVAL-CLUE] ========== prepareRivalClueSetup ==========`)
+  if (state.debugFlags.debugLogging) {
+    console.log(`\n[RIVAL-CLUE] ========== prepareRivalClueSetup ==========`)
+  }
 
   // Get positions to exclude based on adjacency info
   const excludedPositions = getExcludedPositionsByAdjacency(state.board, 'rival')
@@ -381,7 +397,9 @@ export function prepareRivalClueSetup(state: GameState): {
     .filter(tile => !excludedPositions.has(positionToKey(tile.position)))
   const rivalTiles = unrevealedTiles.filter(tile => tile.owner === 'rival')
 
-  console.log(`[RIVAL-CLUE] Available tiles: ${unrevealedTiles.length} total, ${rivalTiles.length} rival tiles`)
+  if (state.debugFlags.debugLogging) {
+    console.log(`[RIVAL-CLUE] Available tiles: ${unrevealedTiles.length} total, ${rivalTiles.length} rival tiles`)
+  }
 
   // Choose 2 rival tiles
   const chosenRivalTiles = selectTilesForClue(rivalTiles, 2)
@@ -394,8 +412,10 @@ export function prepareRivalClueSetup(state: GameState): {
   )
   const chosenRandomTiles = selectTilesForClue(remainingTiles, 6)
 
-  console.log(`[RIVAL-CLUE] Chosen 2 rival tiles:`, chosenRivalTiles.map(t => `(${t.position.x},${t.position.y})`))
-  console.log(`[RIVAL-CLUE] Chosen 6 random tiles:`, chosenRandomTiles.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`))
+  if (state.debugFlags.debugLogging) {
+    console.log(`[RIVAL-CLUE] Chosen 2 rival tiles:`, chosenRivalTiles.map(t => `(${t.position.x},${t.position.y})`))
+    console.log(`[RIVAL-CLUE] Chosen 6 random tiles:`, chosenRandomTiles.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`))
+  }
 
   return { chosenRivalTiles, chosenRandomTiles }
 }

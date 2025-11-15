@@ -175,13 +175,19 @@ export class AnimationController {
    * Execute Tryst animation - reveals player and rival tiles with pulsing
    */
   executeTrystWithAnimation(state: GameState, isEnhanced: boolean, target?: Position): void {
+    if (state.debugFlags.debugLogging) {
     console.log(`\n[TRYST-ANIM] ========== executeTrystWithAnimation ==========`)
+    }
+    if (state.debugFlags.debugLogging) {
     console.log(`[TRYST-ANIM] Enhanced: ${isEnhanced}, Target: ${target ? `(${target.x},${target.y})` : 'none'}`)
+    }
 
     // Use shared tile selection logic from tryst.ts
     const reveals = selectTrystTiles(state, target, isEnhanced)
 
+    if (state.debugFlags.debugLogging) {
     console.log(`[TRYST-ANIM] Selected ${reveals.length} tiles to reveal`)
+    }
 
     if (reveals.length === 0) return
 
@@ -194,7 +200,9 @@ export class AnimationController {
       return
     }
 
-    console.log(`[TRYST-ANIM] Starting animation, storing isEnhanced=${isEnhanced}, target=${target ? `(${target.x},${target.y})` : 'none'}`)
+    if (state.debugFlags.debugLogging) {
+      console.log(`[TRYST-ANIM] Starting animation, storing isEnhanced=${isEnhanced}, target=${target ? `(${target.x},${target.y})` : 'none'}`)
+    }
 
     // Start the animation with first tile
     this.setState({
@@ -224,7 +232,9 @@ export class AnimationController {
 
     const { revealsRemaining, currentRevealIndex, isEnhanced, target } = currentState.trystAnimation
 
+    if (currentState.debugFlags.debugLogging) {
     console.log(`[TRYST-ANIM] performNextTrystReveal: index=${currentRevealIndex}/${revealsRemaining.length}, enhanced=${isEnhanced}, target=${target ? `(${target.x},${target.y})` : 'none'}`)
+    }
 
     const currentReveal = revealsRemaining[currentRevealIndex]
 
@@ -282,30 +292,42 @@ export class AnimationController {
       }, 800)
     } else {
       // This was the last reveal - apply enhanced annotations if needed, then complete
+      if (newState.debugFlags.debugLogging) {
       console.log(`[TRYST-ANIM] Last reveal complete, checking for annotations: enhanced=${isEnhanced}, target=${target ? `(${target.x},${target.y})` : 'none'}`)
+      }
 
       let finalState = newState
 
       if (isEnhanced && target && revealsRemaining.length > 0) {
+        if (finalState.debugFlags.debugLogging) {
         console.log(`[TRYST] Enhanced mode: Adding annotations for tiles closer to target (${target.x},${target.y})`)
+        }
 
         // For each reveal, annotate closer unrevealed tiles
         for (const { tile } of revealsRemaining) {
           const revealedDistance = manhattanDistance(tile.position, target)
           const revealedOwner = tile.owner
 
+          if (finalState.debugFlags.debugLogging) {
           console.log(`[TRYST] Processing reveal: (${tile.position.x},${tile.position.y})[${revealedOwner}] at distance ${revealedDistance}`)
+          }
 
           // Determine "not of type" annotation
           let notOfTypeSubset: Set<'player' | 'rival' | 'neutral' | 'mine'>
           if (revealedOwner === 'rival') {
             notOfTypeSubset = new Set(['player', 'neutral', 'mine'])
+            if (finalState.debugFlags.debugLogging) {
             console.log(`[TRYST] Revealed rival at distance ${revealedDistance}, marking closer tiles as "not rival"`)
+            }
           } else if (revealedOwner === 'player') {
             notOfTypeSubset = new Set(['neutral', 'rival', 'mine'])
+            if (finalState.debugFlags.debugLogging) {
             console.log(`[TRYST] Revealed player at distance ${revealedDistance}, marking closer tiles as "not player"`)
+            }
           } else {
+            if (finalState.debugFlags.debugLogging) {
             console.log(`[TRYST] WARNING: Revealed tile is neither player nor rival (${revealedOwner}), skipping annotations`)
+            }
             continue
           }
 
@@ -318,15 +340,21 @@ export class AnimationController {
 
             const tileDistance = manhattanDistance(boardTile.position, target)
             if (tileDistance < revealedDistance) {
+              if (finalState.debugFlags.debugLogging) {
               console.log(`[TRYST] Annotating tile (${boardTile.position.x},${boardTile.position.y})[${boardTile.owner}] at distance ${tileDistance} < ${revealedDistance}`)
+              }
               finalState = addOwnerSubsetAnnotation(finalState, boardTile.position, notOfTypeSubset)
               annotatedCount++
             }
           }
+          if (finalState.debugFlags.debugLogging) {
           console.log(`[TRYST] Annotated ${annotatedCount} tiles closer than distance ${revealedDistance}`)
+          }
         }
       } else {
+        if (finalState.debugFlags.debugLogging) {
         console.log(`[TRYST] Not adding annotations: enhanced=${isEnhanced}, target=${target ? 'present' : 'none'}, reveals=${revealsRemaining.length}`)
+        }
       }
 
       // Animation complete - clear processing flag

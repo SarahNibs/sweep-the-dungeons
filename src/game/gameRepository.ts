@@ -949,9 +949,9 @@ export function createStatusEffect(type: StatusEffect['type'], enhanced?: boolea
       return {
         id: baseId,
         type: 'grace',
-        icon: '🤞',
+        icon: '🙏',
         name: 'Grace',
-        description: 'Protects once from revealing mines, but adds an Evidence to the top of your draw pile and an Evidence to your discard'
+        description: 'Protects once per floor from revealing mines, but adds an Evidence to the top of your draw pile and an Evidence to your discard'
       }
     case 'rival_mine_protection':
       return {

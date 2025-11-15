@@ -56,7 +56,7 @@ interface GameStore extends GameState {
   debugGiveCard: (cardName: string, upgrades?: { energyReduced?: boolean; enhanced?: boolean }) => void
   debugSetAIType: (aiType: string) => void
   debugSkipToLevel: (levelId: string) => void
-  toggleDebugFlag: (flagName: 'adjacencyColor' | 'easyMode' | 'sarcasticInstructionsAlternate') =>void
+  toggleDebugFlag: (flagName: 'adjacencyColor' | 'easyMode' | 'sarcasticInstructionsAlternate' | 'debugLogging') => void
   cycleAdjacencyStyle: () => void
   startEquipmentSelection: () => void
   selectEquipment: (equipmentItem: Equipment) => void
@@ -634,7 +634,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     debugController.debugSkipToLevel(levelId)
   },
 
-  toggleDebugFlag: (flagName: 'adjacencyColor' | 'easyMode' | 'sarcasticInstructionsAlternate') =>{
+  toggleDebugFlag: (flagName: 'adjacencyColor' | 'easyMode' | 'sarcasticInstructionsAlternate' | 'debugLogging') => {
     const currentState = get()
     set({
       ...currentState,

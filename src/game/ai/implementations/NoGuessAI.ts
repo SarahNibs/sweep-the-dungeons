@@ -20,14 +20,20 @@ export class NoGuessAI implements RivalAI {
     hiddenClues: { clueResult: ClueResult; targetPosition: Position }[],
     context: AIContext
   ): Tile[] {
+    if (state.debugFlags.debugLogging) {
     console.log(`\n[AI-NOGUESS] ========== NoGuessAI selectTilesToReveal ==========`)
+    }
+    if (state.debugFlags.debugLogging) {
     console.log(`[AI-NOGUESS] Hidden clues: ${hiddenClues.length}`)
+    }
 
     // Calculate priorities for all unrevealed tiles (this will log its own details)
     const tilesWithPriority = calculateTilePriorities(state, hiddenClues)
 
     if (tilesWithPriority.length === 0) {
+      if (state.debugFlags.debugLogging) {
       console.log(`[AI-NOGUESS] No tiles with priorities - ending turn`)
+      }
       return []
     }
 
@@ -56,19 +62,27 @@ export class NoGuessAI implements RivalAI {
       }
 
       tilesToReveal.push(item.tile)
+      if (state.debugFlags.debugLogging) {
       console.log(`[AI-NOGUESS] Selecting tile (${item.tile.position.x},${item.tile.position.y})[${item.tile.owner}] with priority ${item.priority.toFixed(3)}`)
+      }
 
       // Stop after adding a non-rival tile (this will be the last tile revealed)
       if (item.tile.owner !== 'rival') {
+        if (state.debugFlags.debugLogging) {
         console.log(`[AI-NOGUESS] Selected non-rival tile, ending turn`)
+        }
         break
       }
     }
 
     if (skippedCount > 0) {
+      if (state.debugFlags.debugLogging) {
       console.log(`[AI-NOGUESS] Skipped ${skippedCount} tiles (surface mines or mines with rivalNeverMines)`)
+      }
     }
+    if (state.debugFlags.debugLogging) {
     console.log(`[AI-NOGUESS] Total tiles to reveal: ${tilesToReveal.length}`)
+    }
 
     return tilesToReveal
   }

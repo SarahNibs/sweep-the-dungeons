@@ -952,7 +952,7 @@ export function createInitialState(
   preservedStatusEffects?: import('../types').StatusEffect[],
   shopVisitCount: number = 0,
   playerTilesRevealedCount: number = 0,
-  debugFlags?: { adjacencyColor: boolean; adjacencyStyle: 'palette' | 'dark'; easyMode: boolean; sarcasticInstructionsAlternate: boolean }
+  debugFlags?: { adjacencyColor: boolean; adjacencyStyle: 'palette' | 'dark'; easyMode: boolean; sarcasticInstructionsAlternate: boolean; debugLogging: boolean }
 ): GameState {
   const startingPersistentDeck = persistentDeck || createStartingDeck()
   const startingEquipment = equipment || []
@@ -1053,7 +1053,8 @@ export function createInitialState(
       adjacencyColor: false, // Default: black text
       adjacencyStyle: 'dark', // Default: gradient mode (light to desaturated diagonal gradient)
       easyMode: false, // Default: no easy mode
-      sarcasticInstructionsAlternate: true // Default: alternate implementation (doubled draws, no green pips)
+      sarcasticInstructionsAlternate: true, // Default: alternate implementation (doubled draws, no green pips)
+      debugLogging: false // Default: no debug logging
     },
     selectedAnnotationTileType: 'player', // Default to player selected
     isProcessingCard: false,

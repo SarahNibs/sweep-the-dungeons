@@ -27,14 +27,18 @@ export class ReasoningAI implements RivalAI {
     hiddenClues: { clueResult: ClueResult; targetPosition: Position }[],
     context: AIContext
   ): Tile[] {
+    if (state.debugFlags.debugLogging) {
     console.log(`\n[AI-DECISION] ========== ReasoningAI selectTilesToReveal ==========`)
+    }
 
     // Calculate base priorities ONCE upfront (includes rival clues with decay + Distraction noise)
     // These remain constant throughout the rival's turn
     const rivalCluePipsThisTurn = extractRivalCluePips(hiddenClues)
     const basePriorities = calculateBasePriorities(state, hiddenClues)
 
+    if (state.debugFlags.debugLogging) {
     console.log(`[AI-DECISION] Hidden clues: ${hiddenClues.length}, Base priorities calculated for ${basePriorities.size} tiles`)
+    }
 
     const tilesToReveal: Tile[] = []
     let simulatedState = state
@@ -44,12 +48,16 @@ export class ReasoningAI implements RivalAI {
     while (revealIterationCount < maxRevealIterations) {
       revealIterationCount++
 
+      if (state.debugFlags.debugLogging) {
       console.log(`\n[AI-DECISION] --- Reveal iteration ${revealIterationCount} ---`)
+      }
 
       // Phase 1: Exclusion analysis
       const analysis = analyzeExclusionsAndGuarantees(simulatedState)
 
+      if (state.debugFlags.debugLogging) {
       console.log(`[AI-DECISION] Exclusion analysis: ${analysis.guaranteedRivals.length} guaranteed rivals, ${analysis.ruledOutRivals.size} ruled out tiles`)
+      }
 
       let nextTile: Tile | null = null
 
@@ -64,7 +72,9 @@ export class ReasoningAI implements RivalAI {
 
         if (selectableGuaranteed.length > 0) {
           nextTile = selectableGuaranteed[0]
+          if (state.debugFlags.debugLogging) {
           console.log(`[AI-DECISION] Selected guaranteed rival at (${nextTile.position.x},${nextTile.position.y})`)
+          }
         }
       }
 
@@ -73,23 +83,33 @@ export class ReasoningAI implements RivalAI {
         const adjacencyInfo = extractAdjacencyInfo(simulatedState)
 
         // Phase 4: Run Monte Carlo simulation
+        if (state.debugFlags.debugLogging) {
         console.log(`[AI-DECISION] Running Monte Carlo simulation...`)
+        }
         const monteCarloResults = runMonteCarloSimulation(simulatedState, analysis, adjacencyInfo)
+        if (state.debugFlags.debugLogging) {
         console.log(`[AI-DECISION] Monte Carlo results: ${monteCarloResults.ownerCounts.size} tiles evaluated`)
+        }
 
         // Phase 5: Calculate priorities (using pre-calculated base priorities)
         const priorities = calculatePriorities(simulatedState, monteCarloResults, analysis, basePriorities, rivalCluePipsThisTurn)
 
         if (priorities.length === 0) {
+          if (state.debugFlags.debugLogging) {
           console.log(`[AI-DECISION] No priorities calculated - ending turn`)
+          }
           break
         }
 
         // Log top 5 priorities
         const top5 = priorities.slice(0, 5)
+        if (state.debugFlags.debugLogging) {
         console.log(`[AI-DECISION] Top 5 priorities:`)
+        }
         top5.forEach((tp, i) => {
+          if (state.debugFlags.debugLogging) {
           console.log(`  ${i + 1}. (${tp.tile.position.x},${tp.tile.position.y})[${tp.tile.owner}]: priority=${tp.priority.toFixed(2)}`)
+          }
         })
 
         // Phase 6: Select highest priority tile (filter surface mines and mines if needed)
@@ -100,12 +120,16 @@ export class ReasoningAI implements RivalAI {
         })
 
         if (selectablePriorities.length === 0) {
+          if (state.debugFlags.debugLogging) {
           console.log(`[AI-DECISION] No selectable priorities - ending turn`)
+          }
           break
         }
 
         nextTile = selectablePriorities[0].tile
+        if (state.debugFlags.debugLogging) {
         console.log(`[AI-DECISION] Selected priority-based tile at (${nextTile.position.x},${nextTile.position.y})[${nextTile.owner}]`)
+        }
       }
 
       if (!nextTile) break

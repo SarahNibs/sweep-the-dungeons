@@ -27,8 +27,12 @@ export class ConservativeAI implements RivalAI {
     hiddenClues: { clueResult: ClueResult; targetPosition: Position }[],
     context: AIContext
   ): Tile[] {
+    if (state.debugFlags.debugLogging) {
     console.log(`\n[AI-CONSERVATIVE] ========== ConservativeAI selectTilesToReveal ==========`)
+    }
+    if (state.debugFlags.debugLogging) {
     console.log(`[AI-CONSERVATIVE] Hidden clues: ${hiddenClues.length}`)
+    }
 
     const tilesToReveal: Tile[] = []
     let simulatedState = state
@@ -38,13 +42,17 @@ export class ConservativeAI implements RivalAI {
     while (revealIterationCount < maxRevealIterations) {
       revealIterationCount++
 
+      if (state.debugFlags.debugLogging) {
       console.log(`\n[AI-CONSERVATIVE] --- Reveal iteration ${revealIterationCount} ---`)
+      }
 
       // Use extracted exclusion analysis logic
       const analysis = analyzeExclusionsAndGuarantees(simulatedState)
       const { guaranteedRivals, ruledOutRivals } = analysis
 
+      if (state.debugFlags.debugLogging) {
       console.log(`[AI-CONSERVATIVE] Exclusion analysis: ${guaranteedRivals.length} guaranteed rivals, ${ruledOutRivals.size} ruled out tiles`)
+      }
 
       let nextTile: Tile | null = null
 
@@ -59,7 +67,9 @@ export class ConservativeAI implements RivalAI {
 
         if (selectableGuaranteed.length > 0) {
           nextTile = selectableGuaranteed[0]
+          if (state.debugFlags.debugLogging) {
           console.log(`[AI-CONSERVATIVE] Selected guaranteed rival at (${nextTile.position.x},${nextTile.position.y})`)
+          }
         }
       }
 
@@ -75,10 +85,14 @@ export class ConservativeAI implements RivalAI {
             !(context.specialBehaviors.rivalNeverMines && tile.owner === 'mine')
           )
 
+        if (state.debugFlags.debugLogging) {
         console.log(`[AI-CONSERVATIVE] No guaranteed rivals, falling back to priority scoring with ${availableTiles.length} available tiles`)
+        }
 
         if (availableTiles.length === 0) {
+          if (state.debugFlags.debugLogging) {
           console.log(`[AI-CONSERVATIVE] No available tiles - ending turn`)
+          }
           break
         }
 
@@ -89,14 +103,18 @@ export class ConservativeAI implements RivalAI {
         )
 
         if (filteredPriorities.length === 0) {
+          if (state.debugFlags.debugLogging) {
           console.log(`[AI-CONSERVATIVE] No selectable priorities - ending turn`)
+          }
           break
         }
 
         // Sort by priority and pick highest
         filteredPriorities.sort((a, b) => b.priority - a.priority)
         nextTile = filteredPriorities[0].tile
+        if (state.debugFlags.debugLogging) {
         console.log(`[AI-CONSERVATIVE] Selected priority-based tile at (${nextTile.position.x},${nextTile.position.y})[${nextTile.owner}] with priority ${filteredPriorities[0].priority.toFixed(3)}`)
+        }
       }
 
       if (!nextTile) break

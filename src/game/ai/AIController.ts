@@ -54,7 +54,9 @@ export class AIController {
    * Process AI decision-making: generate clues, select tiles
    */
   processRivalTurn(state: GameState): AITurnResult {
-    console.log(`[RIVAL-TURN] processRivalTurn called with distractionStackCount=${state.distractionStackCount}`)
+    if (state.debugFlags.debugLogging) {
+      console.log(`[RIVAL-TURN] processRivalTurn called with distractionStackCount=${state.distractionStackCount}`)
+    }
 
     // Get level config for AI selection and special behaviors
     const levelConfig = getLevelConfig(state.currentLevelId)
@@ -125,7 +127,9 @@ export class AIController {
     const distractionEffect = currentState.activeStatusEffects.find(e => e.type === 'distraction')
     if (distractionEffect) {
       distractionStackCount = distractionEffect.count || 0
-      console.log(`[RIVAL-TURN] Found distraction status effect with ${distractionStackCount} stacks`)
+      if (currentState.debugFlags.debugLogging) {
+        console.log(`[RIVAL-TURN] Found distraction status effect with ${distractionStackCount} stacks`)
+      }
     }
 
     // Remove Distraction status effect (it was visible during player's turn, now consumed)

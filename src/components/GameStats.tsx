@@ -29,7 +29,7 @@ interface GameStatsProps {
 }
 
 export function GameStats({ onResetGame, gameStatus }: GameStatsProps) {
-  const [showHelp, setShowHelp] = useState(false)
+  const [showHelp, setShowHelp] = useState(true)
 
   const isGameEnded = gameStatus.status !== 'playing'
   

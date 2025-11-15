@@ -29,21 +29,27 @@ export function calculatePriorities(
   basePriorities: Map<string, number>,
   rivalCluePipsThisTurn: Map<string, number>
 ): TilePriority[] {
+  if (state.debugFlags.debugLogging) {
   console.log(`\n[PRIORITY] ========== calculatePriorities ==========`)
+  }
 
   const priorities: TilePriority[] = []
 
   // Count remaining tiles for bias calculations
   const remaining = countRemainingTiles(state.board.tiles)
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[PRIORITY] Remaining tiles: ${remaining.unrevealed} total, ${remaining.rival} rival, ${remaining.mine} mine`)
+  }
 
   // Bias terms for numerical stability
   const rivalBias = (remaining.rival / 100) + 0.001
   const mineBias = (remaining.mine / 100) + 0.001
   const denomBias = (remaining.unrevealed / 100) + 0.001
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[PRIORITY] Bias terms: rival=${rivalBias.toFixed(4)}, mine=${mineBias.toFixed(4)}, denom=${denomBias.toFixed(4)}`)
+  }
 
   // Get guaranteed rival position keys (to exclude from priority calculation)
   const guaranteedKeys = new Set<string>()
@@ -51,7 +57,9 @@ export function calculatePriorities(
     guaranteedKeys.add(positionToKey(tile.position))
   }
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[PRIORITY] Excluding ${guaranteedKeys.size} guaranteed rivals from priority calculation`)
+  }
 
   // Process each tile in Monte Carlo results
   for (const [key, counts] of monteCarloResults.ownerCounts) {
@@ -88,7 +96,9 @@ export function calculatePriorities(
 
     // Log detailed breakdown for first 10 tiles
     if (priorities.length < 10) {
+      if (state.debugFlags.debugLogging) {
       console.log(`[PRIORITY] Tile (${tile.position.x},${tile.position.y})[${tile.owner}]: base=${basePriority.toFixed(2)}, rivalBonus=${rivalBonus.toFixed(2)}, minePenalty=${minePenalty.toFixed(2)}, noClueMinePenalty=${noClueMinePenalty.toFixed(2)} => final=${priority.toFixed(2)}`)
+      }
     }
 
     priorities.push({
@@ -106,7 +116,9 @@ export function calculatePriorities(
   // Sort by priority (highest first)
   priorities.sort((a, b) => b.priority - a.priority)
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[PRIORITY] Calculated ${priorities.length} total priorities, sorted by final score`)
+  }
 
   return priorities
 }
@@ -134,8 +146,12 @@ export function calculateBasePriorities(
   state: GameState,
   currentTurnClues: { clueResult: ClueResult; targetPosition: Position }[]
 ): Map<string, number> {
+  if (state.debugFlags.debugLogging) {
   console.log(`\n[PRIORITY] ========== calculateBasePriorities ==========`)
+  }
+  if (state.debugFlags.debugLogging) {
   console.log(`[PRIORITY] Processing ${currentTurnClues.length} current turn clues, ${state.rivalHiddenClues.length} historical clues, ${state.distractionStackCount} distraction stacks`)
+  }
 
   const basePriorities = new Map<string, number>()
 
@@ -178,13 +194,17 @@ export function calculateBasePriorities(
 
     // Log first 10 tiles with non-zero base priority
     if (basePriority > 0 && basePriorities.size < 10) {
+      if (state.debugFlags.debugLogging) {
       console.log(`[PRIORITY] Tile (${tile.position.x},${tile.position.y}): currentPips=${currentTurnPips.toFixed(2)}, historicalPips=${historicalPips.toFixed(2)}, distraction=${distractionNoise.toFixed(2)} => base=${basePriority.toFixed(2)}`)
+      }
     }
 
     basePriorities.set(key, basePriority)
   }
 
+  if (state.debugFlags.debugLogging) {
   console.log(`[PRIORITY] Calculated base priorities for ${basePriorities.size} tiles`)
+  }
 
   return basePriorities
 }

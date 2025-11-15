@@ -264,6 +264,7 @@ export interface GameState {
     adjacencyStyle: 'palette' | 'dark' // 'palette' = darker/desaturated bg + white text, 'dark' = dark bg + colored text
     easyMode: boolean // If true, reveal random tile owner at turn start
     sarcasticInstructionsAlternate: boolean // If true, use alternate Sarcastic Instructions implementation
+    debugLogging: boolean // If true, output console debug logs; if false, suppress all logging
   }
 
   // Player annotation: which tile type is currently selected

@@ -8,10 +8,17 @@ export const helpText = `
 Click on your cards to play them for energy. Click on tiles to reveal them.
 If they're yours (green), get info about how many adjacent tiles are yours
 and continue your turn. Otherwise your turn ends. Reveal a mine and you lose.
+Let your rival finish her tiles before yours and you lose.
+
 Right-click tiles to mark off the ones that aren't yours so you don't forget.
 Hover over things to see what they are; right click cards and equipment for
 more detail. The grid of four boxed in the upper right tells you how many of
-each tile type remain. Finish 21 floors to win.
+each tile type remain.
+
+Gain copper based on how many of your rival tiles are unrevealed when you
+finish the floor, and based on revealing your own tiles, and on other things.
+Improve your deck through rewards after each floor and shops after every
+five floors. Finish 21 floors to win.
 
 ## The Floor
 A floor is a few dozen tiles, many of which you need to clean (reveal).

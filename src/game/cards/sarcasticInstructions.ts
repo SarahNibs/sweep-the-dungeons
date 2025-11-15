@@ -130,6 +130,11 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
   // Limit to at most the best 2 candidates
   const limitedCandidates = candidates.slice(0, 2)
 
+  console.log(`[SARCASTIC-M1] Top candidates:`)
+  limitedCandidates.forEach((c, i) => {
+    console.log(`  ${i + 1}. (${c.tile.position.x},${c.tile.position.y})[${c.tile.owner}]: ${c.adjacentPlayer} player, ${c.adjacentRival} rival, ${c.adjacentNeutral} neutral (${c.adjacentUnrevealed} total unrevealed adjacent)`)
+  })
+
   // Collect candidates until reaching 2+ adjacent rivals OR 4+ adjacent non-players
   const selectedTiles: Tile[] = []
   let totalAdjacentRivals = 0
@@ -145,6 +150,9 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
       break
     }
   }
+
+  console.log(`[SARCASTIC-M1] Selected ${selectedTiles.length} candidate tile(s): ${selectedTiles.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`).join(', ')}`)
+  console.log(`[SARCASTIC-M1] Total adjacent: ${totalAdjacentRivals} rivals, ${totalAdjacentNonPlayers} non-players`)
 
   // Calculate score: total player-owned tiles adjacent to selected tiles
   let score = 0
@@ -174,19 +182,26 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
   const copiesPerSpoiler = useAlternate ? 2 : 1
   const finalDrawCount = useAlternate ? 10 : 5
 
+  console.log(`[SARCASTIC-M1] === BAG SYSTEM (${useAlternate ? 'Alternate' : 'Original'}) ===`)
+  console.log(`[SARCASTIC-M1] Parameters: ${candidateInstances} candidate instances, draw ${spoilerDrawCount} spoilers (×${copiesPerSpoiler}), final draw ${finalDrawCount}`)
+
   // Create RedClues bag: instances distributed evenly among candidate tiles
   const redCluesBag: Tile[] = []
   const instancesPerCandidate = Math.floor(candidateInstances / selectedTiles.length)
   const extraInstances = candidateInstances % selectedTiles.length
 
+  console.log(`[SARCASTIC-M1] Initial bag from candidates: ${instancesPerCandidate} copies per candidate, ${extraInstances} extra`)
 
   for (let i = 0; i < selectedTiles.length; i++) {
     const tile = selectedTiles[i]
     const copies = instancesPerCandidate + (i < extraInstances ? 1 : 0)
+    console.log(`  (${tile.position.x},${tile.position.y})[${tile.owner}]: ${copies} copies`)
     for (let j = 0; j < copies; j++) {
       redCluesBag.push(tile)
     }
   }
+
+  console.log(`[SARCASTIC-M1] Initial bag size: ${redCluesBag.length}`)
 
   // Add spoiler tiles from rest of board
   const candidatePositions = new Set(selectedTiles.map(t => `${t.position.x},${t.position.y}`))
@@ -204,10 +219,14 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
     }
   }
 
+  console.log(`[SARCASTIC-M1] Spoiler bag: ${spoilersBag.length} total copies from ${spoilerTiles.length} non-candidate tiles`)
+
   const spoilersBagCopy = [...spoilersBag]
+  const drawnSpoilers: Tile[] = []
   for (let i = 0; i < Math.min(spoilerDrawCount, spoilersBagCopy.length); i++) {
     const randomIndex = Math.floor(Math.random() * spoilersBagCopy.length)
     const drawnSpoiler = spoilersBagCopy[randomIndex]
+    drawnSpoilers.push(drawnSpoiler)
     // Add each spoiler copiesPerSpoiler times (1 for original, 2 for alternate)
     for (let j = 0; j < copiesPerSpoiler; j++) {
       redCluesBag.push(drawnSpoiler)
@@ -215,32 +234,42 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
     spoilersBagCopy.splice(randomIndex, 1)
   }
 
+  console.log(`[SARCASTIC-M1] Drew ${drawnSpoilers.length} spoilers: ${drawnSpoilers.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`).join(', ')}`)
+  console.log(`[SARCASTIC-M1] Added ${drawnSpoilers.length * copiesPerSpoiler} spoiler copies to bag (${copiesPerSpoiler} per spoiler)`)
+  console.log(`[SARCASTIC-M1] Final bag size: ${redCluesBag.length}`)
+
 
   // Draw from RedClues bag → red pips
   const redPipTargets: Tile[] = []
   const redCluesBagCopy = [...redCluesBag]
 
+  console.log(`[SARCASTIC-M1] Drawing ${finalDrawCount} tiles from final bag for red pips...`)
+
   if (useAlternate) {
     // Alternate: Skip duplicate player tiles (they should only get 1 red pip max)
     const drawnPlayerTiles = new Set<string>()
     let validDraws = 0
+    let totalDrawAttempts = 0
 
     while (validDraws < finalDrawCount && redCluesBagCopy.length > 0) {
       const randomIndex = Math.floor(Math.random() * redCluesBagCopy.length)
       const drawnTile = redCluesBagCopy[randomIndex]
       redCluesBagCopy.splice(randomIndex, 1)
+      totalDrawAttempts++
 
       // Check if this is a player tile we've already drawn
       if (drawnTile.owner === 'player') {
         const posKey = `${drawnTile.position.x},${drawnTile.position.y}`
         if (drawnPlayerTiles.has(posKey)) {
           // Skip this draw, don't count it
+          console.log(`  Draw ${totalDrawAttempts}: (${drawnTile.position.x},${drawnTile.position.y})[player] - SKIPPED (duplicate player tile)`)
           continue
         }
         drawnPlayerTiles.add(posKey)
       }
 
       // Valid draw - add to targets
+      console.log(`  Draw ${totalDrawAttempts} (valid ${validDraws + 1}): (${drawnTile.position.x},${drawnTile.position.y})[${drawnTile.owner}]`)
       redPipTargets.push(drawnTile)
       validDraws++
     }
@@ -248,7 +277,9 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
     // Original: Simple draw without deduplication
     for (let i = 0; i < Math.min(finalDrawCount, redCluesBagCopy.length); i++) {
       const randomIndex = Math.floor(Math.random() * redCluesBagCopy.length)
-      redPipTargets.push(redCluesBagCopy[randomIndex])
+      const drawnTile = redCluesBagCopy[randomIndex]
+      console.log(`  Draw ${i + 1}: (${drawnTile.position.x},${drawnTile.position.y})[${drawnTile.owner}]`)
+      redPipTargets.push(drawnTile)
       redCluesBagCopy.splice(randomIndex, 1)
     }
   }
@@ -259,6 +290,13 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
   for (const tile of redPipTargets) {
     const key = `${tile.position.x},${tile.position.y}`
     redPipCounts.set(key, (redPipCounts.get(key) || 0) + 1)
+  }
+
+  console.log(`[SARCASTIC-M1] Red pip distribution BEFORE redistribution:`)
+  for (const [posKey, count] of redPipCounts) {
+    const [x, y] = posKey.split(',').map(Number)
+    const tile = getTile(state.board, { x, y })
+    console.log(`  (${x},${y})[${tile?.owner}]: ${count} pip${count > 1 ? 's' : ''}`)
   }
 
 
@@ -274,6 +312,8 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
   }
 
   // === REDISTRIBUTE ONE PIP TO ADJACENT NON-PLAYER TILE ===
+  console.log(`[SARCASTIC-M1] === REDISTRIBUTION ===`)
+
   // Find non-player tiles adjacent to candidate tiles
   const adjacentNonPlayerTiles: Tile[] = []
   const candidateSet = new Set(selectedTiles.map(t => `${t.position.x},${t.position.y}`))
@@ -295,6 +335,7 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
     }
   }
 
+  console.log(`[SARCASTIC-M1] Found ${adjacentNonPlayerTiles.length} adjacent non-player tiles to consider for redistribution`)
 
   if (adjacentNonPlayerTiles.length > 0 && redPipCounts.size > 0) {
     // Find the minimum pip count (including 0)
@@ -316,12 +357,19 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
       return Math.random() - 0.5
     })
 
+    console.log(`[SARCASTIC-M1] Minimum pip count among adjacent non-players: ${minCount}`)
+    console.log(`[SARCASTIC-M1] ${candidates.length} candidate(s) with ${minCount} pips for redistribution`)
+
     if (candidates.length > 0) {
       const chosenTile = candidates[0]
       const chosenPosKey = `${chosenTile.position.x},${chosenTile.position.y}`
+      const initialChosenPips = redPipCounts.get(chosenPosKey) || 0
+
+      console.log(`[SARCASTIC-M1] Chosen redistribution target: (${chosenTile.position.x},${chosenTile.position.y})[${chosenTile.owner}] (currently ${initialChosenPips} pips)`)
 
       // Redistribute pips: 1 for original, 2 for alternate
       const pipsToRedistribute = useAlternate ? 2 : 1
+      console.log(`[SARCASTIC-M1] Redistributing ${pipsToRedistribute} pip${pipsToRedistribute > 1 ? 's' : ''}...`)
 
       for (let pipIndex = 0; pipIndex < pipsToRedistribute; pipIndex++) {
         // Find a tile to steal a pip from (prioritize spoilers, then candidates)
@@ -339,6 +387,11 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
 
         if (tilesWithPips.length > 0) {
           const [sourcePosKey, sourceCount] = tilesWithPips[0]
+          const [sourceX, sourceY] = sourcePosKey.split(',').map(Number)
+          const sourceTile = getTile(state.board, { x: sourceX, y: sourceY })
+          const isFromSpoiler = !candidateSet.has(sourcePosKey)
+
+          console.log(`  Pip ${pipIndex + 1}: Moving from (${sourceX},${sourceY})[${sourceTile?.owner}] (${isFromSpoiler ? 'spoiler' : 'candidate'}, had ${sourceCount} pips) to (${chosenTile.position.x},${chosenTile.position.y})[${chosenTile.owner}]`)
 
           // Update pip counts
           redPipCounts.set(sourcePosKey, sourceCount - 1)
@@ -364,8 +417,16 @@ function generateMethod1(state: GameState, useAlternate: boolean = false): Metho
         }
       }
     }
+  } else {
+    console.log(`[SARCASTIC-M1] No redistribution (no adjacent non-player tiles or no pips to redistribute)`)
   }
 
+  console.log(`[SARCASTIC-M1] Red pip distribution AFTER redistribution:`)
+  for (const [posKey, count] of redPipCounts) {
+    const [x, y] = posKey.split(',').map(Number)
+    const tile = getTile(state.board, { x, y })
+    console.log(`  (${x},${y})[${tile?.owner}]: ${count} pip${count > 1 ? 's' : ''}`)
+  }
 
   // === GENERATE GREEN PIPS USING BAG SYSTEM ===
   // Note: Alternate version skips green pip generation entirely (only red pips)

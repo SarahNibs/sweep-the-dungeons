@@ -295,9 +295,11 @@ export function selectCardForMasking(state: GameState, targetCardId: string): Ga
         effectType = 'snip_snip'
         break
       default:
-        // Gaze cards and other cards
+        // Gaze and Fetch cards and other cards
         if (targetCard.name.startsWith('Gaze')) {
           effectType = 'gaze'
+        } else if (targetCard.name.startsWith('Fetch')) {
+          effectType = 'fetch'
         } else {
           effectType = targetCard.name.toLowerCase().replace(' ', '_')
         }

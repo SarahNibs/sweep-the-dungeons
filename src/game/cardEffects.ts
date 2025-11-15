@@ -280,9 +280,10 @@ export function addOwnerSubsetAnnotation(
 ): GameState {
   const key = positionToKey(position)
   const tile = state.board.tiles.get(key)
-  
+
   if (!tile) return state
-  
+  if (tile.owner === 'empty') return state
+
   const newTiles = new Map(state.board.tiles)
   
   // Find existing subset annotation if any

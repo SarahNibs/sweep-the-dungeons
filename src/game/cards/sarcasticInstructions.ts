@@ -600,10 +600,46 @@ function generateMethod2(state: GameState, _enhanced: boolean, useAlternate: boo
   let redPipTargets: Tile[] = []
 
   if (useAlternate) {
-    // Alternate Method 2: Simple bag with 2x player, 4x neutral, 6x rival, 8x mine
-    // Draw 10 pips (all red, no green)
+    // Alternate Method 2: Select subset of tiles for bag, then build bag with weighted copies
+    // Step 1: Select up to 10 tiles from unrevealedTiles
+    const selectedTilesForBag: Tile[] = []
+
+    // Separate tiles by owner type
+    const playerTiles = unrevealedTiles.filter(t => t.owner === 'player')
+    const neutralTiles = unrevealedTiles.filter(t => t.owner === 'neutral')
+    const rivalTiles = unrevealedTiles.filter(t => t.owner === 'rival')
+    const mineTiles = unrevealedTiles.filter(t => t.owner === 'mine')
+
+    // Pick 1 of each type (if available)
+    if (playerTiles.length > 0) {
+      selectedTilesForBag.push(playerTiles[Math.floor(Math.random() * playerTiles.length)])
+    }
+    if (neutralTiles.length > 0) {
+      selectedTilesForBag.push(neutralTiles[Math.floor(Math.random() * neutralTiles.length)])
+    }
+    if (rivalTiles.length > 0) {
+      selectedTilesForBag.push(rivalTiles[Math.floor(Math.random() * rivalTiles.length)])
+    }
+    if (mineTiles.length > 0) {
+      selectedTilesForBag.push(mineTiles[Math.floor(Math.random() * mineTiles.length)])
+    }
+
+    // Fill remaining slots up to 10 with random tiles from unrevealedTiles
+    const remainingTiles = unrevealedTiles.filter(tile =>
+      !selectedTilesForBag.some(selected =>
+        selected.position.x === tile.position.x && selected.position.y === tile.position.y
+      )
+    )
+
+    while (selectedTilesForBag.length < 10 && remainingTiles.length > 0) {
+      const randomIndex = Math.floor(Math.random() * remainingTiles.length)
+      selectedTilesForBag.push(remainingTiles[randomIndex])
+      remainingTiles.splice(randomIndex, 1)
+    }
+
+    // Step 2: Build bag from ONLY the selected tiles (2x player, 4x neutral, 6x rival, 8x mine)
     const redCluesBag: Tile[] = []
-    for (const tile of unrevealedTiles) {
+    for (const tile of selectedTilesForBag) {
       const copies = tile.owner === 'player' ? 2
                    : tile.owner === 'neutral' ? 4
                    : tile.owner === 'rival' ? 6

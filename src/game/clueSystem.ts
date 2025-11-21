@@ -113,6 +113,9 @@ function buildBagWithAdjustments(
       if (tile.owner === 'mine') {
         actualCopies -= 1 // Mines get -1 instance (existing rule)
       }
+      if (tile.owner === 'mine' && targetOwner === 'rival') {
+        actualCopies -= 1 // Mines get an additional -1 instance for rival clues (new rule)
+      }
       if (tile.owner === targetOwner) {
         actualCopies -= 1 // Spoiler tiles with same owner as target get -1 instance (new rule)
       }

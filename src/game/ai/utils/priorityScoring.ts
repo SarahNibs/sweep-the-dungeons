@@ -55,8 +55,8 @@ export function calculateTilePriority(
   }
   rivalScore += historicalRivalPips
 
-  // Apply mine penalty: -0.002 if tile is a mine
-  const minePenalty = tile.owner === 'mine' ? -0.005 : 0
+  // Apply mine penalty: -0.008 if tile is a mine
+  const minePenalty = tile.owner === 'mine' ? -0.008 : 0
 
   // Prefer tiles that are likely to be rival tiles based on AI's knowledge
   const priorityScore = rivalScore - Math.max(0, playerScore - 1) + minePenalty

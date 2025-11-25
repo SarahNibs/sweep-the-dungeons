@@ -1,5 +1,5 @@
 import { GameState, Position } from '../../types'
-import { getTile } from '../boardSystem'
+import { getTile, canPlayerRevealInnerTile } from '../boardSystem'
 import { addStatusEffect } from '../gameRepository'
 import { revealTileWithEquipmentEffects } from '../cardEffects'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
@@ -13,11 +13,11 @@ export function executeHorseEffect(state: GameState, target: Position, card?: im
     { x: target.x, y: target.y - 1 }, // Up
     { x: target.x, y: target.y + 1 }  // Down
   ]
-  
-  // Find tiles in the area that exist and are unrevealed
+
+  // Find tiles in the area that exist, are unrevealed, and can be revealed (not inner tiles with unrevealed sanctums)
   const validTiles = area
     .map(pos => ({ pos, tile: getTile(state.board, pos) }))
-    .filter(({ tile }) => tile && !tile.revealed && tile.owner !== 'empty')
+    .filter(({ pos, tile }) => tile && !tile.revealed && tile.owner !== 'empty' && canPlayerRevealInnerTile(state.board, pos))
   
   if (validTiles.length === 0) {
     // No valid tiles, just add status effect

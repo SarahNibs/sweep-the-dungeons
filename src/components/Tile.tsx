@@ -2,7 +2,7 @@ import { Tile as TileType, ClueResult } from '../types'
 import { useGameStore } from '../store'
 import { useState, useEffect } from 'react'
 import { Tooltip } from './Tooltip'
-import { getNeighbors } from '../game/boardSystem'
+import { getNeighbors, canPlayerRevealInnerTile } from '../game/boardSystem'
 
 interface TileProps {
   tile: TileType
@@ -207,6 +207,29 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
             borderTop: 'none',
             borderRight: 'none',
             pointerEvents: 'none'
+          }}
+        />
+      )
+    }
+
+    // Add darkening overlay for inner tiles (always visible, on both revealed and unrevealed)
+    if (tile.innerTile && tile.connectedSanctums && tile.connectedSanctums.length > 0) {
+      const canReveal = canPlayerRevealInnerTile(board, tile.position)
+      const opacity = canReveal ? 0.15 : 0.25 // 15% for accessible, 25% for inaccessible
+
+      elements.push(
+        <div
+          key="inner-tile-darkening"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'black',
+            opacity,
+            pointerEvents: 'none',
+            zIndex: 1
           }}
         />
       )
@@ -759,6 +782,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           </Tooltip>
         )
       }
+
       } // End of non-adjacency annotations for unrevealed tiles
 
     // Render destroyed tile explosion (shown for both revealed and unrevealed)
@@ -1037,6 +1061,35 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     ) : content
   }
 
+  // Compute box shadow for sanctums and other effects
+  const getBoxShadow = () => {
+    const shadows: string[] = []
+
+    // Add white inset border for sanctums
+    if (tile.specialTiles.includes('sanctum')) {
+      shadows.push('inset 0 0 0 2px white')
+    }
+
+    // Add other effects
+    if (isAdjacencyHighlighted() === 'green') {
+      shadows.push('0 0 12px rgba(34, 197, 94, 0.6)')
+    } else if (isAdjacencyHighlighted() === 'red') {
+      shadows.push('0 0 12px rgba(220, 53, 69, 0.6)')
+    } else if (isEnemyHighlighted || isTingleEmphasized()) {
+      shadows.push('0 0 12px rgba(220, 53, 69, 0.6)')
+    } else if (isTrystHighlighted) {
+      shadows.push('0 0 12px rgba(155, 89, 182, 0.6)')
+    } else if (isBrushHighlighted) {
+      shadows.push('0 0 12px rgba(0, 123, 255, 0.8)')
+    } else if (isClueHighlighted()) {
+      shadows.push('0 0 8px rgba(64, 192, 87, 0.4)')
+    } else if ((isHovered && !tile.revealed) || isAdjacentToHoveredRevealed) {
+      shadows.push('0 2px 4px rgba(0,0,0,0.3)')
+    }
+
+    return shadows.length > 0 ? shadows.join(', ') : 'none'
+  }
+
   const mainTile = (
     <div
       onClick={handleClick}
@@ -1066,14 +1119,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         transition: 'all 0.2s ease',
         userSelect: 'none',
         transform: ((isHovered && !tile.revealed) || isAdjacentToHoveredRevealed) ? 'scale(1.05)' : 'scale(1)',
-        boxShadow: isAdjacencyHighlighted() === 'green' ? '0 0 12px rgba(34, 197, 94, 0.6)' :
-                   isAdjacencyHighlighted() === 'red' ? '0 0 12px rgba(220, 53, 69, 0.6)' :
-                   isEnemyHighlighted || isTingleEmphasized() ? '0 0 12px rgba(220, 53, 69, 0.6)' :
-                   isTrystHighlighted ? '0 0 12px rgba(155, 89, 182, 0.6)' :
-                   isBrushHighlighted ? '0 0 12px rgba(0, 123, 255, 0.8)' :
-                   isClueHighlighted() ? '0 0 8px rgba(64, 192, 87, 0.4)' :
-                   ((isHovered && !tile.revealed) || isAdjacentToHoveredRevealed) ? '0 2px 4px rgba(0,0,0,0.3)' :
-                   'none',
+        boxShadow: getBoxShadow(),
         animation: isAdjacencyHighlighted() ? 'pulse 1s ease-in-out infinite' :
                    isEnemyHighlighted || isTingleEmphasized() ? 'pulse 1s ease-in-out infinite' :
                    isTrystHighlighted ? 'pulse 1s ease-in-out infinite' :

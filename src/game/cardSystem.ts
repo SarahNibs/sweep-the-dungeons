@@ -1,5 +1,5 @@
 import { Card, GameState, StatusEffect } from '../types'
-import { createBoard, revealTileWithResult } from './boardSystem'
+import { createBoard, revealTileWithResult, setupSanctumsAndInnerTiles, canPlayerRevealInnerTile } from './boardSystem'
 import { executeCardEffect, requiresTargeting } from './cardEffects'
 import { getLevelConfig as getLevelConfigFromSystem, getNextLevelId } from './levelSystem'
 import { triggerDustBunnyEffect, triggerTemporaryBunnyBuffs, triggerMatedPairEffect, triggerBabyBunnyEffect, triggerBusyCanaryEffect, triggerInterceptedNoteEffect, triggerHyperfocusEffect, prepareGlassesEffect, hasEquipment, transformInstructionsIfNovel } from './equipment'
@@ -8,6 +8,7 @@ import { decrementBurgerStacks } from './cards/burger'
 import { decrementIceCreamStacks } from './cards/iceCream'
 import { decrementCarrotsStacks } from './cards/carrots'
 import { revealTileWithEquipmentEffects } from './cardEffects'
+import { clearRewardScreenState } from './rewardStateManager'
 
 /**
  * Maps card names to their effect types for non-targeting cards
@@ -962,7 +963,7 @@ export function createInitialState(
   const levelConfig = getLevelConfigFromSystem(levelId)
   
   let board
-  
+
   if (levelConfig) {
     // Use level configuration
     board = createBoard(
@@ -977,7 +978,10 @@ export function createInitialState(
     // Fallback to default board
     board = createBoard()
   }
-  
+
+  // Setup sanctums and their connected inner tiles
+  board = setupSanctumsAndInnerTiles(board)
+
   // Handle initial rival reveals if specified in level config
   if (levelConfig?.specialBehaviors.initialRivalReveal) {
     const rivalTiles = Array.from(board.tiles.values()).filter(tile => 
@@ -1103,7 +1107,7 @@ export function createInitialState(
   const carrotsEffect = finalState.activeStatusEffects.find(e => e.type === 'carrots')
   if (carrotsEffect && carrotsEffect.count) {
     const unrevealedPlayerTiles = Array.from(finalState.board.tiles.values()).filter(
-      tile => tile.owner === 'player' && !tile.revealed && !tile.specialTiles.includes('extraDirty')
+      tile => tile.owner === 'player' && !tile.revealed && !tile.specialTiles.includes('extraDirty') && canPlayerRevealInnerTile(finalState.board, tile.position)
     )
 
     if (unrevealedPlayerTiles.length > 0) {
@@ -1273,13 +1277,16 @@ export function createInitialState(
 }
 
 export function startCardSelection(state: GameState): GameState {
+  // Clear reward screen state to prevent leakage from previous screens
+  const cleanState = clearRewardScreenState(state)
+
   // Get the current level number for upgrade determination
   const levelConfig = getLevelConfigFromSystem(state.currentLevelId)
   const levelNumber = levelConfig?.levelNumber || 1
 
   const cardOptions = createNewLevelCards(levelNumber)
   return {
-    ...state,
+    ...cleanState,
     gamePhase: 'card_selection',
     cardSelectionOptions: cardOptions
   }

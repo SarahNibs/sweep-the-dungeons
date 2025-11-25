@@ -1,5 +1,5 @@
 import { GameState, Tile } from '../../types'
-import { calculateAdjacency, removeSpecialTile } from '../boardSystem'
+import { calculateAdjacency, removeSpecialTile, canPlayerRevealInnerTile } from '../boardSystem'
 import { hasEquipment } from './equipmentUtils'
 
 /**
@@ -8,11 +8,12 @@ import { hasEquipment } from './equipmentUtils'
  * @returns Object containing updated state, the revealed tile (or null if none available), and copper gained from defusing
  */
 function revealRandomPlayerTile(state: GameState): { state: GameState, revealedTile: Tile | null, copperGained: number } {
-  // Find all unrevealed player tiles that are not dirty
+  // Find all unrevealed player tiles that are not dirty and not inner tiles with unrevealed sanctums
   const unrevealedPlayerTiles = Array.from(state.board.tiles.values()).filter(tile =>
     tile.owner === 'player' &&
     !tile.revealed &&
-    !tile.specialTiles.includes('extraDirty')
+    !tile.specialTiles.includes('extraDirty') &&
+    canPlayerRevealInnerTile(state.board, tile.position)
   )
 
   if (unrevealedPlayerTiles.length === 0) {

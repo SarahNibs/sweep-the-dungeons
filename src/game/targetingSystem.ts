@@ -1,5 +1,5 @@
 import { Board, Position, Tile } from '../types'
-import { getTile, hasSpecialTile } from './boardSystem'
+import { getTile, hasSpecialTile, canPlayerRevealInnerTile } from './boardSystem'
 
 /**
  * Taxonomy of tile targeting:
@@ -16,6 +16,15 @@ import { getTile, hasSpecialTile } from './boardSystem'
  *    - Canary (5 tiles basic, 3x3 enhanced): needs at least one unrevealed non-empty tile
  *    - Argument (3x3): needs at least one unrevealed non-empty tile
  *    All area cards can target empty tiles as center if area contains valid tiles
+ *
+ * FUTURE EXTENSION POINT - Per-Card Inner Tile Behavior:
+ * To add card-specific rules for inner tile visibility/targeting:
+ * 1. Add a `cardInnerTileRules` map that specifies per-card behavior
+ * 2. Update canTargetTile() to check these rules when validating inner tiles
+ * 3. Example rules to implement:
+ *    - Gaze, Fetch, Horse: Treat inner tiles as if empty (ignore them)
+ *    - Snip Snip: Cannot target inner tiles without revealed sanctum
+ *    - Tryst+: CAN target inner tiles (override default restriction)
  */
 
 export type TargetingType =
@@ -34,7 +43,7 @@ export interface TargetValidation {
 /**
  * Check if a tile is valid for direct reveal (clicking without a card effect)
  */
-export function canDirectRevealTile(tile: Tile | undefined): TargetValidation {
+export function canDirectRevealTile(tile: Tile | undefined, board: Board): TargetValidation {
   if (!tile) {
     return { isValid: false, reason: 'Tile does not exist' }
   }
@@ -45,6 +54,11 @@ export function canDirectRevealTile(tile: Tile | undefined): TargetValidation {
 
   if (tile.revealed) {
     return { isValid: false, reason: 'Tile already revealed' }
+  }
+
+  // Check if inner tile with unrevealed sanctum
+  if (!canPlayerRevealInnerTile(board, tile.position)) {
+    return { isValid: false, reason: 'Cannot reveal until sanctum is revealed' }
   }
 
   return { isValid: true }

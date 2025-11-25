@@ -3,6 +3,7 @@ import { advanceToNextLevel } from './cardSystem'
 import { shouldShowEquipmentReward, shouldShowShopReward } from './levelSystem'
 import { startEquipmentSelection } from './equipment'
 import { startShopSelection } from './shopSystem'
+import { clearRewardScreenState } from './rewardStateManager'
 
 import { createCard } from './gameRepository'
 
@@ -109,13 +110,14 @@ export function applyUpgrade(state: GameState, option: UpgradeOption, selectedCa
 }
 
 export function startUpgradeSelection(state: GameState): GameState {
+  // Clear reward screen state to prevent leakage from previous screens
+  const cleanState = clearRewardScreenState(state)
+
   const upgradeOptions = createUpgradeOptions(state)
   return {
-    ...state,
+    ...cleanState,
     gamePhase: 'upgrade_selection',
-    upgradeOptions,
-    waitingForCardRemoval: false,
-    pendingUpgradeOption: undefined
+    upgradeOptions
   }
 }
 

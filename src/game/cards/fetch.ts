@@ -1,5 +1,5 @@
 import { GameState, Position, Card } from '../../types'
-import { getTile, revealTileWithResult } from '../boardSystem'
+import { getTile, revealTileWithResult, canPlayerRevealInnerTile } from '../boardSystem'
 import { addOwnerSubsetAnnotation, checkGameStatus, trackPlayerTileReveal } from '../cardEffects'
 import { createCard } from '../gameRepository'
 
@@ -23,9 +23,9 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
   // Get direction offset
   const offset = getDirectionOffset(direction)
 
-  // Check the starting tile first
+  // Check the starting tile first (if it can be revealed)
   const startTile = getTile(state.board, start)
-  if (startTile && !startTile.revealed) {
+  if (startTile && !startTile.revealed && canPlayerRevealInnerTile(state.board, start)) {
     // Unrevealed tiles can only be player, neutral, rival, or mine (never empty)
     const owner = startTile.owner as 'player' | 'rival' | 'neutral' | 'mine'
     checked.push({ ...start })
@@ -42,8 +42,8 @@ export function executeFetchEffect(state: GameState, start: Position, card?: Car
     const tile = getTile(state.board, current)
     if (!tile) break
 
-    // Only check unrevealed tiles
-    if (!tile.revealed) {
+    // Only check unrevealed tiles that can be revealed (not inner tiles with unrevealed sanctums)
+    if (!tile.revealed && canPlayerRevealInnerTile(state.board, current)) {
       // Unrevealed tiles can only be player, neutral, rival, or mine (never empty)
       const owner = tile.owner as 'player' | 'rival' | 'neutral' | 'mine'
       checked.push({ ...current })

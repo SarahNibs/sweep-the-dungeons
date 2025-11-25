@@ -1,5 +1,5 @@
 import { GameState, CardEffect, Position, Tile, TileAnnotation, ClueResult, GameStatusInfo } from '../types'
-import { positionToKey, getTile, revealTileWithResult, hasSpecialTile, calculateAdjacency } from './boardSystem'
+import { positionToKey, getTile, revealTileWithResult, hasSpecialTile, calculateAdjacency, canPlayerRevealInnerTile } from './boardSystem'
 import { triggerDoubleBroomEffect, checkFrillyDressEffect } from './equipment'
 import { removeStatusEffect, createCard } from './gameRepository'
 import { getLevelConfig } from './levelSystem'
@@ -242,11 +242,17 @@ export function revealTileWithEquipmentEffects(
   return stateWithBoard
 }
 
+// FUTURE EXTENSION POINT - Per-Card Inner Tile Filtering:
+// This helper function filters out inner tiles by default.
+// To add per-card rules, consider adding an optional parameter:
+// getUnrevealedTiles(state: GameState, cardName?: string, options?: { includeInnerTiles?: boolean })
+// Then check cardName against a rules map to determine filtering behavior.
 export function getUnrevealedTiles(state: GameState): Tile[] {
   const unrevealed: Tile[] = []
   for (const tile of state.board.tiles.values()) {
     // Filter out empty tiles (including destroyed tiles which have owner='empty')
-    if (!tile.revealed && tile.owner !== 'empty') {
+    // Also filter out inner tiles with unrevealed sanctums
+    if (!tile.revealed && tile.owner !== 'empty' && canPlayerRevealInnerTile(state.board, tile.position)) {
       unrevealed.push(tile)
     }
   }

@@ -13,7 +13,7 @@ interface BoardProps {
 export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
   const { rivalAnimation, trystAnimation, selectedCardName, selectedCardId, pendingCardEffect, hand, adjacencyPatternAnimation, clearAdjacencyPatternAnimation } = useGameStore()
   const [areaHoverCenter, setAreaHoverCenter] = useState<Position | null>(null)
-  const [hoveredRevealedTile, setHoveredRevealedTile] = useState<Position | null>(null)
+  const [hoveredTile, setHoveredTile] = useState<Position | null>(null)
 
   // Clear adjacency pattern animation after 1 second
   useEffect(() => {
@@ -72,8 +72,8 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
   const renderTiles = () => {
     const tiles: JSX.Element[] = []
 
-    // Precompute neighbors of hovered revealed tile using the board's adjacency rule
-    const hoveredRevealedNeighbors = hoveredRevealedTile ? getNeighbors(board, hoveredRevealedTile) : []
+    // Precompute neighbors of hovered tile using the board's adjacency rule
+    const hoveredTileNeighbors = hoveredTile ? getNeighbors(board, hoveredTile) : []
 
     for (let y = 0; y < board.height; y++) {
       for (let x = 0; x < board.width; x++) {
@@ -114,8 +114,8 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
           }
         })()
 
-        // Check if this tile is adjacent to a hovered revealed tile (using board's adjacency rule)
-        const isAdjacentToHoveredRevealed = hoveredRevealedNeighbors.some(
+        // Check if this tile is adjacent to a hovered tile (using board's adjacency rule)
+        const isAdjacentToHoveredRevealed = hoveredTileNeighbors.some(
           neighborPos => neighborPos.x === x && neighborPos.y === y
         )
 
@@ -148,16 +148,17 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
                 if (isAreaTargeting) {
                   setAreaHoverCenter({ x, y })
                 }
-                if (tile.revealed) {
-                  setHoveredRevealedTile({ x, y })
+                // Highlight neighbors for all non-empty tiles
+                if (tile.owner !== 'empty') {
+                  setHoveredTile({ x, y })
                 }
               }}
               onMouseLeave={() => {
                 if (isAreaTargeting) {
                   setAreaHoverCenter(null)
                 }
-                if (tile.revealed) {
-                  setHoveredRevealedTile(null)
+                if (tile.owner !== 'empty') {
+                  setHoveredTile(null)
                 }
               }}
             />
@@ -208,6 +209,88 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
     return tiles
   }
 
+  // Calculate pixel coordinates for tile midpoints
+  const getTileMidpoint = (pos: Position): { x: number, y: number } => {
+    const tileSize = 56 // Actual tile element size
+    const cellSize = 60 // CSS grid cell size (from gridTemplateColumns)
+    const gap = 4       // CSS grid gap between cells
+    const padding = 20  // Padding around the entire grid
+
+    // In CSS grid, position N is at: padding + N * (cellSize + gap)
+    // Tile midpoint is at cell start + tileSize / 2
+    return {
+      x: padding + pos.x * (cellSize + gap) + tileSize / 2,
+      y: padding + pos.y * (cellSize + gap) + tileSize / 2
+    }
+  }
+
+  // Render connection lines from sanctums to inner tiles
+  const renderConnectionLines = () => {
+    const lines: JSX.Element[] = []
+
+    // Find all sanctums and their connected inner tiles
+    for (const tile of board.tiles.values()) {
+      // Skip if sanctum is destroyed (but not if just revealed!)
+      if (tile.specialTiles.includes('sanctum') && !tile.specialTiles.includes('destroyed')) {
+        const sanctumMidpoint = getTileMidpoint(tile.position)
+
+        // Find all inner tiles connected to this sanctum
+        for (const innerTile of board.tiles.values()) {
+          if (innerTile.innerTile && innerTile.connectedSanctums) {
+            const isConnected = innerTile.connectedSanctums.some(
+              s => s.x === tile.position.x && s.y === tile.position.y
+            )
+            if (isConnected) {
+              const innerMidpoint = getTileMidpoint(innerTile.position)
+              const lineKey = `${tile.position.x},${tile.position.y}-${innerTile.position.x},${innerTile.position.y}`
+
+              // First line: thicker, softer (40% opacity, 3px width) for rounded look
+              lines.push(
+                <line
+                  key={`${lineKey}-outer`}
+                  x1={sanctumMidpoint.x}
+                  y1={sanctumMidpoint.y}
+                  x2={innerMidpoint.x}
+                  y2={innerMidpoint.y}
+                  stroke="black"
+                  strokeWidth="3"
+                  strokeOpacity="0.4"
+                />
+              )
+
+              // Second line: thinner, crisper (75% opacity, 1px width) for definition
+              lines.push(
+                <line
+                  key={`${lineKey}-inner`}
+                  x1={sanctumMidpoint.x}
+                  y1={sanctumMidpoint.y}
+                  x2={innerMidpoint.x}
+                  y2={innerMidpoint.y}
+                  stroke="black"
+                  strokeWidth="1"
+                  strokeOpacity="0.75"
+                />
+              )
+            }
+          }
+        }
+      }
+    }
+
+    return lines
+  }
+
+  // Calculate actual grid dimensions
+  // Grid size = padding + (N cells * cellSize) + ((N-1) gaps * gapSize) + padding
+  // = 2*padding + N*cellSize + (N-1)*gapSize
+  // = 2*padding + N*cellSize + N*gapSize - gapSize
+  // = 2*padding + N*(cellSize + gapSize) - gapSize
+  const cellSize = 60
+  const gap = 4
+  const padding = 20
+  const gridWidth = 2 * padding + board.width * (cellSize + gap) - gap
+  const gridHeight = 2 * padding + board.height * (cellSize + gap) - gap
+
   return (
     <div style={{
       display: 'flex',
@@ -218,6 +301,7 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
     }}>
       <div
         style={{
+          position: 'relative',
           display: 'grid',
           gridTemplateColumns: `repeat(${board.width}, 60px)`,
           gridTemplateRows: `repeat(${board.height}, 60px)`,
@@ -228,6 +312,22 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
           border: '2px solid #dee2e6'
         }}
       >
+        {/* Connection lines layer - behind all tiles */}
+        <svg
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+            zIndex: 0
+          }}
+          viewBox={`0 0 ${gridWidth} ${gridHeight}`}
+        >
+          {renderConnectionLines()}
+        </svg>
+
         {renderTiles()}
       </div>
     </div>

@@ -1,5 +1,123 @@
 import { Board, Tile, Position, TileAnnotation } from '../types'
-import { getTile, positionToKey, getNeighbors, calculateAdjacency } from './boardSystem'
+import { getTile, positionToKey, getNeighbors, calculateAdjacency, hasSpecialTile } from './boardSystem'
+
+/**
+ * Recalculate adjacency_info annotations for all tiles that have them.
+ * This is needed when neighbor relationships change (e.g., sanctum destruction).
+ */
+function recalculateAdjacencyInfoAnnotations(board: Board): Board {
+  const newTiles = new Map(board.tiles)
+
+  // Find all tiles with adjacency_info annotations
+  for (const [key, tile] of board.tiles) {
+    const adjacencyAnnotation = tile.annotations.find(a => a.type === 'adjacency_info')
+
+    if (adjacencyAnnotation?.adjacencyInfo) {
+      // Recalculate adjacency info using current neighbor relationships
+      const neighborPositions = getNeighbors(board, tile.position)
+
+      const adjacencyInfo: { player?: number; neutral?: number; rival?: number; mine?: number } = {}
+      let playerCount = 0
+      let neutralCount = 0
+      let rivalCount = 0
+      let mineCount = 0
+
+      for (const neighborPos of neighborPositions) {
+        const neighborTile = getTile(board, neighborPos)
+        if (neighborTile) {
+          switch (neighborTile.owner) {
+            case 'player':
+              playerCount++
+              break
+            case 'neutral':
+              neutralCount++
+              break
+            case 'rival':
+              rivalCount++
+              break
+            case 'mine':
+              mineCount++
+              break
+          }
+        }
+      }
+
+      // Only set values that were in the original annotation (preserve enhanced vs non-enhanced info)
+      if (adjacencyAnnotation.adjacencyInfo.player !== undefined) adjacencyInfo.player = playerCount
+      if (adjacencyAnnotation.adjacencyInfo.neutral !== undefined) adjacencyInfo.neutral = neutralCount
+      if (adjacencyAnnotation.adjacencyInfo.rival !== undefined) adjacencyInfo.rival = rivalCount
+      if (adjacencyAnnotation.adjacencyInfo.mine !== undefined) adjacencyInfo.mine = mineCount
+
+      // Update the annotation
+      const otherAnnotations = tile.annotations.filter(a => a.type !== 'adjacency_info')
+      const updatedAnnotations: TileAnnotation[] = [
+        ...otherAnnotations,
+        {
+          type: 'adjacency_info',
+          adjacencyInfo
+        }
+      ]
+
+      newTiles.set(key, {
+        ...tile,
+        annotations: updatedAnnotations
+      })
+    }
+  }
+
+  return {
+    ...board,
+    tiles: newTiles
+  }
+}
+
+/**
+ * Release inner tiles connected to a sanctum when the sanctum is destroyed.
+ * Removes the destroyed sanctum from each inner tile's connections.
+ * Only fully releases the tile if it has no remaining sanctum connections.
+ * Returns the updated board and list of fully released positions for adjacency recalculation.
+ */
+function releaseInnerTilesForSanctum(board: Board, sanctumPos: Position): { board: Board, releasedPositions: Position[] } {
+  const releasedPositions: Position[] = []
+  const newTiles = new Map(board.tiles)
+
+  // Find all tiles connected to this sanctum
+  for (const tile of board.tiles.values()) {
+    if (tile.innerTile && tile.connectedSanctums && tile.connectedSanctums.length > 0) {
+      // Check if this tile is connected to the destroyed sanctum
+      const isConnectedToSanctum = tile.connectedSanctums.some(pos =>
+        pos.x === sanctumPos.x && pos.y === sanctumPos.y
+      )
+
+      if (isConnectedToSanctum) {
+        // Remove only this sanctum from the connections
+        const remainingConnections = tile.connectedSanctums.filter(pos =>
+          !(pos.x === sanctumPos.x && pos.y === sanctumPos.y)
+        )
+
+        // Only fully release if no sanctums remain
+        const stillInner = remainingConnections.length > 0
+
+        const updatedTile: Tile = {
+          ...tile,
+          innerTile: stillInner,
+          connectedSanctums: remainingConnections
+        }
+        newTiles.set(positionToKey(tile.position), updatedTile)
+
+        // Only mark as released if fully losing inner status
+        if (!stillInner) {
+          releasedPositions.push(tile.position)
+        }
+      }
+    }
+  }
+
+  return {
+    board: { ...board, tiles: newTiles },
+    releasedPositions
+  }
+}
 
 /**
  * Destroy a tile, making it behave like an empty tile for all game purposes:
@@ -26,6 +144,13 @@ export function destroyTile(board: Board, position: Position): Board {
     }
   }
 
+  // If destroying a sanctum, release all connected inner tiles first
+  let releasedInnerTilePositions: Position[] = []
+  if (hasSpecialTile(tile, 'sanctum')) {
+    const releaseResult = releaseInnerTilesForSanctum(board, position)
+    board = releaseResult.board
+    releasedInnerTilePositions = releaseResult.releasedPositions
+  }
 
   const newTiles = new Map(board.tiles)
 
@@ -73,6 +198,45 @@ export function destroyTile(board: Board, position: Position): Board {
 
   // Remove destroyed tile from all clue annotations across the board
   updatedBoard = removeFromClueAnnotations(updatedBoard, position)
+
+  // Recalculate adjacency_info annotations (tile counts changed due to destruction)
+  updatedBoard = recalculateAdjacencyInfoAnnotations(updatedBoard)
+
+  // If we released inner tiles (sanctum destruction), recalculate adjacencies for revealed tiles near released tiles
+  if (releasedInnerTilePositions.length > 0) {
+    const tilesToUpdate = new Set<string>()
+
+    // Find all revealed tiles that are now neighbors with released tiles
+    for (const releasedPos of releasedInnerTilePositions) {
+      const neighbors = getNeighbors(updatedBoard, releasedPos)
+      for (const neighborPos of neighbors) {
+        const neighbor = getTile(updatedBoard, neighborPos)
+        if (neighbor && neighbor.revealed && neighbor.adjacencyCount !== null && neighbor.revealedBy) {
+          tilesToUpdate.add(positionToKey(neighborPos))
+        }
+      }
+    }
+
+    // Recalculate adjacency for affected tiles
+    for (const tileKey of tilesToUpdate) {
+      const [x, y] = tileKey.split(',').map(Number)
+      const pos = { x, y }
+      const tile = getTile(updatedBoard, pos)
+      if (tile && tile.revealed && tile.revealedBy) {
+        const newAdjacencyCount = calculateAdjacency(updatedBoard, pos, tile.revealedBy)
+        const updatedTile: Tile = {
+          ...tile,
+          adjacencyCount: newAdjacencyCount
+        }
+        const updatedTiles = new Map(updatedBoard.tiles)
+        updatedTiles.set(tileKey, updatedTile)
+        updatedBoard = {
+          ...updatedBoard,
+          tiles: updatedTiles
+        }
+      }
+    }
+  }
 
   return updatedBoard
 }

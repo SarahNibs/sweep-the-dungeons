@@ -13,7 +13,13 @@ export function keyToPosition(key: string): Position {
   return { x, y }
 }
 
-export function createTile(position: Position, owner: Tile['owner'], specialTiles?: Array<'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine'>): Tile {
+// Helper to check if two positions are orthogonally adjacent (manhattan distance 1, not diagonal)
+export function isOrthogonallyAdjacent(pos1: Position, pos2: Position): boolean {
+  const manhattanDist = Math.abs(pos1.x - pos2.x) + Math.abs(pos1.y - pos2.y)
+  return manhattanDist === 1
+}
+
+export function createTile(position: Position, owner: Tile['owner'], specialTiles?: Array<'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine' | 'sanctum'>): Tile {
   return {
     position,
     owner,
@@ -22,16 +28,18 @@ export function createTile(position: Position, owner: Tile['owner'], specialTile
     adjacencyCount: null,
     annotations: [],
     specialTiles: specialTiles || [],
-    cleanedOnce: false // Initialize cleanedOnce to false for all new tiles
+    cleanedOnce: false, // Initialize cleanedOnce to false for all new tiles
+    innerTile: false,
+    connectedSanctums: []
   }
 }
 
 // Helper functions for working with specialTiles array
-export function hasSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine'): boolean {
+export function hasSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine' | 'sanctum'): boolean {
   return tile.specialTiles.includes(type)
 }
 
-export function addSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine'): Tile {
+export function addSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine' | 'sanctum'): Tile {
   if (hasSpecialTile(tile, type)) return tile
   return {
     ...tile,
@@ -39,7 +47,7 @@ export function addSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'dest
   }
 }
 
-export function removeSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine'): Tile {
+export function removeSpecialTile(tile: Tile, type: 'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine' | 'sanctum'): Tile {
   return {
     ...tile,
     specialTiles: tile.specialTiles.filter(t => t !== type)
@@ -54,7 +62,7 @@ export function clearAllSpecialTiles(tile: Tile): Tile {
 }
 
 export interface SpecialTileConfig {
-  type: 'extraDirty' | 'goblin' | 'lair' | 'surfaceMine'
+  type: 'extraDirty' | 'goblin' | 'lair' | 'surfaceMine' | 'sanctum'
   count: number
   placement: 'random' | 'nonmine' | 'empty' | 'playerOrNeutral' | { owner: Array<'player' | 'rival' | 'neutral' | 'mine'> } | number[][]
 }
@@ -132,8 +140,14 @@ export function createBoard(
   }
   
   // Apply special tiles
-  for (const specialTileConfig of specialTiles) {
-    applySpecialTiles(tiles, specialTileConfig)
+  // Sort so lairs are placed before extraDirty (for weighted selection to work correctly)
+  const sortedSpecialTiles = [...specialTiles].sort((a, b) => {
+    const order = { lair: 0, goblin: 1, sanctum: 1, surfaceMine: 1, extraDirty: 2 }
+    return (order[a.type] || 99) - (order[b.type] || 99)
+  })
+
+  for (const specialTileConfig of sortedSpecialTiles) {
+    applySpecialTiles(tiles, specialTileConfig, adjacencyRule)
   }
   
   return {
@@ -144,7 +158,166 @@ export function createBoard(
   }
 }
 
-function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig): void {
+// Check if player can reveal an inner tile (returns true if tile can be revealed)
+// Inner tiles can only be revealed by the player if at least one connected sanctum is revealed
+export function canPlayerRevealInnerTile(board: Board, position: Position): boolean {
+  const tile = getTile(board, position)
+  if (!tile?.innerTile || !tile.connectedSanctums || tile.connectedSanctums.length === 0) {
+    return true // Not an inner tile, so can be revealed
+  }
+
+  // Check if ANY connected sanctum is revealed
+  for (const sanctumPos of tile.connectedSanctums) {
+    const sanctum = getTile(board, sanctumPos)
+    if (sanctum?.revealed) {
+      return true // At least one sanctum is revealed
+    }
+  }
+
+  return false // All connected sanctums are unrevealed
+}
+
+// Setup sanctums and mark their connected inner tiles
+// Must be called after board creation and special tile application
+export function setupSanctumsAndInnerTiles(board: Board): Board {
+  // Find all sanctum tiles
+  const sanctumTiles: Tile[] = []
+  for (const tile of board.tiles.values()) {
+    if (tile.specialTiles?.includes('sanctum')) {
+      sanctumTiles.push(tile)
+    }
+  }
+
+  if (sanctumTiles.length === 0) {
+    return board // No sanctums, nothing to do
+  }
+
+  const newTiles = new Map(board.tiles)
+
+  // Pass 1: Each sanctum picks its own inner tiles
+  const allInnerTileKeys = new Set<string>()
+
+  for (const sanctum of sanctumTiles) {
+    // Get spatially nearby tiles
+    const nearbyPositions = getNearbyTiles(board, sanctum.position)
+
+    // Filter candidates: must not be empty, must not be sanctums
+    const candidates = nearbyPositions.filter(pos => {
+      const tile = board.tiles.get(positionToKey(pos))
+      return tile &&
+             tile.owner !== 'empty' &&
+             !tile.specialTiles?.includes('sanctum')
+    })
+
+    if (candidates.length === 0) continue
+
+    // Select N = ceil(candidates.length / 2) random candidates as inner tiles
+    const innerCount = Math.ceil(candidates.length / 2)
+    const shuffled = [...candidates].sort(() => Math.random() - 0.5)
+    const selectedInner = shuffled.slice(0, innerCount)
+
+    console.log(`Sanctum at (${sanctum.position.x}, ${sanctum.position.y}): ${candidates.length} candidates, selecting ${innerCount} as inner tiles`)
+
+    // Mark them as inner (but don't set connections yet)
+    for (const innerPos of selectedInner) {
+      const key = positionToKey(innerPos)
+      allInnerTileKeys.add(key)
+      const tile = newTiles.get(key) || board.tiles.get(key)
+      if (tile) {
+        newTiles.set(key, {
+          ...tile,
+          innerTile: true,
+          connectedSanctums: [] // Will be computed in pass 2
+        })
+      }
+    }
+  }
+
+  // Pass 2: For each inner tile, connect it to ALL nearby sanctums
+  for (const innerKey of allInnerTileKeys) {
+    const innerPos = keyToPosition(innerKey)
+    const tile = newTiles.get(innerKey)
+    if (!tile) continue
+
+    // Find all sanctums this tile is nearby
+    const connectedSanctums: Position[] = []
+    for (const sanctum of sanctumTiles) {
+      const nearbyPositions = getNearbyTiles(board, sanctum.position)
+      const isNearby = nearbyPositions.some(pos => positionToKey(pos) === innerKey)
+      if (isNearby) {
+        connectedSanctums.push(sanctum.position)
+      }
+    }
+
+    console.log(`  Inner tile (${innerPos.x}, ${innerPos.y}) connected to ${connectedSanctums.length} sanctum(s)`)
+
+    newTiles.set(innerKey, {
+      ...tile,
+      connectedSanctums
+    })
+  }
+
+  return {
+    ...board,
+    tiles: newTiles
+  }
+}
+
+// Helper to check if a tile has a lair neighbor
+function hasLairNeighbor(tiles: Map<string, Tile>, position: Position, adjacencyRule: 'standard' | 'manhattan-2'): boolean {
+  // Create a minimal board to use getNearbyTiles
+  const tempBoard: Board = {
+    tiles,
+    width: 100, // Large enough to not matter
+    height: 100,
+    adjacencyRule
+  }
+
+  const nearbyPositions = getNearbyTiles(tempBoard, position)
+
+  for (const neighborPos of nearbyPositions) {
+    const neighbor = tiles.get(positionToKey(neighborPos))
+    if (neighbor && hasSpecialTile(neighbor, 'lair')) {
+      return true
+    }
+  }
+
+  return false
+}
+
+// Weighted random selection: tiles near lairs are 4x more likely to be selected
+function selectWithLairWeighting(tiles: Tile[], count: number, tilesMap: Map<string, Tile>, adjacencyRule: 'standard' | 'manhattan-2'): Tile[] {
+  const selected: Tile[] = []
+  const remaining = [...tiles]
+
+  for (let i = 0; i < count && remaining.length > 0; i++) {
+    // Calculate weights for each remaining tile
+    const weights = remaining.map(tile =>
+      hasLairNeighbor(tilesMap, tile.position, adjacencyRule) ? 4 : 1
+    )
+
+    const totalWeight = weights.reduce((sum, w) => sum + w, 0)
+
+    // Weighted random selection
+    let random = Math.random() * totalWeight
+    let selectedIndex = 0
+
+    for (let j = 0; j < weights.length; j++) {
+      random -= weights[j]
+      if (random <= 0) {
+        selectedIndex = j
+        break
+      }
+    }
+
+    selected.push(remaining[selectedIndex])
+    remaining.splice(selectedIndex, 1)
+  }
+
+  return selected
+}
+
+function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig, adjacencyRule: 'standard' | 'manhattan-2' = 'standard'): void {
 
   // Handle coordinate array placement
   if (Array.isArray(config.placement)) {
@@ -155,17 +328,15 @@ function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig):
       .map(pos => getTile({ tiles, width: 0, height: 0 } as Board, pos))
       .filter((tile): tile is Tile => tile !== undefined)
 
-
-    // Shuffle eligible tiles
-    for (let i = eligibleTiles.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [eligibleTiles[i], eligibleTiles[j]] = [eligibleTiles[j], eligibleTiles[i]]
-    }
-
-    // Apply to the first 'count' tiles after shuffling
     const count = Math.min(config.count, eligibleTiles.length)
-    for (let i = 0; i < count; i++) {
-      const tile = eligibleTiles[i]
+
+    // Use weighted selection for extraDirty, uniform random for others
+    const selectedTiles = config.type === 'extraDirty'
+      ? selectWithLairWeighting(eligibleTiles, count, tiles, adjacencyRule)
+      : eligibleTiles.sort(() => Math.random() - 0.5).slice(0, count)
+
+    // Apply to selected tiles
+    for (const tile of selectedTiles) {
       const key = positionToKey(tile.position)
       tiles.set(key, addSpecialTile(tile, config.type))
     }
@@ -197,18 +368,15 @@ function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig):
     return false
   })
 
-
-  // Shuffle eligible tiles
-  for (let i = eligibleTiles.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [eligibleTiles[i], eligibleTiles[j]] = [eligibleTiles[j], eligibleTiles[i]]
-  }
-
-  // Apply special tile type to the requested count
   const count = Math.min(config.count, eligibleTiles.length)
 
-  for (let i = 0; i < count; i++) {
-    const tile = eligibleTiles[i]
+  // Use weighted selection for extraDirty, uniform random for others
+  const selectedTiles = config.type === 'extraDirty'
+    ? selectWithLairWeighting(eligibleTiles, count, tiles, adjacencyRule)
+    : eligibleTiles.sort(() => Math.random() - 0.5).slice(0, count)
+
+  // Apply special tile type to selected tiles
+  for (const tile of selectedTiles) {
     const key = positionToKey(tile.position)
     tiles.set(key, addSpecialTile(tile, config.type))
   }
@@ -284,15 +452,17 @@ export function revealTileWithResult(board: Board, position: Position, revealedB
   }
   
   const adjacencyCount = calculateAdjacency(board, position, revealedBy)
-  
+
   const newTiles = new Map(board.tiles)
   // Clear special tile state when revealing (enemies can reveal dirty tiles normally)
+  // EXCEPT sanctums - they persist through reveal and only disappear when destroyed
+  const specialTilesToKeep = tile.specialTiles.filter(st => st === 'sanctum')
   const revealedTile: Tile = {
     ...tile,
     revealed: true,
     revealedBy,
     adjacencyCount,
-    specialTiles: [] // Clear all special tiles when revealing
+    specialTiles: specialTilesToKeep // Keep sanctums, clear others (dirty, goblin, etc.)
   }
   
   newTiles.set(key, revealedTile)
@@ -310,24 +480,26 @@ export function revealTile(board: Board, position: Position, revealedBy: 'player
   return revealTileWithResult(board, position, revealedBy).board
 }
 
-export function getNeighbors(board: Board, position: Position): Position[] {
+// Returns physically nearby tiles (spatial adjacency only, ignoring sanctum rules)
+// This is used primarily for sanctum setup to identify which tiles are spatially near each other
+export function getNearbyTiles(board: Board, position: Position): Position[] {
   const neighbors: Position[] = []
-  
+
   if (board.adjacencyRule === 'manhattan-2') {
     // Manhattan distance 2: all tiles within Manhattan distance 2
     for (let dx = -2; dx <= 2; dx++) {
       for (let dy = -2; dy <= 2; dy++) {
         if (dx === 0 && dy === 0) continue // Skip center position
-        
+
         // Check if Manhattan distance is <= 2
         const manhattanDistance = Math.abs(dx) + Math.abs(dy)
         if (manhattanDistance > 2) continue
-        
+
         const neighborPos = {
           x: position.x + dx,
           y: position.y + dy
         }
-        
+
         // Check bounds
         if (neighborPos.x >= 0 && neighborPos.x < board.width &&
             neighborPos.y >= 0 && neighborPos.y < board.height) {
@@ -340,12 +512,12 @@ export function getNeighbors(board: Board, position: Position): Position[] {
     for (let dx = -1; dx <= 1; dx++) {
       for (let dy = -1; dy <= 1; dy++) {
         if (dx === 0 && dy === 0) continue // Skip center position
-        
+
         const neighborPos = {
           x: position.x + dx,
           y: position.y + dy
         }
-        
+
         // Check bounds
         if (neighborPos.x >= 0 && neighborPos.x < board.width &&
             neighborPos.y >= 0 && neighborPos.y < board.height) {
@@ -354,8 +526,92 @@ export function getNeighbors(board: Board, position: Position): Position[] {
       }
     }
   }
-  
+
   return neighbors
+}
+
+// Returns game neighbors (respecting sanctum portal rules)
+// This is the primary neighbor function used by all game mechanics, adjacency calculations, etc.
+// IMPORTANT: This function maintains symmetry - if A is a neighbor of B, then B is a neighbor of A
+export function getNeighbors(board: Board, position: Position): Position[] {
+  const tile = getTile(board, position)
+  if (!tile) return []
+
+  const neighbors: Position[] = []
+  const nearbyTiles = getNearbyTiles(board, position)
+
+  // Case 1: Current tile is an inner tile
+  if (tile.innerTile && tile.connectedSanctums && tile.connectedSanctums.length > 0) {
+    // Inner tiles ONLY connect to their connected sanctums
+    for (const sanctumPos of tile.connectedSanctums) {
+      if (getTile(board, sanctumPos)) {
+        neighbors.push(sanctumPos)
+      }
+    }
+
+    // Manhattan-2 portal bonus: if orthogonally adjacent to a connected sanctum,
+    // also neighbor all tiles orthogonally adjacent to that sanctum
+    if (board.adjacencyRule === 'manhattan-2') {
+      for (const sanctumPos of tile.connectedSanctums) {
+        if (isOrthogonallyAdjacent(position, sanctumPos)) {
+          const tilesNearSanctum = getNearbyTiles(board, sanctumPos).filter(pos =>
+            isOrthogonallyAdjacent(pos, sanctumPos) &&
+            !(pos.x === position.x && pos.y === position.y) // Exclude self
+          )
+          neighbors.push(...tilesNearSanctum)
+        }
+      }
+    }
+  } else {
+    // Case 2: Current tile is NOT an inner tile (regular tile or sanctum)
+    // Check each physically nearby tile
+    for (const nearbyPos of nearbyTiles) {
+      const nearbyTile = getTile(board, nearbyPos)
+      if (!nearbyTile) continue
+
+      // If nearby tile is inner, only include if current position is one of its sanctums
+      if (nearbyTile.innerTile && nearbyTile.connectedSanctums && nearbyTile.connectedSanctums.length > 0) {
+        const isConnectedSanctum = nearbyTile.connectedSanctums.some(s =>
+          s.x === position.x && s.y === position.y
+        )
+        if (isConnectedSanctum) {
+          neighbors.push(nearbyPos)
+        }
+      } else {
+        // Nearby tile is regular (not inner), include it
+        neighbors.push(nearbyPos)
+      }
+    }
+
+    // Manhattan-2 portal bonus: if current tile is orthogonally adjacent to a sanctum,
+    // add inner tiles that are connected to and orthogonally adjacent to that sanctum
+    // This maintains symmetry with the inner tile's portal bonus above
+    if (board.adjacencyRule === 'manhattan-2') {
+      const nearbySanctums = nearbyTiles.filter(pos => {
+        const t = getTile(board, pos)
+        return t && t.specialTiles.includes('sanctum') && isOrthogonallyAdjacent(position, pos)
+      })
+
+      for (const sanctumPos of nearbySanctums) {
+        // Find inner tiles connected to this sanctum and orthogonally adjacent to it
+        const innerTilesNearSanctum = getNearbyTiles(board, sanctumPos).filter(pos => {
+          if (pos.x === position.x && pos.y === position.y) return false // Skip self
+          const t = getTile(board, pos)
+          if (!t || !t.innerTile || !t.connectedSanctums) return false
+
+          const isConnected = t.connectedSanctums.some(s => s.x === sanctumPos.x && s.y === sanctumPos.y)
+          const isOrtho = isOrthogonallyAdjacent(pos, sanctumPos)
+          return isConnected && isOrtho
+        })
+
+        neighbors.push(...innerTilesNearSanctum)
+      }
+    }
+  }
+
+  // Remove duplicates
+  const uniqueKeys = new Set(neighbors.map(positionToKey))
+  return Array.from(uniqueKeys).map(keyToPosition)
 }
 
 export function isValidPosition(board: Board, position: Position): boolean {

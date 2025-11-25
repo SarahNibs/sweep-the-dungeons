@@ -84,11 +84,13 @@ export interface Tile {
   revealedBy: 'player' | 'rival' | null
   adjacencyCount: number | null
   annotations: TileAnnotation[]
-  specialTiles: Array<'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine'> // Can have multiple special properties
+  specialTiles: Array<'extraDirty' | 'goblin' | 'destroyed' | 'lair' | 'surfaceMine' | 'sanctum'> // Can have multiple special properties
   underwireProtected?: boolean // True if this mine was protected by Underwire
   rivalMineProtected?: boolean // True if this mine was protected by rival mine protection
   cleanedOnce?: boolean // True if this tile has been cleaned once by Spritz or Sweep (used for non-surface-mine cleaning)
   surfaceMineState?: { cleanedOnce: boolean } // State carried by the surface mine itself (moves with the mine)
+  innerTile?: boolean // True if this tile is an inner tile (only reachable through sanctum portals)
+  connectedSanctums?: Position[] // Positions of sanctums this inner tile is connected to
 }
 
 export interface Board {

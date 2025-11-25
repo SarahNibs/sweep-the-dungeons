@@ -3,6 +3,7 @@ import { createCard, getRewardCardPool, getAllEquipment, addCardToPersistentDeck
 import { advanceToNextLevel } from './cardSystem'
 import { applyEstrogenEffect, applyProgesteroneEffect, applyBootsEffect, transformCardForBoots, applyCrystalEffect, applyBroomClosetEffect, applyNovelEffect, transformInstructionsIfNovel, applyCocktailEffect, applyDiscoBallEffect, applyBleachEffect } from './equipment'
 import { pushEquipmentUpgradeModal } from './modalManager'
+import { clearRewardScreenState } from './rewardStateManager'
 
 export function createShopOptions(state: GameState): ShopOption[] {
   const options: ShopOption[] = []
@@ -42,14 +43,14 @@ export function createShopOptions(state: GameState): ShopOption[] {
   selectedCards.forEach(card => {
     options.push({
       type: 'add_card',
-      cost: scaleCost(6), // Base cost 6
+      cost: scaleCost(5), // Base cost 5
       card,
       displayName: card.name,
       description: `Add ${card.name} to your deck`
     })
   })
 
-  // 1x random energy-upgraded card for 12 coppers base
+  // 1x random energy-upgraded card for 11 coppers base
   // Energy-upgraded cards grant +1 energy when played
   const energyReducibleCards = getRewardCardPool().filter(card => card.cost > 0)
   const energyCard = energyReducibleCards.length > 0
@@ -57,26 +58,26 @@ export function createShopOptions(state: GameState): ShopOption[] {
     : createCard('Energized', { energyReduced: true }) // Fallback if no eligible cards
   options.push({
     type: 'add_energy_card',
-    cost: scaleCost(12), // Base cost 12
+    cost: scaleCost(11), // Base cost 11
     card: energyCard,
     displayName: `${energyCard.name} (Energy Upgraded)`,
     description: `Add energy-upgraded ${energyCard.name} to your deck`
   })
 
-  // 1x random enhance-upgraded card for 11 coppers base
+  // 1x random enhance-upgraded card for 10 coppers base
   const allRewardCards = getRewardCardPool()
   const enhancedCard = allRewardCards.length > 0
     ? createCard(allRewardCards[Math.floor(Math.random() * allRewardCards.length)].name, { enhanced: true })
     : createCard('Energized', { enhanced: true }) // Fallback
   options.push({
     type: 'add_enhanced_card',
-    cost: scaleCost(11), // Base cost 11
+    cost: scaleCost(10), // Base cost 10
     card: enhancedCard,
     displayName: `${enhancedCard.name} (Enhanced)`,
     description: `Add enhanced ${enhancedCard.name} to your deck`
   })
 
-  // 2x random equipment you don't already own (20 coppers for first slot, 24 for second)
+  // 2x random equipment you don't already own (19 coppers for first slot, 23 for second)
   const allEquipment = getAllEquipment()
 
   // Filter out equipment player already owns or doesn't have prerequisites for
@@ -108,7 +109,7 @@ export function createShopOptions(state: GameState): ShopOption[] {
   const selectedEquipment = shuffledEquipment.slice(0, Math.min(2, availableEquipment.length))
 
   selectedEquipment.forEach((equipment, index) => {
-    const baseCost = index === 0 ? 20 : 24 // First slot: 20, second slot: 24
+    const baseCost = index === 0 ? 19 : 23 // First slot: 19, second slot: 23
     options.push({
       type: 'add_equipment',
       cost: scaleCost(baseCost),
@@ -118,28 +119,28 @@ export function createShopOptions(state: GameState): ShopOption[] {
     })
   })
 
-  // 1x opportunity to remove a card from your deck for 15 coppers base
+  // 1x opportunity to remove a card from your deck for 14 coppers base
   if (state.persistentDeck.length > 0) {
     options.push({
       type: 'remove_card',
-      cost: scaleCost(15), // Base cost 15
+      cost: scaleCost(14), // Base cost 14
       displayName: 'Remove Card',
       description: 'Remove a card from your deck'
     })
   }
 
-  // 1x temporary "a bunny will reveal one of your tiles at random at the beginning of the next level" benefit for 5 copper base
+  // 1x temporary "a bunny will reveal one of your tiles at random at the beginning of the next level" benefit for 4 copper base
   options.push({
     type: 'temp_bunny',
-    cost: scaleCost(5), // Base cost 5
+    cost: scaleCost(4), // Base cost 4
     displayName: 'Visiting Bunny',
     description: 'A bunny will reveal one of your tiles at the start of the next level'
   })
 
-  // 1x random enhance-upgrade for 10 copper base
+  // 1x random enhance-upgrade for 9 copper base
   options.push({
     type: 'random_enhance',
-    cost: scaleCost(10), // Base cost 10
+    cost: scaleCost(9), // Base cost 9
     displayName: 'Enhance!',
     description: 'Randomly enhance a card in your deck that isn\'t already enhanced'
   })
@@ -148,13 +149,15 @@ export function createShopOptions(state: GameState): ShopOption[] {
 }
 
 export function startShopSelection(state: GameState): GameState {
+  // Clear reward screen state to prevent leakage from previous screens
+  const cleanState = clearRewardScreenState(state)
+
   const shopOptions = createShopOptions(state)
   return {
-    ...state,
+    ...cleanState,
     gamePhase: 'shop_selection',
     shopOptions,
     purchasedShopItems: new Set<number>(), // Initialize purchased items tracker
-    waitingForCardRemoval: false, // Reset card removal state
     shopVisitCount: state.shopVisitCount + 1 // Increment shop visit counter for progressive pricing
   }
 }

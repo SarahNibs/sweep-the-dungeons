@@ -4,6 +4,7 @@ import { shouldShowShopReward } from '../levelSystem'
 import { startShopSelection } from '../shopSystem'
 import { getAllEquipment } from '../gameRepository'
 import { pushEquipmentUpgradeModal } from '../modalManager'
+import { clearRewardScreenState } from '../rewardStateManager'
 import { applyEstrogenEffect } from './estrogen'
 import { applyProgesteroneEffect } from './progesterone'
 import { applyBootsEffect } from './boots'
@@ -178,9 +179,12 @@ export function selectEquipment(state: GameState, selectedEquipment: Equipment):
 }
 
 export function startEquipmentSelection(state: GameState): GameState {
+  // Clear reward screen state to prevent leakage from previous screens
+  const cleanState = clearRewardScreenState(state)
+
   const equipmentOptions = createEquipmentOptions(state.equipment)
   return {
-    ...state,
+    ...cleanState,
     gamePhase: 'equipment_selection',
     equipmentOptions
   }

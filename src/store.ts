@@ -331,7 +331,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     }
 
     // Validate direct reveal (no card effect)
-    const validation = canDirectRevealTile(tile)
+    const validation = canDirectRevealTile(tile, currentState.board)
     if (!validation.isValid) {
       return
     }

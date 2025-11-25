@@ -1,5 +1,5 @@
 import { GameState } from '../../types'
-import { positionToKey, removeSpecialTile } from '../boardSystem'
+import { positionToKey, removeSpecialTile, canPlayerRevealInnerTile } from '../boardSystem'
 import { revealTileWithEquipmentEffects } from '../cardEffects'
 import { hasEquipment } from './equipmentUtils'
 
@@ -9,9 +9,9 @@ export function triggerInterceptedNoteEffect(state: GameState): GameState {
   }
 
 
-  // Find all unrevealed rival tiles
+  // Find all unrevealed rival tiles that can be revealed (not inner tiles with unrevealed sanctums)
   const unrevealedRivalTiles = Array.from(state.board.tiles.values()).filter(tile =>
-    tile.owner === 'rival' && !tile.revealed
+    tile.owner === 'rival' && !tile.revealed && canPlayerRevealInnerTile(state.board, tile.position)
   )
 
   if (unrevealedRivalTiles.length === 0) {

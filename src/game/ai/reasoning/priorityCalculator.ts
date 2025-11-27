@@ -186,9 +186,9 @@ export function calculateBasePriorities(
     basePriority += historicalPips
 
     // Generate independent Distraction noise for THIS tile
-    // Each stack generates a fresh random [0, 1.5] value
+    // Each stack generates a fresh random [0, 1.1] value
     for (let i = 0; i < state.distractionStackCount; i++) {
-      distractionNoise += Math.random() * 1.5
+      distractionNoise += Math.random() * 1.1
     }
     basePriority += distractionNoise
 

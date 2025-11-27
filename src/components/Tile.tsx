@@ -354,9 +354,13 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       const rivalAnnotations = tile.annotations.filter(a => a.type === 'rival')
       const playerBigCheckmarkAnnotation = tile.annotations.find(a => a.type === 'player_big_checkmark')
       const playerSmallCheckmarkAnnotation = tile.annotations.find(a => a.type === 'player_small_checkmark')
-      
+
+      // Check if tile is destroyed - used to hide game-annotations
+      const isDestroyed = tile.specialTiles.includes('destroyed')
+
       // Render clue pips - player clues (top-left) and rival clues (bottom-left)
       // Show for unrevealed tiles, or for revealed tiles when their clue is hovered
+      // Never show on destroyed tiles (unless the specific clue is hovered)
       if (clueResultsAnnotation?.clueResults) {
         clueResultsAnnotation.clueResults.forEach((clueResult, clueIndex) => {
           const strength = clueResult.strengthForThisTile
@@ -364,8 +368,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           const isEnemyClue = clueResult.cardType === 'rival_clue'
           const isAntiClue = clueResult.isAntiClue || false
 
-          // Skip rendering this clue's pips on revealed tiles unless hovered
-          if (tile.revealed && !isThisClueHovered) {
+          // Skip rendering this clue's pips on revealed or destroyed tiles unless hovered
+          if ((tile.revealed || isDestroyed) && !isThisClueHovered) {
             return
           }
 
@@ -487,7 +491,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       }
       
       // Legacy rival annotations - keeping for backward compatibility but Report now uses subset system
-      if (rivalAnnotations.length > 0) {
+      // Don't show on destroyed tiles
+      if (rivalAnnotations.length > 0 && !isDestroyed) {
         elements.push(
           <Tooltip key="rival" text="Tile is rival's" style={{ position: 'absolute', bottom: '2px', right: '18px' }}>
             <div
@@ -512,10 +517,11 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       }
       
       // Render subset annotations (bottom-right) as 2x2 grid of small squares
-      if (subsetAnnotations.length > 0) {
+      // Don't show on destroyed tiles
+      if (subsetAnnotations.length > 0 && !isDestroyed) {
         const latestSubset = subsetAnnotations[subsetAnnotations.length - 1]
         const ownerSubset = latestSubset.ownerSubset || new Set()
-        
+
         // Define owner colors and positions in 2x2 grid (positioned from bottom-right)
         const ownerInfo = [
           { owner: 'player' as const, color: '#81b366', position: { top: 0, left: 4 }, name: 'Player' }, // upper-left
@@ -523,12 +529,12 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           { owner: 'neutral' as const, color: '#d4aa5a', position: { top: 4, left: 4 }, name: 'Neutral' }, // lower-left
           { owner: 'mine' as const, color: '#8b6ba8', position: { top: 4, left: 8 }, name: 'Mine' } // lower-right
         ]
-        
+
         const includedOwners = ownerInfo.filter(info => ownerSubset.has(info.owner))
-        const tooltipText = includedOwners.length === 1 
+        const tooltipText = includedOwners.length === 1
           ? `Tile is ${includedOwners[0].name.toLowerCase()}`
           : `Tile is ${includedOwners.map(info => info.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ', or $1')}`
-        
+
         // Render the squares that are included in the subset
         includedOwners.forEach(info => {
           elements.push(
@@ -549,8 +555,9 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       // Render player slash and green circle based on combined annotations
       // Black slash: player is NOT in the combined possibilities
       // Green circle: player is the ONLY possibility in the combined annotation
-      const shouldShowSlash = combinedPossibility && !combinedPossibility.has('player')
-      const shouldShowGreenCircle = combinedPossibility && combinedPossibility.size === 1 && combinedPossibility.has('player')
+      // Don't show on destroyed tiles
+      const shouldShowSlash = !isDestroyed && combinedPossibility && !combinedPossibility.has('player')
+      const shouldShowGreenCircle = !isDestroyed && combinedPossibility && combinedPossibility.size === 1 && combinedPossibility.has('player')
 
       // Render black slash if player is excluded
       if (shouldShowSlash) {

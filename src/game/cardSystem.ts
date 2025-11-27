@@ -982,6 +982,34 @@ export function createInitialState(
   // Setup sanctums and their connected inner tiles
   board = setupSanctumsAndInnerTiles(board)
 
+  // Annotate all sanctum tiles with their owner type at floor start
+  {
+    const newTiles = new Map(board.tiles)
+    for (const [key, tile] of board.tiles) {
+      if (tile.specialTiles.includes('sanctum') && !tile.revealed) {
+        // Create owner subset with just the tile's owner
+        const ownerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>()
+        if (tile.owner === 'player' || tile.owner === 'rival' || tile.owner === 'neutral' || tile.owner === 'mine') {
+          ownerSubset.add(tile.owner)
+        }
+
+        if (ownerSubset.size > 0) {
+          // Add owner_subset annotation
+          const updatedAnnotations = [
+            ...tile.annotations,
+            { type: 'owner_subset' as const, ownerSubset }
+          ]
+
+          newTiles.set(key, {
+            ...tile,
+            annotations: updatedAnnotations
+          })
+        }
+      }
+    }
+    board = { ...board, tiles: newTiles }
+  }
+
   // Handle initial rival reveals if specified in level config
   if (levelConfig?.specialBehaviors.initialRivalReveal) {
     const rivalTiles = Array.from(board.tiles.values()).filter(tile => 

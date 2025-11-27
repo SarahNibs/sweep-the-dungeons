@@ -3,6 +3,7 @@ import { positionToKey, getTile, revealTileWithResult, hasSpecialTile, calculate
 import { triggerDoubleBroomEffect, checkFrillyDressEffect } from './equipment'
 import { removeStatusEffect, createCard } from './gameRepository'
 import { getLevelConfig } from './levelSystem'
+import { destroyTile } from './destroyTileSystem'
 import { executeScoutEffect } from './cards/scout'
 import { executeScurryEffect } from './cards/scurry'
 import { executeReportEffect } from './cards/report'
@@ -82,52 +83,54 @@ export function revealTileWithEquipmentEffects(
   if (tileBeforeReveal && hasSpecialTile(tileBeforeReveal, 'surfaceMine')) {
 
     // Handle surface mine explosion
-    let stateAfterExplosion = state
+    let stateAfterProtection = state
 
     // If controllable player reveal, try to use Underwire protection
     if (controllableReveal && revealer === 'player' && state.underwireProtection?.active) {
       const isEnhanced = state.underwireProtection.enhanced
 
       // Consume Underwire protection
-      stateAfterExplosion = {
+      stateAfterProtection = {
         ...state,
         underwireProtection: null,
         underwireUsedThisTurn: !isEnhanced // Only mark for turn end if basic Underwire
       }
 
       // Remove the status effect
-      stateAfterExplosion = removeStatusEffect(stateAfterExplosion, 'underwire_protection')
-    }
+      stateAfterProtection = removeStatusEffect(stateAfterProtection, 'underwire_protection')
+    } else if (controllableReveal && revealer === 'player') {
+      // Check for Grace status effect as fallback protection
+      const hasGrace = state.activeStatusEffects.some(effect => effect.type === 'grace')
+      if (hasGrace) {
+        // Add 1 Evidence to discard and 1 to top of deck
+        const evidenceCard1 = createCard('Evidence')
+        const evidenceCard2 = createCard('Evidence')
 
-    // Explode the surface mine: change to empty and add destroyed special tile
-    const newTiles = new Map(stateAfterExplosion.board.tiles)
-    const originalOwner = tileBeforeReveal.owner
-    const explodedTile: Tile = {
-      ...tileBeforeReveal,
-      owner: 'empty',
-      specialTiles: ['destroyed'] // Replace surfaceMine with destroyed
-    }
-    newTiles.set(positionToKey(position), explodedTile)
+        stateAfterProtection = {
+          ...state,
+          discard: [...state.discard, evidenceCard1],
+          deck: [...state.deck, evidenceCard2] // Push to end = top of deck for drawing
+        }
 
-    stateAfterExplosion = {
-      ...stateAfterExplosion,
-      board: {
-        ...stateAfterExplosion.board,
-        tiles: newTiles
+        // Remove the Grace status effect
+        stateAfterProtection = removeStatusEffect(stateAfterProtection, 'grace')
       }
     }
 
+    // Explode the surface mine: change to empty and add destroyed special tile
+    // Use destroyTile to properly update adjacency info and annotations
+    const boardAfterExplosion = destroyTile(stateAfterProtection.board, position)
 
-    // Update adjacency_info annotations on neighboring tiles if owner changed
-    if (originalOwner !== 'empty') {
-      stateAfterExplosion = updateNeighborAdjacencyInfo(stateAfterExplosion, position)
+    stateAfterProtection = {
+      ...stateAfterProtection,
+      board: boardAfterExplosion
     }
 
     // Check game status after surface mine explosion
     // This handles both loss (if no protection) and win (if this was the last player tile)
-    const gameStatus = checkGameStatus(stateAfterExplosion)
+    const gameStatus = checkGameStatus(stateAfterProtection)
     return {
-      ...stateAfterExplosion,
+      ...stateAfterProtection,
       gameStatus
     }
   }

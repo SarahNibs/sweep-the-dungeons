@@ -46,12 +46,23 @@ export function executeBratEffect(state: GameState, target: Position, card?: imp
   }
 
   // Remove any existing adjacency_info annotation and add the merged one
-  const existingAnnotations = targetTile.annotations.filter(a => a.type !== 'adjacency_info')
+  const existingAnnotations = targetTile.annotations.filter(a => a.type !== 'adjacency_info' && a.type !== 'owner_subset')
+
+  // Create owner_subset annotation so player knows the tile's owner
+  const ownerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>()
+  if (targetTile.owner === 'player' || targetTile.owner === 'rival' || targetTile.owner === 'neutral' || targetTile.owner === 'mine') {
+    ownerSubset.add(targetTile.owner)
+  }
+
   const newAnnotations = [
     ...existingAnnotations,
     {
       type: 'adjacency_info' as const,
       adjacencyInfo: mergedAdjacencyInfo
+    },
+    {
+      type: 'owner_subset' as const,
+      ownerSubset
     }
   ]
 

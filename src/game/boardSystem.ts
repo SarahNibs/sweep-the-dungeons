@@ -1,4 +1,5 @@
 import { Board, Tile, Position, GameState } from '../types'
+import { destroyTile } from './destroyTileSystem'
 
 export function createPosition(x: number, y: number): Position {
   return { x, y }
@@ -323,10 +324,22 @@ function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig, 
   if (Array.isArray(config.placement)) {
     const positions = config.placement.map(([x, y]) => createPosition(x, y))
 
-    // Get tiles at the specified positions
+    // Get tiles at the specified positions, filtering out conflicts
     const eligibleTiles = positions
       .map(pos => getTile({ tiles, width: 0, height: 0 } as Board, pos))
-      .filter((tile): tile is Tile => tile !== undefined)
+      .filter((tile): tile is Tile => {
+        if (!tile) return false
+
+        // Surface mines cannot be placed on goblins, and vice versa
+        if (config.type === 'surfaceMine' && hasSpecialTile(tile, 'goblin')) {
+          return false
+        }
+        if (config.type === 'goblin' && hasSpecialTile(tile, 'surfaceMine')) {
+          return false
+        }
+
+        return true
+      })
 
     const count = Math.min(config.count, eligibleTiles.length)
 
@@ -353,6 +366,14 @@ function applySpecialTiles(tiles: Map<string, Tile>, config: SpecialTileConfig, 
 
     // Skip empty tiles and already revealed tiles for normal placements
     if (tile.owner === 'empty' || tile.revealed) return false
+
+    // Surface mines cannot be placed on goblins, and vice versa
+    if (config.type === 'surfaceMine' && hasSpecialTile(tile, 'goblin')) {
+      return false
+    }
+    if (config.type === 'goblin' && hasSpecialTile(tile, 'surfaceMine')) {
+      return false
+    }
 
     // Filter by placement rules
     if (config.placement === 'random') {
@@ -720,17 +741,8 @@ export function moveGoblin(board: Board, fromPosition: Position): Board {
   if (hasSpecialTile(targetTile, 'surfaceMine')) {
 
     // Explode the surface mine (mark as destroyed, goblin disappears)
-    const newTiles = new Map(board.tiles)
-    newTiles.set(positionToKey(targetPos), {
-      ...targetTile,
-      owner: 'empty',
-      specialTiles: ['destroyed']
-    })
-
-    return {
-      ...board,
-      tiles: newTiles
-    }
+    // Use destroyTile to properly update adjacency info and annotations
+    return destroyTile(board, targetPos)
   }
 
   // Normal goblin movement (no surface mine)
@@ -857,25 +869,21 @@ export function spawnGoblinsFromLairs(board: Board): Board {
     const targetPos = validSpawnTargets[randomIndex].pos
     const targetTile = getTile(currentBoard, targetPos)!
 
-    const newTiles = new Map(currentBoard.tiles)
-
     // Check if spawning on a surface mine - if so, explode it immediately
     if (hasSpecialTile(targetTile, 'surfaceMine')) {
       // Explode the surface mine (mark as destroyed, goblin doesn't spawn)
-      newTiles.set(positionToKey(targetPos), {
-        ...targetTile,
-        owner: 'empty',
-        specialTiles: ['destroyed']
-      })
+      // Use destroyTile to properly update adjacency info and annotations
+      currentBoard = destroyTile(currentBoard, targetPos)
     } else {
       // Normal spawn (no surface mine)
+      const newTiles = new Map(currentBoard.tiles)
       const updatedTile = addSpecialTile(targetTile, 'goblin')
       newTiles.set(positionToKey(targetPos), updatedTile)
-    }
 
-    currentBoard = {
-      ...currentBoard,
-      tiles: newTiles
+      currentBoard = {
+        ...currentBoard,
+        tiles: newTiles
+      }
     }
   }
 

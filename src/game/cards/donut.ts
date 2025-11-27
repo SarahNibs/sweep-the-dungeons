@@ -1,6 +1,7 @@
 import { GameState, Position } from '../../types'
 import { positionToKey, addSpecialTile, hasSpecialTile } from '../boardSystem'
-import { addOwnerSubsetAnnotation, updateNeighborAdjacencyInfo } from '../cardEffects'
+import { addOwnerSubsetAnnotation } from '../cardEffects'
+import { destroyTile } from '../destroyTileSystem'
 
 function getUnrevealedPlayerTiles(state: GameState): { position: Position; tile: import('../../types').Tile }[] {
   const unrevealed: { position: Position; tile: import('../../types').Tile }[] = []
@@ -16,30 +17,56 @@ function getUnrevealedPlayerTiles(state: GameState): { position: Position; tile:
  * Donut card: Summon goblin(s) on random unrevealed player tile(s) and annotate as player
  * Base: 1 goblin
  * Enhanced: 2 goblins
+ * Prioritizes tiles without goblins; if all have goblins, just annotates without adding a second goblin
  */
 export function executeDonutEffect(state: GameState, enhanced: boolean = false): GameState {
-  const playerTiles = getUnrevealedPlayerTiles(state)
+  const allPlayerTiles = getUnrevealedPlayerTiles(state)
 
-  if (playerTiles.length === 0) {
+  if (allPlayerTiles.length === 0) {
     return state
   }
 
   const numberOfGoblins = enhanced ? 2 : 1
-  const tilesToSummon = Math.min(numberOfGoblins, playerTiles.length)
 
+  // Separate tiles into those without goblins (priority) and those with goblins
+  const tilesWithoutGoblins = allPlayerTiles.filter(({ tile }) => !hasSpecialTile(tile, 'goblin'))
+  const tilesWithGoblins = allPlayerTiles.filter(({ tile }) => hasSpecialTile(tile, 'goblin'))
 
-  // Shuffle and pick random tiles
-  const shuffled = [...playerTiles].sort(() => Math.random() - 0.5)
-  const selectedTiles = shuffled.slice(0, tilesToSummon)
+  // Select tiles: prioritize those without goblins
+  const selectedTiles: Array<{ position: Position; tile: import('../../types').Tile; hasGoblin: boolean }> = []
+
+  // First, try to fill from tiles without goblins
+  const shuffledWithout = [...tilesWithoutGoblins].sort(() => Math.random() - 0.5)
+  for (let i = 0; i < Math.min(numberOfGoblins, shuffledWithout.length); i++) {
+    selectedTiles.push({ ...shuffledWithout[i], hasGoblin: false })
+  }
+
+  // If we still need more, use tiles with goblins (just annotate, don't add second goblin)
+  if (selectedTiles.length < numberOfGoblins && tilesWithGoblins.length > 0) {
+    const shuffledWith = [...tilesWithGoblins].sort(() => Math.random() - 0.5)
+    const needed = numberOfGoblins - selectedTiles.length
+    for (let i = 0; i < Math.min(needed, shuffledWith.length); i++) {
+      selectedTiles.push({ ...shuffledWith[i], hasGoblin: true })
+    }
+  }
 
   let currentState = state
 
-  for (const { position, tile } of selectedTiles) {
+  for (const { position, tile, hasGoblin } of selectedTiles) {
+    const key = positionToKey(position)
+
+    // If tile already has a goblin, just annotate it as player, don't add another goblin
+    if (hasGoblin) {
+      // Annotate the tile as player
+      const playerOwnerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player'])
+      currentState = addOwnerSubsetAnnotation(currentState, position, playerOwnerSubset)
+      continue
+    }
+
     // Check if tile has a surface mine before adding goblin
     const hasMine = hasSpecialTile(tile, 'surfaceMine')
 
     // Add goblin to the tile
-    const key = positionToKey(position)
     let newTiles = new Map(currentState.board.tiles)
     const tileWithGoblin = addSpecialTile(tile, 'goblin')
     newTiles.set(key, tileWithGoblin)
@@ -54,34 +81,10 @@ export function executeDonutEffect(state: GameState, enhanced: boolean = false):
 
     // Check if goblin + surface mine collision
     if (hasMine) {
-      // Explosion: remove goblin and mine, add destroyed, change to empty
-      newTiles = new Map(currentState.board.tiles)
-      const currentTile = newTiles.get(key)!
-      const explodedSpecialTiles = currentTile.specialTiles.filter(
-        s => s !== 'goblin' && s !== 'surfaceMine'
-      )
-      explodedSpecialTiles.push('destroyed')
-
-      const originalOwner = currentTile.owner
-
-      newTiles.set(key, {
-        ...currentTile,
-        owner: 'empty',
-        specialTiles: explodedSpecialTiles,
-        surfaceMineState: undefined // Clear surface mine state
-      })
-
+      // Explosion: use destroyTile to properly update adjacency info and annotations
       currentState = {
         ...currentState,
-        board: {
-          ...currentState.board,
-          tiles: newTiles
-        }
-      }
-
-      // Update adjacency for neighbors if owner changed
-      if (originalOwner !== 'empty') {
-        currentState = updateNeighborAdjacencyInfo(currentState, position)
+        board: destroyTile(currentState.board, position)
       }
 
       // Skip annotation logic for exploded tiles

@@ -121,7 +121,7 @@ or you can choose to skip adding any of them. Sometimes you'll be offered a
 choice to either remove a card from your deck, upgrade a specific card in
 your deck to refund 1 energy when played, or upgrade a specific card in your
 deck to have an enhanced effect when played. Sometimes you'll be offered a
-choice of three pieces of equipment. And after every 5th floor, you'll find
+choice of three pieces of equipment. And after every 4th floor, you'll find
 yourself in a shop and can spend your copper on cards, upgrades, equipment,
 removals, or a lil bunny to help with the next floor, which is always a
 trickier one.
@@ -153,4 +153,10 @@ when they are "cleaned" they will move to an adjacent unrevealed tile, if any
 are available. Visible mines will end your game if you try to reveal them,
 just like mined tiles; find other ways to remove them, or protect yourself
 first in some other way!
+
+## Sanctums
+In the final floors you will find sanctums; within are individual chambers.
+Generally you cannot reveal tiles that are chambers within sanctums until
+one of the connected sanctums is itself revealed. Hover over tiles to
+understand their adjacencies!
 `

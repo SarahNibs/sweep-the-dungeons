@@ -357,7 +357,7 @@ ${snippets.requirements}
 `,
 
   'Broom Closet': `# Broom Closet
-**Effect**: Remove all Spritz cards from your deck. Add a Sweep, and energy-upgraded sweep, and an enhance-upgraded Sweep to your deck instead.
+**Effect**: Remove all Spritz cards from your deck. Add a Sweep, and energy-upgraded Sweep, and an enhance-upgraded Sweep to your deck instead. Any Spritz upgrades will be applied at random to your new Sweeps.
 ${snippets.energy_reduced}
 ${snippets.enhanced}
 ${snippets.modifies_deck}

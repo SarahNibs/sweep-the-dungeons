@@ -9,7 +9,7 @@ import { isTestMode } from './game/utils/testMode'
 import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
 import { startEquipmentSelection, selectEquipment, transformCardForBoots } from './game/equipment'
 import { closeTopModal, pushEquipmentUpgradeModal } from './game/modalManager'
-import { revealTileWithResult, shouldRevealEndTurn, getTile, getNeighbors, isTileRuledOutBySaturatedNeighbor } from './game/boardSystem'
+import { revealTileWithResult, shouldRevealEndTurn, getTile, isTileRuledOutBySaturatedNeighbor } from './game/boardSystem'
 import { getTargetingInfo, revealTileWithEquipmentEffects } from './game/cardEffects'
 import { AIController } from './game/ai/AIController'
 import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowEquipmentReward, shouldShowShopReward, calculateCopperReward } from './game/levelSystem'
@@ -763,7 +763,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       // Re-trigger the targeting controller to execute the effect now that confirmation is done
       const card = currentState.hand.find(c => c.id === currentState.selectedCardId)
       if (card && currentState.pendingCardEffect) {
-        targetingController.executeTargetedCardAfterSaturationConfirm(currentState, card, currentState.pendingCardEffect)
+        getTargetingController().executeTargetedCardAfterSaturationConfirm(currentState, card, currentState.pendingCardEffect)
       }
       return
     }

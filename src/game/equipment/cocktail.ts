@@ -2,18 +2,18 @@ import { GameState, Card } from '../../types'
 import { createCard, getRewardCardPool, applyDIYGel } from '../gameRepository'
 
 /**
- * Cocktail equipment: when gained, remove all Scurry cards and add 2 random energy-upgraded cards
+ * Cocktail equipment: when gained, remove all Scurry cards and add 2 random doubly-upgraded cards (both energy and enhanced)
  */
 export function applyCocktailEffect(state: GameState): { state: GameState; results?: { before: Card; after: Card }[] } {
   // Filter out all Scurry cards from persistent deck
   const deckWithoutScurry = state.persistentDeck.filter(card => card.name !== 'Scurry')
 
 
-  // Get 2 random energy-upgraded cards from reward pool
+  // Get 2 random doubly-upgraded cards from reward pool (both energy-reduced and enhanced)
   const rewardPool = getRewardCardPool()
   const shuffled = [...rewardPool].sort(() => Math.random() - 0.5)
-  const card1 = createCard(shuffled[0].name, { energyReduced: true })
-  const card2 = createCard(shuffled[1 % shuffled.length].name, { energyReduced: true })
+  const card1 = createCard(shuffled[0].name, { energyReduced: true, enhanced: true })
+  const card2 = createCard(shuffled[1 % shuffled.length].name, { energyReduced: true, enhanced: true })
 
   // Apply DIY Gel if owned
   const randomCard1 = applyDIYGel(state.equipment, card1)

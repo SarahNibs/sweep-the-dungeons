@@ -335,7 +335,9 @@ export function ShopSelectionScreen({
                 e.stopPropagation()
                 // Show help for card or equipment in shop
                 if (option.card) {
-                  showItemHelp(option.card.name, 'card')
+                  // Strip directional arrow suffix for help text lookup
+                  const baseCardName = option.card.name.replace(/ [↑↓←→]$/, '')
+                  showItemHelp(baseCardName, 'card')
                 } else if (option.equipment) {
                   showItemHelp(option.equipment.name, 'equipment')
                 }

@@ -9,7 +9,7 @@ import { isTestMode } from './game/utils/testMode'
 import { startUpgradeSelection, applyUpgrade } from './game/upgradeSystem'
 import { startEquipmentSelection, selectEquipment, transformCardForBoots } from './game/equipment'
 import { closeTopModal, pushEquipmentUpgradeModal } from './game/modalManager'
-import { revealTileWithResult, shouldRevealEndTurn, getTile, getNeighbors } from './game/boardSystem'
+import { revealTileWithResult, shouldRevealEndTurn, getTile, getNeighbors, isTileRuledOutBySaturatedNeighbor } from './game/boardSystem'
 import { getTargetingInfo, revealTileWithEquipmentEffects } from './game/cardEffects'
 import { AIController } from './game/ai/AIController'
 import { shouldShowCardReward, shouldShowUpgradeReward, shouldShowEquipmentReward, shouldShowShopReward, calculateCopperReward } from './game/levelSystem'
@@ -106,59 +106,6 @@ const updateStateWithCopperReward = (set: any, get: any, newState: GameState) =>
   }
 
   set(finalState)
-}
-
-/**
- * Check if a tile is "saturated" (adjacency count satisfied by revealed neighbors)
- * and if so, whether it rules out the target tile as not-player
- */
-function isTileRuledOutBySaturatedNeighbor(board: Board, targetPosition: Position): boolean {
-  const neighbors = getNeighbors(board, targetPosition)
-
-  for (const neighborPos of neighbors) {
-    const neighbor = getTile(board, neighborPos)
-    if (!neighbor || !neighbor.revealed || neighbor.adjacencyCount === null || !neighbor.revealedBy) continue
-
-    // Check if this revealed tile is "saturated"
-    const neighborNeighbors = getNeighbors(board, neighborPos)
-
-    // Count revealed neighbors that match the revealer's owner type
-    const targetOwner = neighbor.revealedBy // 'player' or 'rival'
-    let revealedMatchingCount = 0
-
-    for (const nnPos of neighborNeighbors) {
-      const nn = getTile(board, nnPos)
-      if (nn && nn.revealed && nn.owner === targetOwner) {
-        revealedMatchingCount++
-      }
-    }
-
-    const isSaturated = revealedMatchingCount === neighbor.adjacencyCount
-
-    if (!isSaturated) continue
-
-    // This neighbor is saturated. Check if it rules out the target tile as not-player.
-    // The target tile would be ruled out if:
-    // - The saturated tile was revealed by 'player' and has all player neighbors accounted for
-    // - The target tile is one of those neighbors
-    // - Therefore the target tile cannot be a player tile
-
-    const isTargetInNeighbors = neighborNeighbors.some(nnPos =>
-      nnPos.x === targetPosition.x && nnPos.y === targetPosition.y
-    )
-
-    if (!isTargetInNeighbors) continue
-
-    // Target is a neighbor of this saturated tile
-    // If this is a player-revealed tile and all player neighbors are accounted for, target cannot be player
-    if (neighbor.revealedBy === 'player') {
-      // All player tiles in this neighborhood are accounted for
-      // Target tile (unrevealed) cannot be player
-      return true
-    }
-  }
-
-  return false
 }
 
 export const useGameStore = create<GameStore>((set, get) => {
@@ -807,6 +754,20 @@ export const useGameStore = create<GameStore>((set, get) => {
     if (!currentState.saturationConfirmation) return
 
     const position = currentState.saturationConfirmation.position
+
+    // Check if there's a pending card effect (e.g., Scurry)
+    if (currentState.pendingCardEffect && currentState.selectedCardId) {
+      // Clear saturation confirmation and let the targeting controller execute the effect
+      set({ saturationConfirmation: null })
+
+      // Re-trigger the targeting controller to execute the effect now that confirmation is done
+      const card = currentState.hand.find(c => c.id === currentState.selectedCardId)
+      if (card && currentState.pendingCardEffect) {
+        targetingController.executeTargetedCardAfterSaturationConfirm(currentState, card, currentState.pendingCardEffect)
+      }
+      return
+    }
+
     const tileKey = `${position.x},${position.y}`
     const tile = currentState.board.tiles.get(tileKey)
 

@@ -408,6 +408,59 @@ export function getTile(board: Board, position: Position): Tile | undefined {
   return board.tiles.get(positionToKey(position))
 }
 
+/**
+ * Check if a tile is "saturated" (adjacency count satisfied by revealed neighbors)
+ * and if so, whether it rules out the target tile as not-player
+ */
+export function isTileRuledOutBySaturatedNeighbor(board: Board, targetPosition: Position): boolean {
+  const neighbors = getNeighbors(board, targetPosition)
+
+  for (const neighborPos of neighbors) {
+    const neighbor = getTile(board, neighborPos)
+    if (!neighbor || !neighbor.revealed || neighbor.adjacencyCount === null || !neighbor.revealedBy) continue
+
+    // Check if this revealed tile is "saturated"
+    const neighborNeighbors = getNeighbors(board, neighborPos)
+
+    // Count revealed neighbors that match the revealer's owner type
+    const targetOwner = neighbor.revealedBy // 'player' or 'rival'
+    let revealedMatchingCount = 0
+
+    for (const nnPos of neighborNeighbors) {
+      const nn = getTile(board, nnPos)
+      if (nn && nn.revealed && nn.owner === targetOwner) {
+        revealedMatchingCount++
+      }
+    }
+
+    const isSaturated = revealedMatchingCount === neighbor.adjacencyCount
+
+    if (!isSaturated) continue
+
+    // This neighbor is saturated. Check if it rules out the target tile as not-player.
+    // The target tile would be ruled out if:
+    // - The saturated tile was revealed by 'player' and has all player neighbors accounted for
+    // - The target tile is one of those neighbors
+    // - Therefore the target tile cannot be a player tile
+
+    const isTargetInNeighbors = neighborNeighbors.some(nnPos =>
+      nnPos.x === targetPosition.x && nnPos.y === targetPosition.y
+    )
+
+    if (!isTargetInNeighbors) continue
+
+    // Target is a neighbor of this saturated tile
+    // If this is a player-revealed tile and all player neighbors are accounted for, target cannot be player
+    if (neighbor.revealedBy === 'player') {
+      // All player tiles in this neighborhood are accounted for
+      // Target tile (unrevealed) cannot be player
+      return true
+    }
+  }
+
+  return false
+}
+
 export function clearSpecialTileState(tile: Tile): Tile {
   // Legacy function - now clears ALL special tiles
   return clearAllSpecialTiles(tile)

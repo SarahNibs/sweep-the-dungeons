@@ -253,46 +253,109 @@ export function generatePlayerImperiousInstructions(
     console.log(`[CLUE-GEN] Available tiles: ${unrevealedTiles.length} total, ${playerTiles.length} player tiles`)
   }
 
-  // Choose 2 player tiles
-  const chosenPlayerTiles = selectTilesForClue(playerTiles, 2)
+  // Try up to 10 times to generate a valid clue
+  const maxAttempts = 10
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    // Choose 2 player tiles
+    const chosenPlayerTiles = selectTilesForClue(playerTiles, 2)
 
-  // Choose 6 other random tiles
-  // For enhanced Imperious, exclude mines from "other random tiles"
+    // Choose 6 other random tiles
+    // For enhanced Imperious, exclude mines from "other random tiles"
+    const remainingTiles = unrevealedTiles.filter(tile => {
+      // Exclude already chosen player tiles
+      const isChosenPlayer = chosenPlayerTiles.some(chosen =>
+        chosen.position.x === tile.position.x && chosen.position.y === tile.position.y
+      )
+      if (isChosenPlayer) return false
+
+      // For enhanced, also exclude mines
+      if (enhanced && tile.owner === 'mine') return false
+
+      return true
+    })
+    const chosenRandomTiles = selectTilesForClue(remainingTiles, 6)
+
+    if (state.debugFlags.debugLogging) {
+      console.log(`[CLUE-GEN] Attempt ${attempt}: Chosen 2 player tiles:`, chosenPlayerTiles.map(t => `(${t.position.x},${t.position.y})`))
+      console.log(`[CLUE-GEN] Attempt ${attempt}: Chosen 6 random tiles:`, chosenRandomTiles.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`))
+    }
+
+    // Create bag: 12 copies of each player tile + 4 copies of each random tile (with spoiler adjustments)
+    const bag: Tile[] = [
+      ...buildBagWithAdjustments(chosenPlayerTiles, 12, 'player', chosenPlayerTiles),
+      ...buildBagWithAdjustments(chosenRandomTiles, 4, 'player', chosenPlayerTiles)
+    ]
+
+    // Guarantee first 2 draws are from chosen player tiles
+    const guaranteedTiles = [...chosenPlayerTiles]
+
+    const params: ClueParams = {
+      cardType: 'imperious_instructions',
+      enhanced,
+      clueOrder,
+      clueRowPosition
+    }
+
+    const result = generateClueFromBag([...chosenPlayerTiles, ...chosenRandomTiles], guaranteedTiles, bag, 10, params)
+
+    // Validate: check if at least one player tile has the maximum pip count
+    const chosenPlayerPositions = new Set(
+      chosenPlayerTiles.map(t => `${t.position.x},${t.position.y}`)
+    )
+
+    // Find max pip count
+    let maxPips = 0
+    for (const pair of result.clueResultPairs || []) {
+      maxPips = Math.max(maxPips, pair.clueResult.strengthForThisTile)
+    }
+
+    // Check if any player tile has max pips
+    let hasPlayerWithMaxPips = false
+    for (const pair of result.clueResultPairs || []) {
+      const posKey = `${pair.targetPosition.x},${pair.targetPosition.y}`
+      if (chosenPlayerPositions.has(posKey) && pair.clueResult.strengthForThisTile === maxPips) {
+        hasPlayerWithMaxPips = true
+        break
+      }
+    }
+
+    if (hasPlayerWithMaxPips) {
+      if (state.debugFlags.debugLogging) {
+        console.log(`[CLUE-GEN] Valid clue generated on attempt ${attempt} (at least one player tile has max pips: ${maxPips})`)
+      }
+      return result
+    } else {
+      if (state.debugFlags.debugLogging) {
+        console.log(`[CLUE-GEN] Attempt ${attempt} failed: no player tile has max pips (${maxPips}), regenerating...`)
+      }
+    }
+  }
+
+  // If we failed all attempts, log a warning and return the last result anyway
+  console.warn(`[CLUE-GEN] Failed to generate valid Imperious Instructions after ${maxAttempts} attempts, using last result`)
+
+  // Generate one final result to return
+  const chosenPlayerTiles = selectTilesForClue(playerTiles, 2)
   const remainingTiles = unrevealedTiles.filter(tile => {
-    // Exclude already chosen player tiles
     const isChosenPlayer = chosenPlayerTiles.some(chosen =>
       chosen.position.x === tile.position.x && chosen.position.y === tile.position.y
     )
     if (isChosenPlayer) return false
-
-    // For enhanced, also exclude mines
     if (enhanced && tile.owner === 'mine') return false
-
     return true
   })
   const chosenRandomTiles = selectTilesForClue(remainingTiles, 6)
-
-  if (state.debugFlags.debugLogging) {
-    console.log(`[CLUE-GEN] Chosen 2 player tiles:`, chosenPlayerTiles.map(t => `(${t.position.x},${t.position.y})`))
-    console.log(`[CLUE-GEN] Chosen 6 random tiles:`, chosenRandomTiles.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`))
-  }
-
-  // Create bag: 12 copies of each player tile + 4 copies of each random tile (with spoiler adjustments)
   const bag: Tile[] = [
     ...buildBagWithAdjustments(chosenPlayerTiles, 12, 'player', chosenPlayerTiles),
     ...buildBagWithAdjustments(chosenRandomTiles, 4, 'player', chosenPlayerTiles)
   ]
-
-  // Guarantee first 2 draws are from chosen player tiles
   const guaranteedTiles = [...chosenPlayerTiles]
-
   const params: ClueParams = {
     cardType: 'imperious_instructions',
     enhanced,
     clueOrder,
     clueRowPosition
   }
-
   return generateClueFromBag([...chosenPlayerTiles, ...chosenRandomTiles], guaranteedTiles, bag, 10, params)
 }
 

@@ -143,13 +143,13 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
               isEnemyHighlighted={isRivalHighlighted}
               isTrystHighlighted={isTrystHighlighted}
               isBrushHighlighted={isInAreaEffect || false}
-              isAdjacentToHoveredRevealed={isAdjacentToHoveredRevealed && !tile.revealed}
+              isAdjacentToHoveredRevealed={isAdjacentToHoveredRevealed && tile.owner !== 'empty'}
               onMouseEnter={() => {
                 if (isAreaTargeting) {
                   setAreaHoverCenter({ x, y })
                 }
-                // Highlight neighbors for all non-empty tiles
-                if (tile.owner !== 'empty') {
+                // Highlight neighbors for all non-empty tiles, but not during targeting
+                if (tile.owner !== 'empty' && !isTargeting) {
                   setHoveredTile({ x, y })
                 }
               }}
@@ -157,7 +157,7 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
                 if (isAreaTargeting) {
                   setAreaHoverCenter(null)
                 }
-                if (tile.owner !== 'empty') {
+                if (tile.owner !== 'empty' && !isTargeting) {
                   setHoveredTile(null)
                 }
               }}

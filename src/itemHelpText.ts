@@ -364,9 +364,10 @@ ${snippets.modifies_deck}
 `,
 
   'Cocktail': `# Cocktail
-**Effect**: Remove all Scurry cards from your deck. Add two randomly chosen energy-upgraded cards to your deck instead.
+**Effect**: Remove all Scurry cards from your deck. Add two randomly chosen doubly-upgraded cards (both energy-reduced and enhanced) to your deck instead.
 ${snippets.dress_tree}
 ${snippets.energy_reduced}
+${snippets.enhanced}
 ${snippets.modifies_deck}
 ${snippets.requirements}
 `,

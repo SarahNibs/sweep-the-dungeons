@@ -1,5 +1,5 @@
 import { GameState, Position, CardEffect, Card } from '../../types'
-import { getTile, positionToKey } from '../boardSystem'
+import { getTile, positionToKey, isTileRuledOutBySaturatedNeighbor } from '../boardSystem'
 import { executeCardEffect } from '../cardEffects'
 import { canTargetTile } from '../targetingSystem'
 import { deductEnergy, discardHand, cleanupMaskingAfterExecution } from '../cardSystem'
@@ -217,9 +217,40 @@ export class TargetingController {
   }
 
   /**
+   * Execute card after saturation confirmation (public method for store to call)
+   */
+  executeTargetedCardAfterSaturationConfirm(currentState: GameState, card: Card, effect: CardEffect): void {
+    // Skip saturation check and execute immediately
+    this.executeTargetedCardInternal(currentState, card, effect, true)
+  }
+
+  /**
    * Execute card after all targets have been selected
    */
   private executeTargetedCard(currentState: GameState, card: Card, effect: CardEffect): void {
+    this.executeTargetedCardInternal(currentState, card, effect, false)
+  }
+
+  /**
+   * Internal method to execute targeted card with optional saturation check skip
+   */
+  private executeTargetedCardInternal(currentState: GameState, card: Card, effect: CardEffect, skipSaturationCheck: boolean): void {
+    // Check if all Scurry targets are ruled out by saturation (unless skipping check)
+    if (!skipSaturationCheck && effect.type === 'scurry' && 'targets' in effect) {
+      const allTargetsSaturated = effect.targets.every(pos =>
+        isTileRuledOutBySaturatedNeighbor(currentState.board, pos)
+      )
+
+      if (allTargetsSaturated && effect.targets.length > 0) {
+        // All targets are ruled out by saturation - show confirmation prompt
+        // Use the first target position as a marker
+        this.setState({
+          saturationConfirmation: { position: effect.targets[0] }
+        })
+        return
+      }
+    }
+
     // Check if this card needs animation handling
     if (needsAnimationOnTarget(card.name)) {
       // Handle animated targeting cards (currently just Tryst)

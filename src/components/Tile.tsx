@@ -308,9 +308,10 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         </div>
       )
 
-      // Add blue checkmark for saturated tiles (next to adjacency count)
-      // Only show for player-revealed tiles
-      if (isSaturated && tile.revealedBy === 'player') {
+      // Add checkmark for saturated tiles (next to adjacency count)
+      // Blue for player-revealed, red for rival-revealed
+      if (isSaturated) {
+        const checkmarkColor = tile.revealedBy === 'player' ? '#4a69bd' : '#dc3545'
         elements.push(
           <div
             key="saturation-checkmark"
@@ -319,7 +320,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
               top: '50%',
               left: '65%',
               transform: 'translateY(-50%)',
-              color: '#4a69bd',
+              color: checkmarkColor,
               fontSize: '14px',
               fontWeight: 'bold',
               zIndex: 1100,

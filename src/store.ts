@@ -35,7 +35,7 @@ interface GameStore extends GameState {
   setUseDefaultAnnotations: (useDefault: boolean) => void
   toggleOwnerPossibility: (ownerCombo: string) => void
   cyclePlayerOwnerAnnotation: (position: Position) => void
-  selectAnnotationTileType: (tileType: 'player' | 'rival' | 'neutral' | 'mine') => void
+  switchAnnotationView: (view: 'player' | 'rival' | 'neutral' | 'mine') => void
   cycleAnnotationOnTile: (position: Position) => void
   startCardSelection: () => void
   selectNewCard: (card: CardType) => void
@@ -723,8 +723,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     annotationController.cyclePlayerOwnerAnnotation(position)
   },
 
-  selectAnnotationTileType: (tileType: 'player' | 'rival' | 'neutral' | 'mine') => {
-    annotationController.selectAnnotationTileType(tileType)
+  switchAnnotationView: (view: 'player' | 'rival' | 'neutral' | 'mine') => {
+    annotationController.switchAnnotationView(view)
   },
 
   cycleAnnotationOnTile: (position: Position) => {

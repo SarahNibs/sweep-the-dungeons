@@ -4,11 +4,11 @@ import { Tooltip } from './Tooltip'
 
 interface TileCountsVerticalProps {
   board: Board
-  selectedAnnotationTileType: 'player' | 'rival' | 'neutral' | 'mine'
-  onSelectType: (tileType: 'player' | 'rival' | 'neutral' | 'mine') => void
+  annotationView: 'player' | 'rival' | 'neutral' | 'mine'
+  onSwitchView: (view: 'player' | 'rival' | 'neutral' | 'mine') => void
 }
 
-export function TileCountsVertical({ board, selectedAnnotationTileType, onSelectType }: TileCountsVerticalProps) {
+export function TileCountsVertical({ board, annotationView, onSwitchView }: TileCountsVerticalProps) {
   const counts = getUnrevealedCounts(board)
 
   // Layout: upper left = mine, upper right = neutral, lower left = rival, lower right = player
@@ -29,7 +29,7 @@ export function TileCountsVertical({ board, selectedAnnotationTileType, onSelect
       margin: '0 auto 8px auto'
     }}>
       {gridLayout.map(({ type, count, color, label }) => {
-        const isSelected = selectedAnnotationTileType === type
+        const isSelected = annotationView === type
         return (
           <Tooltip
             key={type}
@@ -37,7 +37,7 @@ export function TileCountsVertical({ board, selectedAnnotationTileType, onSelect
             style={{ display: 'block' }}
           >
             <button
-              onClick={() => onSelectType(type)}
+              onClick={() => onSwitchView(type)}
               style={{
                 width: '24px',
                 height: '24px',

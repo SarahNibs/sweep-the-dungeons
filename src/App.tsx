@@ -45,7 +45,7 @@ function App() {
     purchasedShopItems,
     pileViewingType,
     activeStatusEffects,
-    selectedAnnotationTileType,
+    annotationView,
     maskingState,
     napState,
     playCard,
@@ -77,7 +77,7 @@ function App() {
     toggleDebugFlag,
     cycleAdjacencyStyle,
     debugFlags,
-    selectAnnotationTileType,
+    switchAnnotationView,
     glassesNeedsTingleAnimation,
     easyModeTingleTile,
     executeTingleWithAnimation,
@@ -244,19 +244,19 @@ function App() {
 
       switch (event.key.toLowerCase()) {
         case 'w':
-          selectAnnotationTileType('player')
+          switchAnnotationView('player')
           event.preventDefault()
           break
         case 'r':
-          selectAnnotationTileType('rival')
+          switchAnnotationView('rival')
           event.preventDefault()
           break
         case 'e':
-          selectAnnotationTileType('neutral')
+          switchAnnotationView('neutral')
           event.preventDefault()
           break
         case 'f':
-          selectAnnotationTileType('mine')
+          switchAnnotationView('mine')
           event.preventDefault()
           break
       }
@@ -264,7 +264,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [gamePhase, selectAnnotationTileType])
+  }, [gamePhase, switchAnnotationView])
 
   return (
     <div style={{
@@ -396,8 +396,8 @@ function App() {
             {/* Tile counts vertically */}
             <TileCountsVertical
               board={board}
-              selectedAnnotationTileType={selectedAnnotationTileType}
-              onSelectType={selectAnnotationTileType}
+              annotationView={annotationView}
+              onSwitchView={switchAnnotationView}
             />
 
             {/* Status effects */}

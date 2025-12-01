@@ -53,12 +53,22 @@ export interface ClueResult {
   tilesRevealedDuringTurn?: Position[] // For rival clues: tiles revealed by rival during this clue's turn
 }
 
+// Per-view annotation state for each owner type
+export type PerViewAnnotationState = 'unknown' | 'cant_be' | 'must_be'
+
 export interface TileAnnotation {
-  type: 'safe' | 'unsafe' | 'rival' | 'clue_results' | 'owner_subset' | 'player_slash' | 'player_big_checkmark' | 'player_small_checkmark' | 'player_owner_possibility' | 'adjacency_info'
+  type: 'safe' | 'unsafe' | 'rival' | 'clue_results' | 'owner_subset' | 'player_slash' | 'player_big_checkmark' | 'player_small_checkmark' | 'player_owner_possibility' | 'adjacency_info' | 'player_view_annotations'
   clueResults?: ClueResult[] // For clue strength annotations
   ownerSubset?: Set<'player' | 'rival' | 'neutral' | 'mine'> // For subset annotations (lower-right, from cards/equipment)
-  playerOwnerPossibility?: Set<'player' | 'rival' | 'neutral' | 'mine'> // For player's upper-right annotations
+  playerOwnerPossibility?: Set<'player' | 'rival' | 'neutral' | 'mine'> // For player's upper-right annotations (DEPRECATED - use player_view_annotations)
   adjacencyInfo?: { player?: number; neutral?: number; rival?: number; mine?: number } // For eavesdropping card results
+  // New per-view annotation system
+  playerViewAnnotations?: {
+    player: PerViewAnnotationState
+    rival: PerViewAnnotationState
+    neutral: PerViewAnnotationState
+    mine: PerViewAnnotationState
+  }
 }
 
 export interface GameStatusInfo {
@@ -269,8 +279,8 @@ export interface GameState {
     debugLogging: boolean // If true, output console debug logs; if false, suppress all logging
   }
 
-  // Player annotation: which tile type is currently selected
-  selectedAnnotationTileType: 'player' | 'rival' | 'neutral' | 'mine'
+  // Player annotation: which owner view is currently active
+  annotationView: 'player' | 'rival' | 'neutral' | 'mine'
 
   // Card processing guard (prevents race conditions from rapid clicking)
   isProcessingCard: boolean // True while a card is being played/animated

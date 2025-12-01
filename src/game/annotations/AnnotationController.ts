@@ -208,21 +208,22 @@ export class AnnotationController {
   }
 
   /**
-   * Select which tile type is active for annotations
+   * Switch to a different annotation view
    */
-  selectAnnotationTileType(tileType: 'player' | 'rival' | 'neutral' | 'mine'): void {
+  switchAnnotationView(view: 'player' | 'rival' | 'neutral' | 'mine'): void {
     const currentState = this.getState()
     this.setState({
       ...currentState,
-      selectedAnnotationTileType: tileType
+      annotationView: view
     })
   }
 
   /**
-   * Cycle annotation on a tile through three states:
-   * 1. No annotation
-   * 2. "Not this type" - could be any type EXCEPT the selected one
-   * 3. "Only this type" - can ONLY be the selected type
+   * Cycle annotation on a tile through three states for the current view:
+   * 1. "unknown" (default)
+   * 2. "cant_be" (first right-click)
+   * 3. "must_be" (second right-click)
+   * Then back to "unknown"
    */
   cycleAnnotationOnTile(position: Position): void {
     const currentState = this.getState()
@@ -233,41 +234,43 @@ export class AnnotationController {
     const newTiles = new Map(currentState.board.tiles)
     const updatedTile = { ...tile }
 
-    // Find existing player owner possibility annotation
-    const existingAnnotation = updatedTile.annotations.find(a => a.type === 'player_owner_possibility')
-    updatedTile.annotations = updatedTile.annotations.filter(a => a.type !== 'player_owner_possibility')
+    // Find or create player_view_annotations
+    const existingAnnotation = updatedTile.annotations.find(a => a.type === 'player_view_annotations')
+    updatedTile.annotations = updatedTile.annotations.filter(a => a.type !== 'player_view_annotations')
 
-    const selectedType = currentState.selectedAnnotationTileType
-    const allTypes: ('player' | 'rival' | 'neutral' | 'mine')[] = ['player', 'rival', 'neutral', 'mine']
+    const currentView = currentState.annotationView
 
-    // Determine current state and transition to next
-    if (!existingAnnotation) {
-      // State 1 (no annotation) -> State 2 ("not this type")
-      const notThisType = allTypes.filter(t => t !== selectedType)
-      updatedTile.annotations.push({
-        type: 'player_owner_possibility',
-        playerOwnerPossibility: new Set(notThisType)
-      })
-    } else {
-      const possibilities = existingAnnotation.playerOwnerPossibility
-      if (!possibilities) {
-        // No possibilities set, start from "not this type"
-        const notThisType = allTypes.filter(t => t !== selectedType)
-        updatedTile.annotations.push({
-          type: 'player_owner_possibility',
-          playerOwnerPossibility: new Set(notThisType)
-        })
-      } else if (possibilities.size === 3 && !possibilities.has(selectedType)) {
-        // State 2 ("not this type") -> State 3 ("only this type")
-        updatedTile.annotations.push({
-          type: 'player_owner_possibility',
-          playerOwnerPossibility: new Set([selectedType])
-        })
-      } else {
-        // State 3 ("only this type") or any other state -> State 1 (no annotation)
-        // Don't add anything back - cleared above
-      }
+    // Get current per-view states, defaulting to 'unknown'
+    const currentStates = existingAnnotation?.playerViewAnnotations || {
+      player: 'unknown' as const,
+      rival: 'unknown' as const,
+      neutral: 'unknown' as const,
+      mine: 'unknown' as const
     }
+
+    // Cycle the current view: unknown -> cant_be -> must_be -> unknown
+    const currentState_view = currentStates[currentView]
+    let nextState: 'unknown' | 'cant_be' | 'must_be'
+
+    if (currentState_view === 'unknown') {
+      nextState = 'cant_be'
+    } else if (currentState_view === 'cant_be') {
+      nextState = 'must_be'
+    } else {
+      nextState = 'unknown'
+    }
+
+    // Update the view state
+    const newStates = {
+      ...currentStates,
+      [currentView]: nextState
+    }
+
+    // Add back the annotation
+    updatedTile.annotations.push({
+      type: 'player_view_annotations',
+      playerViewAnnotations: newStates
+    })
 
     newTiles.set(key, updatedTile)
 

@@ -1090,7 +1090,7 @@ export function createInitialState(
       sarcasticInstructionsAlternate: true, // Default: alternate implementation (doubled draws, no green pips)
       debugLogging: false // Default: no debug logging
     },
-    selectedAnnotationTileType: 'player', // Default to player selected
+    annotationView: 'player', // Default to player view
     isProcessingCard: false,
     queuedCardDraws: 0,
     glassesNeedsTingleAnimation: false,

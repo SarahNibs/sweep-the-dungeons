@@ -1,5 +1,5 @@
 import { GameState, Position } from '../../types'
-import { getTile, positionToKey } from '../boardSystem'
+import { getTile, positionToKey, getNeighbors } from '../boardSystem'
 
 export function executeBratEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
   const targetTile = getTile(state.board, target)
@@ -73,6 +73,59 @@ export function executeBratEffect(state: GameState, target: Position, card?: imp
     annotations: newAnnotations
     // Keep adjacencyCount - stored as annotation now for display
   })
+
+  // Update player-annotations on neighboring tiles based on adjacency info
+  if (targetTile.revealedBy && targetTile.adjacencyCount !== null) {
+    const neighbors = getNeighbors(state.board, target)
+    const revealerType = targetTile.revealedBy // 'player' or 'rival'
+
+    // Count revealed neighbors of the revealer's type
+    let revealedMatchingCount = 0
+    for (const neighborPos of neighbors) {
+      const neighbor = getTile(state.board, neighborPos)
+      if (neighbor && neighbor.revealed && neighbor.owner === revealerType) {
+        revealedMatchingCount++
+      }
+    }
+
+    // Determine what we can deduce about neighbors
+    const isSaturated = revealedMatchingCount === targetTile.adjacencyCount
+    const hasNone = targetTile.adjacencyCount === 0
+
+    // If adjacency is 0 or saturated, we know unrevealed neighbors aren't the revealer's type
+    if (hasNone || isSaturated) {
+      for (const neighborPos of neighbors) {
+        const neighborKey = positionToKey(neighborPos)
+        const neighbor = newTiles.get(neighborKey)
+
+        // Only update unrevealed neighbors
+        if (neighbor && !neighbor.revealed) {
+          // Find existing player_owner_possibility annotation
+          const existingPossibility = neighbor.annotations.find(a => a.type === 'player_owner_possibility')
+          const currentPossibility = existingPossibility?.playerOwnerPossibility
+            ? new Set(existingPossibility.playerOwnerPossibility)
+            : new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player', 'rival', 'neutral', 'mine'])
+
+          // Remove the revealer's type from possibilities
+          currentPossibility.delete(revealerType)
+
+          // Update annotations
+          const otherAnnotations = neighbor.annotations.filter(a => a.type !== 'player_owner_possibility')
+
+          newTiles.set(neighborKey, {
+            ...neighbor,
+            annotations: [
+              ...otherAnnotations,
+              {
+                type: 'player_owner_possibility' as const,
+                playerOwnerPossibility: currentPossibility
+              }
+            ]
+          })
+        }
+      }
+    }
+  }
 
   // Remove this specific tile from all rival clue results
   // Keep the clues themselves, just remove this tile from their allAffectedTiles array

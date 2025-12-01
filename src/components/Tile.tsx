@@ -30,31 +30,6 @@ const getClueHoverText = (clueResult: ClueResult): string => {
   return 'Rival Clue'
 }
 
-// Helper function to calculate displayed adjacency count (unrevealed neighbors only)
-// This modifies the VIEW to show remaining unrevealed neighbors instead of total neighbors
-const getDisplayedAdjacencyCount = (
-  tile: TileType,
-  board: import('../types').Board,
-  ownerType: 'player' | 'rival',
-  storedCount: number
-): number => {
-  const neighbors = getNeighbors(board, tile.position)
-
-  // Count revealed neighbors that match the owner type
-  let revealedMatchingCount = 0
-  for (const neighborPos of neighbors) {
-    const neighborKey = `${neighborPos.x},${neighborPos.y}`
-    const neighbor = board.tiles.get(neighborKey)
-    if (neighbor && neighbor.revealed && neighbor.owner === ownerType) {
-      revealedMatchingCount++
-    }
-  }
-
-  // Return unrevealed count (stored count - revealed count)
-  // Ensure we never go below 0
-  return Math.max(0, storedCount - revealedMatchingCount)
-}
-
 export function Tile({ tile, onClick, isTargeting = false, isSelected = false, isEnemyHighlighted = false, isTrystHighlighted = false, isBrushHighlighted = false, isAdjacentToHoveredRevealed = false, onMouseEnter, onMouseLeave }: TileProps) {
   const {
     hoveredClueId,
@@ -310,11 +285,6 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
 
       const colors = getAdjacencyColors()
 
-      // Calculate displayed count (unrevealed neighbors only)
-      const displayedCount = tile.revealedBy
-        ? getDisplayedAdjacencyCount(tile, board, tile.revealedBy, tile.adjacencyCount)
-        : tile.adjacencyCount
-
       elements.push(
         <div key="adjacency-count" style={{
           position: 'absolute',
@@ -334,7 +304,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           border: `${colors.borderWidth} solid ${colors.borderColor}`,
           zIndex: 1000
         }}>
-          {displayedCount}
+          {tile.adjacencyCount}
         </div>
       )
 
@@ -869,14 +839,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
             const revealer = tile.revealedBy // 'player' or 'rival'
             const annotatedValue = adjacencyAnnotation.adjacencyInfo[revealer]
 
-            // Calculate displayed counts for comparison (both show unrevealed now)
-            const displayedNaturalCount = getDisplayedAdjacencyCount(tile, board, revealer, tile.adjacencyCount)
-            const displayedAnnotatedCount = annotatedValue !== undefined
-              ? getDisplayedAdjacencyCount(tile, board, revealer, annotatedValue)
-              : undefined
-
-            // If annotation matches natural adjacency (in displayed form), skip rendering (it's redundant)
-            if (displayedAnnotatedCount === displayedNaturalCount) {
+            // If annotation matches natural adjacency, skip rendering (it's redundant)
+            if (annotatedValue === tile.adjacencyCount) {
               // Skip rendering this annotation - natural adjacency already shows this info
             } else {
               // Annotation differs from natural adjacency, or is for different owner - render it
@@ -892,37 +856,25 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         }
 
         function renderAdjacencyAnnotation() {
-          // Calculate displayed counts (unrevealed neighbors only) for each owner type
-          const displayedPlayer = player !== undefined
-            ? getDisplayedAdjacencyCount(tile, board, 'player', player)
-            : undefined
-          const displayedRival = rival !== undefined
-            ? getDisplayedAdjacencyCount(tile, board, 'rival', rival)
-            : undefined
-          // For neutral and mine, we don't have a simple way to calculate unrevealed
-          // So we keep them as-is for now (they show total count)
-          const displayedNeutral = neutral
-          const displayedMine = mine
-
           // Count how many values we have to determine layout
-          const values = [displayedPlayer, displayedNeutral, displayedRival, displayedMine].filter(v => v !== undefined)
+          const values = [player, neutral, rival, mine].filter(v => v !== undefined)
 
         if (values.length === 1) {
           // Single value: show appropriate colored circle
           // Determine which value and color to use
           let value: number
           let color: string
-          if (displayedPlayer !== undefined) {
-            value = displayedPlayer
+          if (player !== undefined) {
+            value = player
             color = '#81b366' // Green for player (matches revealed tile color)
-          } else if (displayedRival !== undefined) {
-            value = displayedRival
+          } else if (rival !== undefined) {
+            value = rival
             color = '#c65757' // Red for rival (matches revealed tile color)
-          } else if (displayedNeutral !== undefined) {
-            value = displayedNeutral
+          } else if (neutral !== undefined) {
+            value = neutral
             color = '#d4aa5a' // Yellow for neutral (matches revealed tile color)
-          } else { // displayedMine !== undefined
-            value = displayedMine!
+          } else { // mine !== undefined
+            value = mine!
             color = '#8b6ba8' // Purple for mine (matches revealed tile color)
           }
 
@@ -956,10 +908,10 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         } else if (values.length > 1) {
           // Enhanced version: four smaller circles in 2x2 grid
           const positions = [
-            { top: '30%', left: '30%', label: 'M', name: 'Mine', value: displayedMine, color: '#8b6ba8' }, // Purple for mine (matches revealed tile color) - upper left
-            { top: '30%', left: '70%', label: 'N', name: 'Neutral', value: displayedNeutral, color: '#d4aa5a' }, // Yellow for neutral (matches revealed tile color) - upper right
-            { top: '70%', left: '30%', label: 'R', name: 'Rival', value: displayedRival, color: '#c65757' }, // Red for rival (matches revealed tile color) - lower left
-            { top: '70%', left: '70%', label: 'P', name: 'Player', value: displayedPlayer, color: '#81b366' }  // Green for player (matches revealed tile color) - lower right
+            { top: '30%', left: '30%', label: 'M', name: 'Mine', value: mine, color: '#8b6ba8' }, // Purple for mine (matches revealed tile color) - upper left
+            { top: '30%', left: '70%', label: 'N', name: 'Neutral', value: neutral, color: '#d4aa5a' }, // Yellow for neutral (matches revealed tile color) - upper right
+            { top: '70%', left: '30%', label: 'R', name: 'Rival', value: rival, color: '#c65757' }, // Red for rival (matches revealed tile color) - lower left
+            { top: '70%', left: '70%', label: 'P', name: 'Player', value: player, color: '#81b366' }  // Green for player (matches revealed tile color) - lower right
           ]
 
           positions.forEach((pos, index) => {

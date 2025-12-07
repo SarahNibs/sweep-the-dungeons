@@ -25,6 +25,10 @@ const TARGETING_CONFIG: Record<string, TargetingConfig> = {
     maxTargets: (enhanced) => enhanced ? 3 : 2,
     executeImmediate: false // Execute when all targets collected
   },
+  taunt: {
+    maxTargets: (enhanced) => enhanced ? 3 : 4,
+    executeImmediate: false // Execute when all targets collected
+  },
   brush: {
     maxTargets: () => 1,
     executeImmediate: true
@@ -184,8 +188,8 @@ export class TargetingController {
     isEnhanced: boolean,
     config: TargetingConfig
   ): { newEffect: CardEffect | null; shouldExecute: boolean } {
-    // Handle scurry (multi-target) specially
-    if (effect.type === 'scurry') {
+    // Handle scurry and taunt (multi-target) specially
+    if (effect.type === 'scurry' || effect.type === 'taunt') {
       const existingTargets = 'targets' in effect ? effect.targets : []
       const maxTargets = config.maxTargets(isEnhanced)
 
@@ -204,7 +208,9 @@ export class TargetingController {
         newTargets = [...existingTargets, position]
       }
 
-      const newEffect: CardEffect = { type: 'scurry', targets: newTargets }
+      const newEffect: CardEffect = effect.type === 'scurry'
+        ? { type: 'scurry', targets: newTargets }
+        : { type: 'taunt', targets: newTargets }
       // Only execute when we have exactly the right number of targets
       const shouldExecute = newTargets.length === maxTargets
 

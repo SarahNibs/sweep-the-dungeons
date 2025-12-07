@@ -9,6 +9,7 @@ import { startNewTurn } from '../cardSystem'
 import { isTestMode } from '../utils/testMode'
 import { checkChokerEffect } from '../equipment'
 import { removeStatusEffect } from '../gameRepository'
+import { checkTauntTrigger, updateTauntStatusEffects } from '../cards/taunt'
 
 /**
  * Helper function to update state and award copper if game was just won
@@ -416,6 +417,24 @@ export class AIController {
       if (revealResult.revealed) {
         const chokerResult = checkChokerEffect(stateAfterReveal)
         if (chokerResult.shouldEndTurn && chokerResult.reason === 'choker_rival') {
+          shouldContinue = false
+        }
+      }
+
+      // Update Taunt status effects after reveal
+      if (revealResult.revealed) {
+        stateAfterReveal = updateTauntStatusEffects(stateAfterReveal)
+      }
+
+      // Check for Taunt effect - rival revealed all taunted tiles
+      if (revealResult.revealed) {
+        const triggeredTauntId = checkTauntTrigger(stateAfterReveal, tileToReveal.position)
+        if (triggeredTauntId) {
+          // Remove the completed taunt status effect
+          stateAfterReveal = {
+            ...stateAfterReveal,
+            activeStatusEffects: stateAfterReveal.activeStatusEffects.filter(e => e.id !== triggeredTauntId)
+          }
           shouldContinue = false
         }
       }

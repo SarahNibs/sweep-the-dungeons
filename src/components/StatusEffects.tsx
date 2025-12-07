@@ -8,7 +8,7 @@ interface StatusEffectsProps {
 }
 
 export function StatusEffects({ statusEffects }: StatusEffectsProps) {
-  const { pulsingStatusEffectIds } = useGameStore()
+  const { pulsingStatusEffectIds, setHoveredStatusEffectId } = useGameStore()
   const [isPulsing, setIsPulsing] = useState(true)
 
   // Filter out default NoGuess AI status effect - only show non-default AI types
@@ -68,7 +68,7 @@ export function StatusEffects({ statusEffects }: StatusEffectsProps) {
       {visibleEffects.map((effect) => {
         const shouldPulse = isPulsing && pulsingStatusEffectIds.includes(effect.id)
         // Determine border color: red for rival-related effects, green for others
-        const isRivalEffect = ['rival_never_mines', 'rival_ai_type', 'rival_mine_protection', 'rival_places_mines'].includes(effect.type)
+        const isRivalEffect = ['rival_never_mines', 'rival_ai_type', 'rival_mine_protection', 'rival_places_mines', 'initial_rival_reveals'].includes(effect.type)
         const borderColor = isRivalEffect ? '#dc3545' : '#28a745'
 
         return (
@@ -89,6 +89,8 @@ export function StatusEffects({ statusEffects }: StatusEffectsProps) {
               animation: shouldPulse ? 'statusEffectPulse 1s ease-in-out 2' : 'none',
               margin: '0 auto'
             }}
+            onMouseEnter={() => setHoveredStatusEffectId(effect.id)}
+            onMouseLeave={() => setHoveredStatusEffectId(null)}
           >
           {effect.icon}
           {/* Count indicator for effects with counts */}

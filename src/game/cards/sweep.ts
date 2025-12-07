@@ -1,5 +1,5 @@
 import { GameState, Position } from '../../types'
-import { removeSpecialTile, cleanGoblin, hasSpecialTile } from '../boardSystem'
+import { removeSpecialTile, cleanGoblin, hasSpecialTile, canPlayerRevealInnerTile } from '../boardSystem'
 import { triggerMopEffect, hasEquipment } from '../equipment'
 
 export function executeSweepEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
@@ -15,20 +15,24 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
     for (let dy = -range; dy <= range; dy++) {
       const x = target.x + dx
       const y = target.y + dy
+      const pos = { x, y }
       const key = `${x},${y}`
       const tile = currentBoard.tiles.get(key)
 
-      if (tile && hasSpecialTile(tile, 'goblin')) {
-        goblinPositions.push({ x, y })
+      // Skip inaccessible inner tiles (treat them as if they don't exist)
+      if (tile && hasSpecialTile(tile, 'goblin') && canPlayerRevealInnerTile(currentBoard, pos)) {
+        goblinPositions.push(pos)
       }
     }
   }
 
   // Move all collected goblins (each goblin only moves once, even if it moves within the area)
   for (const position of goblinPositions) {
-    const { board: boardAfterGoblinMove } = cleanGoblin(currentBoard, position)
+    const { board: boardAfterGoblinMove, countsForMop } = cleanGoblin(currentBoard, position)
     currentBoard = boardAfterGoblinMove
-    tilesCleanedCount++  // Count goblin for Mop effect
+    if (countsForMop) {
+      tilesCleanedCount++  // Count goblin for Mop effect (only if not already cleaned this turn)
+    }
   }
 
   // Second pass: clear dirt tiles and count for Mop
@@ -37,10 +41,12 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
     for (let dy = -range; dy <= range; dy++) {
       const x = target.x + dx
       const y = target.y + dy
+      const pos = { x, y }
       const key = `${x},${y}`
       const tile = currentBoard.tiles.get(key)
 
-      if (tile && hasSpecialTile(tile, 'extraDirty')) {
+      // Skip inaccessible inner tiles (treat them as if they don't exist)
+      if (tile && hasSpecialTile(tile, 'extraDirty') && canPlayerRevealInnerTile(currentBoard, pos)) {
         const newTiles = new Map(currentBoard.tiles)
         const updatedTile = removeSpecialTile(tile, 'extraDirty')
         newTiles.set(key, updatedTile)
@@ -49,7 +55,7 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
           tiles: newTiles
         }
         tilesCleanedCount++
-        cleanedPositions.push({ x, y })
+        cleanedPositions.push(pos)
       }
     }
   }
@@ -68,10 +74,12 @@ export function executeSweepEffect(state: GameState, target: Position, card?: im
     for (let dy = -range; dy <= range; dy++) {
       const x = target.x + dx
       const y = target.y + dy
+      const pos = { x, y }
       const key = `${x},${y}`
       const tile = finalState.board.tiles.get(key)
 
-      if (tile && hasSpecialTile(tile, 'surfaceMine')) {
+      // Skip inaccessible inner tiles (treat them as if they don't exist)
+      if (tile && hasSpecialTile(tile, 'surfaceMine') && canPlayerRevealInnerTile(finalState.board, pos)) {
         let shouldDefuse = false
         const newTiles = new Map(finalState.board.tiles)
         let currentTile = tile

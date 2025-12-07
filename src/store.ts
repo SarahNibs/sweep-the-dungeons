@@ -27,6 +27,7 @@ interface GameStore extends GameState {
   cancelCardTargeting: () => void
   getTargetingInfo: () => { count: number; description: string; selected: Position[] } | null
   setHoveredClueId: (clueId: string | null) => void
+  setHoveredStatusEffectId: (statusEffectId: string | null) => void
   startRivalTurn: (board: Board) => void
   performNextRivalReveal: () => void
   togglePlayerSlash: (position: Position) => void
@@ -37,6 +38,7 @@ interface GameStore extends GameState {
   cyclePlayerOwnerAnnotation: (position: Position) => void
   switchAnnotationView: (view: 'player' | 'rival' | 'neutral' | 'mine') => void
   cycleAnnotationOnTile: (position: Position) => void
+  clearPlayerAnnotationsOnTile: (position: Position) => void
   startCardSelection: () => void
   selectNewCard: (card: CardType) => void
   skipCardSelection: () => void
@@ -364,7 +366,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     const selected: Position[] = []
     const effect = currentState.pendingCardEffect
 
-    if (effect.type === 'scurry' && 'targets' in effect) {
+    if ((effect.type === 'scurry' || effect.type === 'taunt') && 'targets' in effect) {
       selected.push(...effect.targets)
     }
 
@@ -379,6 +381,13 @@ export const useGameStore = create<GameStore>((set, get) => {
     set(state => ({
       ...state,
       hoveredClueId: clueId
+    }))
+  },
+
+  setHoveredStatusEffectId: (statusEffectId: string | null) => {
+    set(state => ({
+      ...state,
+      hoveredStatusEffectId: statusEffectId
     }))
   },
 
@@ -729,6 +738,10 @@ export const useGameStore = create<GameStore>((set, get) => {
 
   cycleAnnotationOnTile: (position: Position) => {
     annotationController.cycleAnnotationOnTile(position)
+  },
+
+  clearPlayerAnnotationsOnTile: (position: Position) => {
+    annotationController.clearPlayerAnnotationsOnTile(position)
   },
 
   clearAdjacencyPatternAnimation: () => {

@@ -263,6 +263,17 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     },
     icon: '✂️'
   },
+  'Taunt': {
+    name: 'Taunt',
+    cost: 2,
+    exhaust: true,
+    category: 'reward',
+    description: {
+      base: 'Pick 4 unrevealed tiles. If rival reveals all of them, her turn ends when she reveals the last one. Exhaust.',
+      enhanced: 'Pick 3 unrevealed tiles. If rival reveals all of them, her turn ends when she reveals the last one. Exhaust.'
+    },
+    icon: '✋'
+  },
   'Nap': {
     name: 'Nap',
     cost: 1,
@@ -473,9 +484,10 @@ export const EQUIPMENT_DEFINITIONS: Record<string, EquipmentDefinition> = {
   'Mop': {
     name: 'Mop',
     description: 'cleaning is super efficient now!',
-    hoverText: 'Mop: whenever you clean dirt from a tile, draw a card',
+    hoverText: 'Mop: whenever you clean dirt from a tile, draw a card (each goblin only counts once per turn)',
     category: 'common',
-    icon: '🪣'
+    icon: '🪣',
+    prerequisites: ['Broom Closet']
   },
   'Caffeinated': {
     name: 'Caffeinated',
@@ -827,6 +839,7 @@ export function getWeightedRewardCardPool(): CardPoolEntry[] {
     { baseName: 'Masking', weight: 1.0 },
     { baseName: 'Brat', weight: 1.0 },
     { baseName: 'Snip, Snip', weight: 1.0 },
+    { baseName: 'Taunt', weight: 1.0 },
     { baseName: 'Nap', weight: 1.0 },
     { baseName: 'Gaze', weight: 1.0, variants: ['Gaze ↑', 'Gaze ↓', 'Gaze ←', 'Gaze →'] },
     { baseName: 'Fetch', weight: 1.0, variants: ['Fetch ↑', 'Fetch ↓', 'Fetch ←', 'Fetch →'] },

@@ -32,6 +32,7 @@ export type CardEffect =
   | { type: 'masking'; targetCardId: string }
   | { type: 'brat'; target: Position }
   | { type: 'snip_snip'; target: Position }
+  | { type: 'taunt'; targets: Position[] }
   | { type: 'nap'; targetCardId: string }
   | { type: 'gaze'; target: Position }
   | { type: 'fetch'; target: Position }
@@ -57,11 +58,12 @@ export interface ClueResult {
 export type PerViewAnnotationState = 'unknown' | 'cant_be' | 'must_be'
 
 export interface TileAnnotation {
-  type: 'safe' | 'unsafe' | 'rival' | 'clue_results' | 'owner_subset' | 'player_slash' | 'player_big_checkmark' | 'player_small_checkmark' | 'player_owner_possibility' | 'adjacency_info' | 'player_view_annotations'
+  type: 'safe' | 'unsafe' | 'rival' | 'clue_results' | 'owner_subset' | 'player_slash' | 'player_big_checkmark' | 'player_small_checkmark' | 'player_owner_possibility' | 'adjacency_info' | 'player_view_annotations' | 'taunt_target'
   clueResults?: ClueResult[] // For clue strength annotations
   ownerSubset?: Set<'player' | 'rival' | 'neutral' | 'mine'> // For subset annotations (lower-right, from cards/equipment)
   playerOwnerPossibility?: Set<'player' | 'rival' | 'neutral' | 'mine'> // For player's upper-right annotations (DEPRECATED - use player_view_annotations)
   adjacencyInfo?: { player?: number; neutral?: number; rival?: number; mine?: number } // For eavesdropping card results
+  tauntId?: string // For taunt_target annotations: links to specific Taunt status effect
   // New per-view annotation system
   playerViewAnnotations?: {
     player: PerViewAnnotationState
@@ -99,6 +101,7 @@ export interface Tile {
   rivalMineProtected?: boolean // True if this mine was protected by rival mine protection
   cleanedOnce?: boolean // True if this tile has been cleaned once by Spritz or Sweep (used for non-surface-mine cleaning)
   surfaceMineState?: { cleanedOnce: boolean } // State carried by the surface mine itself (moves with the mine)
+  goblinState?: { cleanedThisTurn: boolean } // State for goblins (resets each turn) - used to prevent Mop from drawing multiple cards from same goblin
   innerTile?: boolean // True if this tile is an inner tile (only reachable through sanctum portals)
   connectedSanctums?: Position[] // Positions of sanctums this inner tile is connected to
 }
@@ -188,6 +191,7 @@ export interface GameState {
   pendingCardEffect: CardEffect | null
   eventQueue: GameEvent[]
   hoveredClueId: string | null // For highlighting related clue pips and tiles
+  hoveredStatusEffectId: string | null // For highlighting tiles related to status effects (e.g., Taunt)
   clueCounter: number // Counter for clue order (1st, 2nd, 3rd...)
   playerClueCounter: number // Counter for player clue rows
   rivalClueCounter: number // Counter for rival clue rows
@@ -359,12 +363,13 @@ export interface ShopOption {
 
 export interface StatusEffect {
   id: string
-  type: 'underwire_protection' | 'ramble_active' | 'distraction' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines' | 'rival_ai_type' | 'rival_mine_protection' | 'grace' | 'burger' | 'ice_cream' | 'carrots' | 'rival_places_mines'
+  type: 'underwire_protection' | 'ramble_active' | 'distraction' | 'manhattan_adjacency' | 'horse_discount' | 'rival_never_mines' | 'rival_ai_type' | 'rival_mine_protection' | 'grace' | 'burger' | 'ice_cream' | 'carrots' | 'rival_places_mines' | 'initial_rival_reveals' | 'taunt'
   icon: string
   name: string
   description: string
   enhanced?: boolean // For enhanced effects
-  count?: number // For effects with counts (e.g., rival mine protection remaining, burger stacks, rival places mines count, distraction stacks)
+  count?: number // For effects with counts (e.g., rival mine protection remaining, burger stacks, rival places mines count, distraction stacks, initial rival reveals count)
+  tauntPositions?: Position[] // For taunt effects: positions of all taunted tiles
 }
 
 export type CardZone = 'deck' | 'hand' | 'discard'

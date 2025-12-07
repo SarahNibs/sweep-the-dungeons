@@ -33,13 +33,17 @@ const getClueHoverText = (clueResult: ClueResult): string => {
 export function Tile({ tile, onClick, isTargeting = false, isSelected = false, isEnemyHighlighted = false, isTrystHighlighted = false, isBrushHighlighted = false, isAdjacentToHoveredRevealed = false, onMouseEnter, onMouseLeave }: TileProps) {
   const {
     hoveredClueId,
+    hoveredStatusEffectId,
     setHoveredClueId,
     tingleAnimation,
     adjacencyPatternAnimation,
     cycleAnnotationOnTile,
+    clearPlayerAnnotationsOnTile,
     board,
     debugFlags,
-    gameStatus
+    gameStatus,
+    annotationView,
+    activeStatusEffects
   } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
   
@@ -96,18 +100,49 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     }
   }
 
-  // Combine player annotation with card results to get the actual display annotation
+  // Combine per-view annotations with card results to get the actual display annotation
   const getCombinedOwnerPossibility = (): Set<'player' | 'rival' | 'neutral' | 'mine'> | null => {
-    // Find player owner possibility annotation
-    const playerAnnotation = tile.annotations.find(a => a.type === 'player_owner_possibility')
-    if (!playerAnnotation?.playerOwnerPossibility) return null
+    // Find per-view annotations
+    const viewAnnotation = tile.annotations.find(a => a.type === 'player_view_annotations')
 
     // Find card/equipment result annotations (owner_subset)
     const cardAnnotations = tile.annotations.filter(a => a.type === 'owner_subset')
-    
-    let result = new Set(playerAnnotation.playerOwnerPossibility)
-    
-    // Intersect with all card result sets
+
+    // If no annotations at all, return null (don't show anything)
+    if (!viewAnnotation && cardAnnotations.length === 0) {
+      return null
+    }
+
+    // Start with all 4 owner types as possibilities
+    let result = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['player', 'rival', 'neutral', 'mine'])
+
+    // Apply per-view annotations
+    if (viewAnnotation?.playerViewAnnotations) {
+      const views = viewAnnotation.playerViewAnnotations
+      const ownerTypes: Array<'player' | 'rival' | 'neutral' | 'mine'> = ['player', 'rival', 'neutral', 'mine']
+
+      for (const owner of ownerTypes) {
+        const state = views[owner]
+
+        if (state === 'cant_be') {
+          // Remove this owner from possibilities
+          result.delete(owner)
+        } else if (state === 'must_be') {
+          // This owner MUST be the type - intersect with just this owner
+          const mustBeSet = new Set<'player' | 'rival' | 'neutral' | 'mine'>([owner])
+          const intersection = new Set<'player' | 'rival' | 'neutral' | 'mine'>()
+          for (const r of result) {
+            if (mustBeSet.has(r)) {
+              intersection.add(r)
+            }
+          }
+          result = intersection
+        }
+        // 'unknown' state doesn't change anything
+      }
+    }
+
+    // AND with all card/game result sets (owner_subset annotations)
     for (const cardAnnotation of cardAnnotations) {
       if (cardAnnotation.ownerSubset) {
         const intersection = new Set<'player' | 'rival' | 'neutral' | 'mine'>()
@@ -119,11 +154,13 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         result = intersection
       }
     }
-    
-    return result.size > 0 ? result : null
+
+    // Return the result - even if empty! (that's when we show question mark)
+    // But return null if there were no annotations to begin with
+    return (viewAnnotation || cardAnnotations.length > 0) ? result : null
   }
 
-  
+
   // Check if this tile should be highlighted due to clue hover
   const isClueHighlighted = () => {
     if (!hoveredClueId) return false
@@ -154,14 +191,32 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     return false
   }
 
+  // Check if this tile should be highlighted due to status effect hover (e.g., Taunt)
+  const isStatusEffectHighlighted = () => {
+    if (!hoveredStatusEffectId) return false
+
+    // Find the hovered status effect
+    const statusEffect = activeStatusEffects.find(e => e.id === hoveredStatusEffectId)
+    if (!statusEffect) return false
+
+    // For Taunt effects, check if this tile is in the tauntPositions
+    if (statusEffect.type === 'taunt' && statusEffect.tauntPositions) {
+      return statusEffect.tauntPositions.some(
+        pos => pos.x === tile.position.x && pos.y === tile.position.y
+      )
+    }
+
+    return false
+  }
+
   const getTileColor = () => {
     // Destroyed tiles look like background
     if (tile.specialTiles.includes('destroyed')) {
       return 'transparent'
     }
 
-    // If clue highlighted, darken the color
-    const highlighted = isClueHighlighted()
+    // If clue or status effect highlighted, darken the color
+    const highlighted = isClueHighlighted() || isStatusEffectHighlighted()
 
     if (!tile.revealed) {
       // Unrevealed tiles: darker gray when highlighted (post-game shows corner triangle instead)
@@ -553,18 +608,36 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         })
       }
       
-      // Render player slash and green circle based on combined annotations
-      // Black slash: player is NOT in the combined possibilities
-      // Green circle: player is the ONLY possibility in the combined annotation
+      // Render view-specific slash and circle based on combined annotations
+      // Slash: current view's owner is NOT in the combined possibilities
+      // Use view-specific colors for slashes
       // Don't show on destroyed tiles
-      const shouldShowSlash = !isDestroyed && combinedPossibility && !combinedPossibility.has('player')
-      const shouldShowGreenCircle = !isDestroyed && combinedPossibility && combinedPossibility.size === 1 && combinedPossibility.has('player')
+      const shouldShowSlash = !isDestroyed && combinedPossibility !== null && !combinedPossibility.has(annotationView)
 
-      // Render black slash if player is excluded
+      // Circle: current view's owner is the ONLY possibility
+      const shouldShowCircle = !isDestroyed && combinedPossibility && combinedPossibility.size === 1 && combinedPossibility.has(annotationView)
+
+      // Map view to slash color (darker versions of owner colors)
+      const slashColors: Record<'player' | 'rival' | 'neutral' | 'mine', string> = {
+        player: '#2d5016',   // Dark green
+        rival: '#7a2929',    // Dark red
+        neutral: '#8a6b2e',  // Dark yellow/brown
+        mine: '#5a3a6b'      // Dark purple
+      }
+
+      // Map view to circle color (matches revealed tile colors)
+      const circleColors: Record<'player' | 'rival' | 'neutral' | 'mine', string> = {
+        player: '#28a745',   // Green
+        rival: '#c65757',    // Red
+        neutral: '#d4aa5a',  // Yellow
+        mine: '#8b6ba8'      // Purple
+      }
+
+      // Render view-specific slash if that owner is excluded
       if (shouldShowSlash) {
         elements.push(
           <div
-            key="player-slash"
+            key="view-slash"
             style={{
               position: 'absolute',
               top: '0px',
@@ -578,11 +651,11 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
             <div
               style={{
                 position: 'absolute',
-                top: '2px',
-                left: '2px',
-                right: '2px',
-                bottom: '2px',
-                background: 'linear-gradient(135deg, transparent 47%, black 47%, black 53%, transparent 53%)',
+                top: '11px',      // Shortened from 2px to avoid covering upper-right annotations
+                left: '2px',      // Still goes to bottom-left corner
+                right: '11px',    // Shortened from 2px to avoid covering upper-right annotations
+                bottom: '2px',    // Still goes to bottom-left corner
+                background: `linear-gradient(135deg, transparent 47%, ${slashColors[annotationView]} 47%, ${slashColors[annotationView]} 53%, transparent 53%)`,
                 pointerEvents: 'none'
               }}
             />
@@ -590,11 +663,11 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         )
       }
 
-      // Render green circle if player is the only possibility
-      if (shouldShowGreenCircle) {
+      // Render colored circle if current view's owner is the only possibility
+      if (shouldShowCircle) {
         elements.push(
           <div
-            key="green-circle"
+            key="view-circle"
             style={{
               position: 'absolute',
               top: '50%',
@@ -603,7 +676,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
               width: '48px',
               height: '48px',
               borderRadius: '50%',
-              backgroundColor: '#28a745',
+              backgroundColor: circleColors[annotationView],
               border: '2px solid black',
               pointerEvents: 'none',
               zIndex: 999,
@@ -658,54 +731,119 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       
       // Render combined player owner possibility annotation (upper-right corner)
       if (combinedPossibility) {
-        // Use same 2x2 grid system as subset annotations but in upper-right
-        const ownerInfo = [
-          { owner: 'player' as const, color: '#81b366', position: { top: 0, left: 4 }, name: 'Player' }, // upper-left
-          { owner: 'rival' as const, color: '#c65757', position: { top: 0, left: 8 }, name: 'Rival' }, // upper-right
-          { owner: 'neutral' as const, color: '#d4aa5a', position: { top: 4, left: 4 }, name: 'Neutral' }, // lower-left
-          { owner: 'mine' as const, color: '#8b6ba8', position: { top: 4, left: 8 }, name: 'Mine' } // lower-right
-        ]
-        
-        const includedOwners = ownerInfo.filter(info => combinedPossibility.has(info.owner))
-        const tooltipText = includedOwners.length === 1
-          ? `Could only be ${includedOwners[0].name.toLowerCase()}`
-          : `Could be ${includedOwners.map(info => info.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ', or $1')}`
-        
-        if (includedOwners.length === 1) {
-          // Single possibility: large colored square
-          const info = includedOwners[0]
+        // Don't show anything if all 4 owners are possible (default state)
+        const isAllOwnersPossible = combinedPossibility.size === 4
+
+        if (combinedPossibility.size === 0) {
+          // Contradictory annotations - show larger orange button with black question mark
+          const handleQuestionMarkClick = (e: React.MouseEvent) => {
+            e.preventDefault()
+            e.stopPropagation()
+            clearPlayerAnnotationsOnTile(tile.position)
+          }
+
           elements.push(
-            <Tooltip key={`combined-single`} text={tooltipText} style={{ position: 'absolute', top: '2px', right: '4px' }}>
+            <Tooltip key="combined-question" text="Contradictory annotations - right-click to clear!" style={{ position: 'absolute', top: '2px', right: '4px' }}>
               <div
+                onContextMenu={handleQuestionMarkClick}
                 style={{
-                  width: '12px',
-                  height: '12px',
-                  backgroundColor: info.color,
-                  borderRadius: '2px',
-                  border: '1px solid black',
-                  opacity: 0.9
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: '#ff8c00', // Orange
+                  borderRadius: '3px',
+                  border: '2px solid black',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  color: 'black',
+                  cursor: 'pointer',
+                  opacity: 0.95
                 }}
-              />
+              >
+                ?
+              </div>
             </Tooltip>
           )
-        } else {
-          // Multiple possibilities: small squares in 2x2 grid
-          includedOwners.forEach(info => {
-            elements.push(
-              <Tooltip key={`combined-${info.owner}`} text={tooltipText} style={{ position: 'absolute', top: `${2 + (4 - info.position.top)}px`, right: `${4 + info.position.left}px` }}>
-                <div
-                  style={{
-                    width: '4px',
-                    height: '4px',
-                    backgroundColor: info.color,
-                    borderRadius: '1px',
-                    border: '0.5px solid black',
-                    opacity: 0.8
-                  }}
-                />
-              </Tooltip>
-            )
-          })
+        } else if (!isAllOwnersPossible) {
+          // Check if combined annotation is identical to game annotation (owner_subset)
+          const gameAnnotations = tile.annotations.filter(a => a.type === 'owner_subset')
+          let isIdenticalToGameAnnotation = false
+
+          if (gameAnnotations.length > 0) {
+            // Find the most restrictive game annotation
+            const latestGameAnnotation = gameAnnotations[gameAnnotations.length - 1]
+            if (latestGameAnnotation.ownerSubset) {
+              // Check if sets are identical
+              const gameSet = latestGameAnnotation.ownerSubset
+              if (gameSet.size === combinedPossibility.size) {
+                let allMatch = true
+                for (const owner of combinedPossibility) {
+                  if (!gameSet.has(owner)) {
+                    allMatch = false
+                    break
+                  }
+                }
+                isIdenticalToGameAnnotation = allMatch
+              }
+            }
+          }
+
+          // Only render if not identical to game annotation
+          // EXCEPT: always show if it's "must be exactly this one owner" (size === 1)
+          const isSingleOwner = combinedPossibility.size === 1
+          if (!isIdenticalToGameAnnotation || isSingleOwner) {
+            // Use same 2x2 grid system as subset annotations but in upper-right
+            const ownerInfo = [
+              { owner: 'player' as const, color: '#81b366', position: { top: 0, left: 4 }, name: 'Player' }, // upper-left
+              { owner: 'rival' as const, color: '#c65757', position: { top: 0, left: 8 }, name: 'Rival' }, // upper-right
+              { owner: 'neutral' as const, color: '#d4aa5a', position: { top: 4, left: 4 }, name: 'Neutral' }, // lower-left
+              { owner: 'mine' as const, color: '#8b6ba8', position: { top: 4, left: 8 }, name: 'Mine' } // lower-right
+            ]
+
+            const includedOwners = ownerInfo.filter(info => combinedPossibility.has(info.owner))
+            const tooltipText = includedOwners.length === 1
+              ? `Could only be ${includedOwners[0].name.toLowerCase()}`
+              : `Could be ${includedOwners.map(info => info.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ', or $1')}`
+
+            if (includedOwners.length === 1) {
+              // Single possibility: large colored square
+              const info = includedOwners[0]
+              elements.push(
+                <Tooltip key={`combined-single`} text={tooltipText} style={{ position: 'absolute', top: '2px', right: '4px' }}>
+                  <div
+                    style={{
+                      width: '12px',
+                      height: '12px',
+                      backgroundColor: info.color,
+                      borderRadius: '2px',
+                      border: '1px solid black',
+                      opacity: 0.9
+                    }}
+                  />
+                </Tooltip>
+              )
+            } else {
+              // Multiple possibilities: small squares in 2x2 grid
+              includedOwners.forEach(info => {
+                elements.push(
+                  <Tooltip key={`combined-${info.owner}`} text={tooltipText} style={{ position: 'absolute', top: `${2 + (4 - info.position.top)}px`, right: `${4 + info.position.left}px` }}>
+                    <div
+                      style={{
+                        width: '4px',
+                        height: '4px',
+                        backgroundColor: info.color,
+                        borderRadius: '1px',
+                        border: '0.5px solid black',
+                        opacity: 0.8
+                      }}
+                    />
+                  </Tooltip>
+                )
+              })
+            }
+          }
         }
       }
 
@@ -1089,6 +1227,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
       shadows.push('0 0 12px rgba(155, 89, 182, 0.6)')
     } else if (isBrushHighlighted) {
       shadows.push('0 0 12px rgba(0, 123, 255, 0.8)')
+    } else if (isStatusEffectHighlighted()) {
+      shadows.push('0 0 10px rgba(255, 165, 0, 0.6)') // Orange glow for status effects
     } else if (isClueHighlighted()) {
       shadows.push('0 0 8px rgba(64, 192, 87, 0.4)')
     } else if ((isHovered && !tile.revealed) || isAdjacentToHoveredRevealed) {
@@ -1114,6 +1254,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                 isEnemyHighlighted || isTingleEmphasized() ? '3px solid #dc3545' :
                 isTrystHighlighted ? '3px solid #9b59b6' :
                 isBrushHighlighted ? '3px solid #007bff' :
+                isStatusEffectHighlighted() ? '2px solid #ffa500' :
                 isClueHighlighted() ? '2px solid #40c057' :
                 '2px solid #333',
         borderRadius: '4px',

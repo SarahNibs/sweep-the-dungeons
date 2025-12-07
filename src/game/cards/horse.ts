@@ -93,14 +93,16 @@ export function executeHorseEffect(state: GameState, target: Position, card?: im
   
   // Add game annotations to unrevealed tiles in the area
   // Exclude tiles that were already processed (revealed or annotated)
+  // Also exclude inaccessible inner tiles
   const processedPositions = new Set(tilesToProcess.map(({ pos }) => `${pos.x},${pos.y}`))
   const unrevealedTilesInArea = area
     .map(pos => ({ pos, tile: getTile(newState.board, pos) }))
-    .filter(({ tile, pos }) => 
-      tile && 
-      !tile.revealed && 
-      tile.owner !== 'empty' && 
-      !processedPositions.has(`${pos.x},${pos.y}`)
+    .filter(({ tile, pos }) =>
+      tile &&
+      !tile.revealed &&
+      tile.owner !== 'empty' &&
+      !processedPositions.has(`${pos.x},${pos.y}`) &&
+      canPlayerRevealInnerTile(newState.board, pos)
     )
   
   // Determine what to exclude based on what was revealed

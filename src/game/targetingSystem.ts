@@ -1,5 +1,5 @@
 import { Board, Position, Tile } from '../types'
-import { getTile, hasSpecialTile, canPlayerRevealInnerTile } from './boardSystem'
+import { getTile, hasSpecialTile, canPlayerRevealInnerTile, cardRespectsInnerTileRestrictions } from './boardSystem'
 
 /**
  * Taxonomy of tile targeting:
@@ -249,6 +249,10 @@ export function canTargetTile(
     if (tile.owner === 'empty') {
       return { isValid: false, reason: 'Cannot target empty tiles' }
     }
+    // Cannot target inaccessible inner tiles
+    if (!canPlayerRevealInnerTile(board, position)) {
+      return { isValid: false, reason: 'Cannot target inaccessible inner tiles' }
+    }
     // Can target any non-empty tile
     return { isValid: true }
   }
@@ -258,7 +262,7 @@ export function canTargetTile(
     return { isValid: true }
   }
 
-  // All other single-target cards: Spritz, Quantum, Tryst (basic)
+  // All other single-target cards: Spritz, Quantum, Tryst (basic), Snip Snip, Fetch
   // These cards target one unrevealed, non-empty tile
   if (tile.owner === 'empty') {
     return { isValid: false, reason: 'Cannot target empty tiles' }
@@ -266,6 +270,13 @@ export function canTargetTile(
 
   if (tile.revealed) {
     return { isValid: false, reason: 'Tile already revealed' }
+  }
+
+  // Check inner tile restrictions for cards that respect them
+  if (cardName && cardRespectsInnerTileRestrictions(cardName)) {
+    if (!canPlayerRevealInnerTile(board, position)) {
+      return { isValid: false, reason: 'Cannot target inaccessible inner tiles' }
+    }
   }
 
   return { isValid: true }

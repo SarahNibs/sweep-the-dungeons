@@ -178,6 +178,24 @@ export function canPlayerRevealInnerTile(board: Board, position: Position): bool
   return false // All connected sanctums are unrevealed
 }
 
+/**
+ * Check if a card respects inner tile restrictions
+ * Cards representing "obvious action" cannot target inaccessible inner tiles
+ * Cards representing sensory info, small animal helpers, or surreptitious action can
+ */
+export function cardRespectsInnerTileRestrictions(cardName: string): boolean {
+  const restrictedCards = new Set([
+    'Spritz',
+    'Brush',
+    'Sweep',
+    'Horse',
+    'Brat',
+    'Snip, Snip',
+    'Fetch'
+  ])
+  return restrictedCards.has(cardName)
+}
+
 // Setup sanctums and mark their connected inner tiles
 // Must be called after board creation and special tile application
 export function setupSanctumsAndInnerTiles(board: Board): Board {
@@ -809,15 +827,75 @@ export function moveGoblin(board: Board, fromPosition: Position): Board {
 }
 
 /**
- * Clean a goblin from a tile (without revealing), and move it to adjacent tile if possible
- * Returns updated board and whether goblin was cleaned
+ * Move a goblin from a tile to an adjacent unrevealed tile and mark it as cleaned this turn
+ * Used by cleanGoblin to track Mop equipment effect
  */
-export function cleanGoblin(board: Board, position: Position): { board: Board; goblinCleaned: boolean } {
+export function moveGoblinWithCleanedFlag(board: Board, fromPosition: Position): Board {
+  const neighbors = getNeighbors(board, fromPosition)
+
+  // Find all unrevealed adjacent tiles that don't already have goblins
+  const unrevealedNeighbors = neighbors
+    .map(pos => ({ pos, tile: getTile(board, pos) }))
+    .filter(({ tile }) =>
+      tile &&
+      !tile.revealed &&
+      tile.owner !== 'empty' &&
+      !hasSpecialTile(tile, 'goblin') // Don't move onto tiles that already have goblins
+    )
+
+  if (unrevealedNeighbors.length === 0) {
+    // No place to move, goblin disappears
+    return board
+  }
+
+  // Separate into non-mine and mine tiles
+  const nonMineTiles = unrevealedNeighbors.filter(({ tile }) => tile!.owner !== 'mine')
+  const mineTiles = unrevealedNeighbors.filter(({ tile }) => tile!.owner === 'mine')
+
+  // Prefer non-mine tiles if available, otherwise move to mine
+  const targetOptions = nonMineTiles.length > 0 ? nonMineTiles : mineTiles
+
+  // Pick random target
+  const randomIndex = Math.floor(Math.random() * targetOptions.length)
+  const targetPos = targetOptions[randomIndex].pos
+  const targetTile = getTile(board, targetPos)!
+
+
+  // Check if target is a surface mine
+  if (hasSpecialTile(targetTile, 'surfaceMine')) {
+
+    // Explode the surface mine (mark as destroyed, goblin disappears)
+    // Use destroyTile to properly update adjacency info and annotations
+    return destroyTile(board, targetPos)
+  }
+
+  // Normal goblin movement (no surface mine) - mark goblin as cleaned this turn
+  const newTiles = new Map(board.tiles)
+  const tileWithGoblin = addSpecialTile(targetTile, 'goblin')
+  newTiles.set(positionToKey(targetPos), {
+    ...tileWithGoblin,
+    goblinState: { cleanedThisTurn: true }
+  })
+
+  return {
+    ...board,
+    tiles: newTiles
+  }
+}
+
+/**
+ * Clean a goblin from a tile (without revealing), and move it to adjacent tile if possible
+ * Returns updated board, whether goblin was cleaned, and whether it should count for Mop
+ */
+export function cleanGoblin(board: Board, position: Position): { board: Board; goblinCleaned: boolean; countsForMop: boolean } {
   const tile = getTile(board, position)
 
   if (!tile || !hasSpecialTile(tile, 'goblin')) {
-    return { board, goblinCleaned: false }
+    return { board, goblinCleaned: false, countsForMop: false }
   }
+
+  // Check if this goblin was already cleaned this turn (for Mop equipment tracking)
+  const alreadyCleanedThisTurn = tile.goblinState?.cleanedThisTurn || false
 
   // Remove goblin from this tile (keep other special tiles like extraDirty)
   const newTiles = new Map(board.tiles)
@@ -829,10 +907,10 @@ export function cleanGoblin(board: Board, position: Position): { board: Board; g
     tiles: newTiles
   }
 
-  // Move goblin to adjacent tile
-  const finalBoard = moveGoblin(boardWithCleanedTile, position)
+  // Move goblin to adjacent tile and mark it as cleaned this turn
+  const finalBoard = moveGoblinWithCleanedFlag(boardWithCleanedTile, position)
 
-  return { board: finalBoard, goblinCleaned: true }
+  return { board: finalBoard, goblinCleaned: true, countsForMop: !alreadyCleanedThisTurn }
 }
 
 /**

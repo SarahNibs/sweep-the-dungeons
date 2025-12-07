@@ -1,5 +1,5 @@
 import { GameState, Position } from '../../types'
-import { positionToKey } from '../boardSystem'
+import { positionToKey, canPlayerRevealInnerTile } from '../boardSystem'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
 
 export function executeBrushEffect(state: GameState, target: Position, card?: import('../../types').Card): GameState {
@@ -20,8 +20,9 @@ export function executeBrushEffect(state: GameState, target: Position, card?: im
         const key = positionToKey(pos)
         const tile = currentState.board.tiles.get(key)
 
-        // Only affect unrevealed tiles that are within board bounds
-        if (tile && !tile.revealed) {
+        // Only affect unrevealed, accessible tiles that are within board bounds
+        // Skip inaccessible inner tiles (treat them as if they don't exist)
+        if (tile && !tile.revealed && canPlayerRevealInnerTile(currentState.board, pos)) {
           // Pick one of the three non-owners at random to exclude
           const allOwners: ('player' | 'rival' | 'neutral' | 'mine')[] = ['player', 'rival', 'neutral', 'mine']
           const nonOwners = allOwners.filter(owner => owner !== tile.owner)

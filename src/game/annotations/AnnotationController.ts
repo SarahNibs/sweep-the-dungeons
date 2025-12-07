@@ -282,4 +282,30 @@ export class AnnotationController {
       }
     })
   }
+
+  /**
+   * Clear all player view annotations on a tile
+   */
+  clearPlayerAnnotationsOnTile(position: Position): void {
+    const currentState = this.getState()
+    const key = positionToKey(position)
+    const tile = currentState.board.tiles.get(key)
+    if (!tile || tile.revealed) return
+
+    const newTiles = new Map(currentState.board.tiles)
+    const updatedTile = { ...tile }
+
+    // Remove player_view_annotations
+    updatedTile.annotations = updatedTile.annotations.filter(a => a.type !== 'player_view_annotations')
+
+    newTiles.set(key, updatedTile)
+
+    this.setState({
+      ...currentState,
+      board: {
+        ...currentState.board,
+        tiles: newTiles
+      }
+    })
+  }
 }

@@ -915,9 +915,21 @@ export function startNewTurn(state: GameState): GameState {
   // NOTE: Distraction status effect is NOT removed here - it stays visible during player's turn
   // It will be removed at the START of the rival's turn (in AIController.ts)
 
+  // Reset goblin cleanedThisTurn state at start of each turn (for Mop equipment)
+  const newTiles = new Map(stateWithoutRamble.board.tiles)
+  for (const [key, tile] of stateWithoutRamble.board.tiles) {
+    if (tile.specialTiles.includes('goblin') && tile.goblinState?.cleanedThisTurn) {
+      newTiles.set(key, {
+        ...tile,
+        goblinState: { cleanedThisTurn: false }
+      })
+    }
+  }
+  const stateWithResetGoblins = { ...stateWithoutRamble, board: { ...stateWithoutRamble.board, tiles: newTiles } }
+
   let finalState = {
-    ...stateWithoutRamble,
-    energy: stateWithoutRamble.maxEnergy,
+    ...stateWithResetGoblins,
+    energy: stateWithResetGoblins.maxEnergy,
     distractionStackCount: distractionStacks, // Store stack count for rival turn (noise generated per-tile)
     // isFirstTurn already set to false earlier in stateForTurnStart
     neutralsRevealedThisTurn: 0, // Reset neutral reveal counter
@@ -982,29 +994,24 @@ export function createInitialState(
   // Setup sanctums and their connected inner tiles
   board = setupSanctumsAndInnerTiles(board)
 
-  // Annotate all sanctum tiles with their owner type at floor start
+  // Annotate all sanctum tiles as "neutral or mine" at floor start
   {
     const newTiles = new Map(board.tiles)
     for (const [key, tile] of board.tiles) {
       if (tile.specialTiles.includes('sanctum') && !tile.revealed) {
-        // Create owner subset with just the tile's owner
-        const ownerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>()
-        if (tile.owner === 'player' || tile.owner === 'rival' || tile.owner === 'neutral' || tile.owner === 'mine') {
-          ownerSubset.add(tile.owner)
-        }
+        // Sanctums are always annotated as "neutral or mine" regardless of actual type
+        const ownerSubset = new Set<'player' | 'rival' | 'neutral' | 'mine'>(['neutral', 'mine'])
 
-        if (ownerSubset.size > 0) {
-          // Add owner_subset annotation
-          const updatedAnnotations = [
-            ...tile.annotations,
-            { type: 'owner_subset' as const, ownerSubset }
-          ]
+        // Add owner_subset annotation
+        const updatedAnnotations = [
+          ...tile.annotations,
+          { type: 'owner_subset' as const, ownerSubset }
+        ]
 
-          newTiles.set(key, {
-            ...tile,
-            annotations: updatedAnnotations
-          })
-        }
+        newTiles.set(key, {
+          ...tile,
+          annotations: updatedAnnotations
+        })
       }
     }
     board = { ...board, tiles: newTiles }
@@ -1047,6 +1054,7 @@ export function createInitialState(
     pendingCardEffect: null,
     eventQueue: [],
     hoveredClueId: null,
+    hoveredStatusEffectId: null,
     clueCounter: 0,
     playerClueCounter: 0,
     rivalClueCounter: 0,
@@ -1210,6 +1218,23 @@ export function createInitialState(
     finalState = {
       ...finalState,
       activeStatusEffects: [...finalState.activeStatusEffects, protectionStatusEffect]
+    }
+  }
+
+  // Add initial rival reveals status effect if special behavior is active
+  if (levelConfig?.specialBehaviors.initialRivalReveal && levelConfig.specialBehaviors.initialRivalReveal > 0) {
+    const initialRevealsStatusEffect = {
+      id: crypto.randomUUID(),
+      type: 'initial_rival_reveals' as const,
+      icon: '👁️',
+      name: 'Initial Rival Reveals',
+      description: `The rival revealed ${levelConfig.specialBehaviors.initialRivalReveal} of their tile${levelConfig.specialBehaviors.initialRivalReveal > 1 ? 's' : ''} at the start of this floor`,
+      count: levelConfig.specialBehaviors.initialRivalReveal
+    }
+
+    finalState = {
+      ...finalState,
+      activeStatusEffects: [...finalState.activeStatusEffects, initialRevealsStatusEffect]
     }
   }
 

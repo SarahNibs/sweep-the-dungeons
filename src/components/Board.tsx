@@ -1,6 +1,6 @@
 import { Board as BoardType, Tile as TileType, Position } from '../types'
 import { Tile } from './Tile'
-import { positionToKey, getNeighbors } from '../game/boardSystem'
+import { positionToKey, getNeighbors, canPlayerRevealInnerTile, cardRespectsInnerTileRestrictions } from '../game/boardSystem'
 import { useGameStore } from '../store'
 import { useState, useEffect } from 'react'
 
@@ -82,10 +82,19 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
 
         // Check if this position is in the area effect zone for hover highlighting
         const isInAreaEffect = isAreaTargeting && areaHoverCenter && (() => {
+          const pos = { x, y }
+          const tileAtPosition = board.tiles.get(`${x},${y}`)
+
+          // Filter out inaccessible inner tiles for cards that respect restrictions
+          if (selectedCardName && cardRespectsInnerTileRestrictions(selectedCardName)) {
+            if (!canPlayerRevealInnerTile(board, pos)) {
+              return false
+            }
+          }
+
           if (isDirectionalTargeting && direction) {
             // Directional targeting: highlight tiles in a line in the specified direction
             // Must be unrevealed and non-empty
-            const tileAtPosition = board.tiles.get(`${x},${y}`)
             if (!tileAtPosition || tileAtPosition.revealed || tileAtPosition.owner === 'empty') {
               return false
             }

@@ -761,7 +761,7 @@ export function shouldRevealEndTurn(state: GameState, tile: Tile): boolean {
   if (hasFrillyDress && state.isFirstTurn && tile.owner === 'neutral') {
     // Tea equipment removes the 4 neutral limit
     const hasTea = state.equipment.some(r => r.name === 'Tea')
-    const withinLimit = hasTea || state.neutralsRevealedThisTurn < 4
+    const withinLimit = hasTea || state.neutralsRevealedThisTurn <= 4
 
     if (withinLimit) {
       return false // Frilly Dress prevents turn ending (still within 4-neutral limit)

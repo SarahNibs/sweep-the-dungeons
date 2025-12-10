@@ -370,6 +370,7 @@ export interface StatusEffect {
   enhanced?: boolean // For enhanced effects
   count?: number // For effects with counts (e.g., rival mine protection remaining, burger stacks, rival places mines count, distraction stacks, initial rival reveals count)
   tauntPositions?: Position[] // For taunt effects: positions of all taunted tiles
+  tauntRequiredReveals?: number // For taunt effects: how many reveals are needed to end rival's turn
 }
 
 export type CardZone = 'deck' | 'hand' | 'discard'

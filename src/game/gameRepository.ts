@@ -269,8 +269,8 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     exhaust: true,
     category: 'reward',
     description: {
-      base: 'Pick 4 unrevealed tiles. If rival reveals all of them, her turn ends when she reveals the last one. Exhaust.',
-      enhanced: 'Pick 3 unrevealed tiles. If rival reveals all of them, her turn ends when she reveals the last one. Exhaust.'
+      base: 'Pick 4 unrevealed tiles. If rival reveals 3 of them, her turn ends. Exhaust.',
+      enhanced: 'Pick 3 unrevealed tiles. If rival reveals 2 of them, her turn ends. Exhaust.'
     },
     icon: '✋'
   },

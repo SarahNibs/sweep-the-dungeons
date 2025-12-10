@@ -391,7 +391,7 @@ ${snippets.requirements}
 `,
 
   'Bleach': `# Bleach
-**Effect**: Enhance-upgrade all Spritz and Sweep cards in your deck.
+**Effect**: Enhance-upgrade all Spritz, Sweep, and Brush cards in your deck. Any Spritz, Sweep, or Brush cards you gain later are automatically enhanced.
 ${snippets.enhanced}
 ${snippets.modifies_deck}
 `,

@@ -1,16 +1,16 @@
 import { GameState, Card } from '../../types'
 
 /**
- * Bleach equipment: when gained, apply enhance-upgrade to all Spritz and Sweep cards (that aren't already enhanced)
+ * Bleach equipment: when gained, apply enhance-upgrade to all Spritz, Sweep, and Brush cards (that aren't already enhanced)
  */
 export function applyBleachEffect(state: GameState): { state: GameState; results?: { before: Card; after: Card }[] } {
 
-  // Find all Spritz and Sweep cards in persistent deck that aren't already enhanced
+  // Find all Spritz, Sweep, and Brush cards in persistent deck that aren't already enhanced
   const targetCards = state.persistentDeck.filter(card =>
-    (card.name === 'Spritz' || card.name === 'Sweep') && !card.enhanced
+    (card.name === 'Spritz' || card.name === 'Sweep' || card.name === 'Brush') && !card.enhanced
   )
   const otherCards = state.persistentDeck.filter(card =>
-    !(card.name === 'Spritz' || card.name === 'Sweep') || card.enhanced
+    !(card.name === 'Spritz' || card.name === 'Sweep' || card.name === 'Brush') || card.enhanced
   )
 
 
@@ -30,16 +30,16 @@ export function applyBleachEffect(state: GameState): { state: GameState; results
 
   // If no cards to enhance, show example
   if (equipmentUpgradeResults.length === 0) {
-    const exampleSpritz: Card = {
-      id: 'example-spritz',
-      name: 'Spritz',
-      cost: 1,
+    const exampleBrush: Card = {
+      id: 'example-brush',
+      name: 'Brush',
+      cost: 2,
       energyReduced: false,
       enhanced: false
     }
     equipmentUpgradeResults.push({
-      before: exampleSpritz,
-      after: { ...exampleSpritz, enhanced: true }
+      before: exampleBrush,
+      after: { ...exampleBrush, enhanced: true }
     })
   }
 

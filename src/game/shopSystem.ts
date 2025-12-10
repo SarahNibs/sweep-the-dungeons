@@ -13,15 +13,21 @@ export function createShopOptions(state: GameState): ShopOption[] {
   const priceMultiplier = 1 + 0.1 * (state.shopVisitCount - 1)
   const scaleCost = (baseCost: number) => Math.ceil(baseCost * priceMultiplier)
 
-  // 2x random cards you can choose to add to your deck for 4 coppers apiece
+  // Helper to get base name (ignoring direction and upgrades)
+  const getBaseName = (cardName: string): string => {
+    let baseName = cardName
+    if (cardName.startsWith('Gaze')) baseName = 'Gaze'
+    if (cardName.startsWith('Fetch')) baseName = 'Fetch'
+    return baseName
+  }
+
+  // 4x cards total, all with different base names
   const availableCards = getRewardCardPool()
 
   // Group cards by base name (treating all Gaze and Fetch variants as one group)
   const cardGroups: Map<string, typeof availableCards> = new Map()
   for (const card of availableCards) {
-    let baseName = card.name
-    if (card.name.startsWith('Gaze')) baseName = 'Gaze'
-    if (card.name.startsWith('Fetch')) baseName = 'Fetch'
+    const baseName = getBaseName(card.name)
 
     if (!cardGroups.has(baseName)) {
       cardGroups.set(baseName, [])
@@ -32,50 +38,69 @@ export function createShopOptions(state: GameState): ShopOption[] {
   // Shuffle the groups
   const groupNames = Array.from(cardGroups.keys()).sort(() => Math.random() - 0.5)
 
-  // Select 2 groups and pick random card from each
-  const selectedCards = []
-  for (let i = 0; i < Math.min(2, groupNames.length); i++) {
-    const group = cardGroups.get(groupNames[i])!
+  // Select 4 different groups for the 4 card slots
+  const selectedGroupNames = groupNames.slice(0, Math.min(4, groupNames.length))
+
+  // Track which base names we've used
+  const usedBaseNames = new Set<string>()
+
+  // Slot 1: First base card (5 copper)
+  if (selectedGroupNames.length > 0) {
+    const group = cardGroups.get(selectedGroupNames[0])!
     const randomCard = group[Math.floor(Math.random() * group.length)]
-    selectedCards.push(randomCard)
-  }
-  
-  selectedCards.forEach(card => {
+    usedBaseNames.add(getBaseName(randomCard.name))
     options.push({
       type: 'add_card',
       cost: scaleCost(5), // Base cost 5
-      card,
-      displayName: card.name,
-      description: `Add ${card.name} to your deck`
+      card: randomCard,
+      displayName: randomCard.name,
+      description: `Add ${randomCard.name} to your deck`
     })
-  })
+  }
 
-  // 1x random energy-upgraded card for 11 coppers base
-  // Energy-upgraded cards grant +1 energy when played
-  const energyReducibleCards = getRewardCardPool().filter(card => card.cost > 0)
-  const energyCard = energyReducibleCards.length > 0
-    ? createCard(energyReducibleCards[Math.floor(Math.random() * energyReducibleCards.length)].name, { energyReduced: true })
-    : createCard('Energized', { energyReduced: true }) // Fallback if no eligible cards
-  options.push({
-    type: 'add_energy_card',
-    cost: scaleCost(11), // Base cost 11
-    card: energyCard,
-    displayName: `${energyCard.name} (Energy Upgraded)`,
-    description: `Add energy-upgraded ${energyCard.name} to your deck`
-  })
+  // Slot 2: Second base card (5 copper)
+  if (selectedGroupNames.length > 1) {
+    const group = cardGroups.get(selectedGroupNames[1])!
+    const randomCard = group[Math.floor(Math.random() * group.length)]
+    usedBaseNames.add(getBaseName(randomCard.name))
+    options.push({
+      type: 'add_card',
+      cost: scaleCost(5), // Base cost 5
+      card: randomCard,
+      displayName: randomCard.name,
+      description: `Add ${randomCard.name} to your deck`
+    })
+  }
 
-  // 1x random enhance-upgraded card for 10 coppers base
-  const allRewardCards = getRewardCardPool()
-  const enhancedCard = allRewardCards.length > 0
-    ? createCard(allRewardCards[Math.floor(Math.random() * allRewardCards.length)].name, { enhanced: true })
-    : createCard('Energized', { enhanced: true }) // Fallback
-  options.push({
-    type: 'add_enhanced_card',
-    cost: scaleCost(10), // Base cost 10
-    card: enhancedCard,
-    displayName: `${enhancedCard.name} (Enhanced)`,
-    description: `Add enhanced ${enhancedCard.name} to your deck`
-  })
+  // Slot 3: Energy-upgraded card (11 copper)
+  if (selectedGroupNames.length > 2) {
+    const group = cardGroups.get(selectedGroupNames[2])!
+    const randomCard = group[Math.floor(Math.random() * group.length)]
+    usedBaseNames.add(getBaseName(randomCard.name))
+    const energyCard = createCard(randomCard.name, { energyReduced: true })
+    options.push({
+      type: 'add_energy_card',
+      cost: scaleCost(11), // Base cost 11
+      card: energyCard,
+      displayName: `${energyCard.name} (Energy Upgraded)`,
+      description: `Add energy-upgraded ${energyCard.name} to your deck`
+    })
+  }
+
+  // Slot 4: Enhanced card (10 copper)
+  if (selectedGroupNames.length > 3) {
+    const group = cardGroups.get(selectedGroupNames[3])!
+    const randomCard = group[Math.floor(Math.random() * group.length)]
+    usedBaseNames.add(getBaseName(randomCard.name))
+    const enhancedCard = createCard(randomCard.name, { enhanced: true })
+    options.push({
+      type: 'add_enhanced_card',
+      cost: scaleCost(10), // Base cost 10
+      card: enhancedCard,
+      displayName: `${enhancedCard.name} (Enhanced)`,
+      description: `Add enhanced ${enhancedCard.name} to your deck`
+    })
+  }
 
   // 2x random equipment you don't already own (19 coppers for first slot, 23 for second)
   const allEquipment = getAllEquipment()

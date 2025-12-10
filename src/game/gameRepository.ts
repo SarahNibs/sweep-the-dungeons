@@ -590,7 +590,7 @@ export const EQUIPMENT_DEFINITIONS: Record<string, EquipmentDefinition> = {
   'Bleach': {
     name: 'Bleach',
     description: 'clean so easily',
-    hoverText: 'Bleach: enhance-upgrade all Spritz and Sweep cards in your deck',
+    hoverText: 'Bleach: enhance-upgrade all Spritz, Sweep, and Brush cards in your deck, and auto-enhance any of those cards added later',
     category: 'common',
     icon: '🧴'
   },
@@ -723,9 +723,16 @@ export function applyDIYGel(equipment: Equipment[], card: Card): Card {
   return card
 }
 
-// Helper function to add a card to the persistent deck, respecting DIY Gel
+// Helper function to add a card to the persistent deck, respecting DIY Gel and Bleach
 export function addCardToPersistentDeck(state: { persistentDeck: Card[]; equipment: Equipment[] }, card: Card): Card[] {
-  const finalCard = applyDIYGel(state.equipment, card)
+  let finalCard = applyDIYGel(state.equipment, card)
+
+  // Apply Bleach effect: auto-enhance Spritz, Sweep, and Brush cards
+  const hasBleach = state.equipment.some(e => e.name === 'Bleach')
+  if (hasBleach && (finalCard.name === 'Spritz' || finalCard.name === 'Sweep' || finalCard.name === 'Brush')) {
+    finalCard = { ...finalCard, enhanced: true }
+  }
+
   return [...state.persistentDeck, finalCard]
 }
 

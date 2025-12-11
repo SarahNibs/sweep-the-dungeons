@@ -35,20 +35,14 @@ export function createShopOptions(state: GameState): ShopOption[] {
     cardGroups.get(baseName)!.push(card)
   }
 
-  // Shuffle the groups
+  // Shuffle the groups and select 4 different ones
   const groupNames = Array.from(cardGroups.keys()).sort(() => Math.random() - 0.5)
-
-  // Select 4 different groups for the 4 card slots
   const selectedGroupNames = groupNames.slice(0, Math.min(4, groupNames.length))
 
-  // Track which base names we've used
-  const usedBaseNames = new Set<string>()
-
-  // Slot 1: First base card (5 copper)
+  // Slot 1: First regular card (5 copper)
   if (selectedGroupNames.length > 0) {
     const group = cardGroups.get(selectedGroupNames[0])!
     const randomCard = group[Math.floor(Math.random() * group.length)]
-    usedBaseNames.add(getBaseName(randomCard.name))
     options.push({
       type: 'add_card',
       cost: scaleCost(5), // Base cost 5
@@ -58,11 +52,10 @@ export function createShopOptions(state: GameState): ShopOption[] {
     })
   }
 
-  // Slot 2: Second base card (5 copper)
+  // Slot 2: Second regular card (5 copper)
   if (selectedGroupNames.length > 1) {
     const group = cardGroups.get(selectedGroupNames[1])!
     const randomCard = group[Math.floor(Math.random() * group.length)]
-    usedBaseNames.add(getBaseName(randomCard.name))
     options.push({
       type: 'add_card',
       cost: scaleCost(5), // Base cost 5
@@ -72,11 +65,10 @@ export function createShopOptions(state: GameState): ShopOption[] {
     })
   }
 
-  // Slot 3: Energy-upgraded card (11 copper)
+  // Slot 3: Energy-upgraded card (11 copper) - from third group
   if (selectedGroupNames.length > 2) {
     const group = cardGroups.get(selectedGroupNames[2])!
     const randomCard = group[Math.floor(Math.random() * group.length)]
-    usedBaseNames.add(getBaseName(randomCard.name))
     const energyCard = createCard(randomCard.name, { energyReduced: true })
     options.push({
       type: 'add_energy_card',
@@ -87,11 +79,10 @@ export function createShopOptions(state: GameState): ShopOption[] {
     })
   }
 
-  // Slot 4: Enhanced card (10 copper)
+  // Slot 4: Enhanced card (10 copper) - from fourth group
   if (selectedGroupNames.length > 3) {
     const group = cardGroups.get(selectedGroupNames[3])!
     const randomCard = group[Math.floor(Math.random() * group.length)]
-    usedBaseNames.add(getBaseName(randomCard.name))
     const enhancedCard = createCard(randomCard.name, { enhanced: true })
     options.push({
       type: 'add_enhanced_card',

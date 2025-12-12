@@ -512,7 +512,7 @@ ${snippets.requirements}
 `,
 
   'Tiara': `# Tiara
-**Effect**: Double the copper you get from completing a floor (number of unrevealed rival tiles remaining).
+**Effect**: Double the copper you get from completing a floor (number of unrevealed rival tiles remaining) and from revealing your own tiles (2 copper every 5 reveals instead of 1).
 `,
 
   'Mirrors': `# Mirrors

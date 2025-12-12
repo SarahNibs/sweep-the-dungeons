@@ -513,7 +513,7 @@ export const EQUIPMENT_DEFINITIONS: Record<string, EquipmentDefinition> = {
   'Tiara': {
     name: 'Tiara',
     description: 'now *you* are the princess',
-    hoverText: 'Tiara: receive double the copper after each floor',
+    hoverText: 'Tiara: receive double the copper after each floor and from revealing player tiles',
     category: 'rare',
     icon: '👑'
   },

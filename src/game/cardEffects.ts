@@ -1,6 +1,6 @@
 import { GameState, CardEffect, Position, Tile, TileAnnotation, ClueResult, GameStatusInfo } from '../types'
 import { positionToKey, getTile, revealTileWithResult, hasSpecialTile, calculateAdjacency, canPlayerRevealInnerTile } from './boardSystem'
-import { triggerDoubleBroomEffect, checkFrillyDressEffect } from './equipment'
+import { triggerDoubleBroomEffect, checkFrillyDressEffect, hasEquipment } from './equipment'
 import { removeStatusEffect, createCard } from './gameRepository'
 import { getLevelConfig } from './levelSystem'
 import { destroyTile } from './destroyTileSystem'
@@ -50,10 +50,14 @@ export function trackPlayerTileReveal(
   const newCount = state.playerTilesRevealedCount + 1
   const shouldAwardCopper = newCount % 5 === 0
 
+  // Check for Tiara equipment - doubles copper from revealing player tiles
+  const hasTiara = hasEquipment(state, 'Tiara')
+  const copperToAward = hasTiara ? 2 : 1
+
   let updatedState = {
     ...state,
     playerTilesRevealedCount: newCount,
-    copper: shouldAwardCopper ? state.copper + 1 : state.copper
+    copper: shouldAwardCopper ? state.copper + copperToAward : state.copper
   }
 
   if (shouldAwardCopper) {

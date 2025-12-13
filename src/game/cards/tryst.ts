@@ -19,26 +19,7 @@ export function selectTrystTiles(state: GameState, target?: Position, enhanced?:
   const playerTiles = getUnrevealedTilesByOwner(state, 'player')
   const reveals: TrystSelection[] = []
 
-  // First, select a rival tile to reveal with PLAYER adjacency
-  if (rivalTiles.length > 0) {
-    let chosenRivalTile: Tile
-
-    if (enhanced && target) {
-      const tilesWithDistance = rivalTiles.map(tile => ({
-        tile,
-        distance: manhattanDistance(tile.position, target)
-      }))
-      const minDistance = Math.min(...tilesWithDistance.map(t => t.distance))
-      const closestTiles = tilesWithDistance.filter(t => t.distance === minDistance)
-      chosenRivalTile = closestTiles[Math.floor(Math.random() * closestTiles.length)].tile
-    } else {
-      chosenRivalTile = rivalTiles[Math.floor(Math.random() * rivalTiles.length)]
-    }
-
-    reveals.push({ tile: chosenRivalTile, revealer: 'player' })
-  }
-
-  // Then, select a player tile to reveal with RIVAL adjacency
+  // First, select a player tile to reveal with RIVAL adjacency
   if (playerTiles.length > 0) {
     let chosenPlayerTile: Tile
 
@@ -55,6 +36,25 @@ export function selectTrystTiles(state: GameState, target?: Position, enhanced?:
     }
 
     reveals.push({ tile: chosenPlayerTile, revealer: 'rival' })
+  }
+
+  // Then, select a rival tile to reveal with PLAYER adjacency
+  if (rivalTiles.length > 0) {
+    let chosenRivalTile: Tile
+
+    if (enhanced && target) {
+      const tilesWithDistance = rivalTiles.map(tile => ({
+        tile,
+        distance: manhattanDistance(tile.position, target)
+      }))
+      const minDistance = Math.min(...tilesWithDistance.map(t => t.distance))
+      const closestTiles = tilesWithDistance.filter(t => t.distance === minDistance)
+      chosenRivalTile = closestTiles[Math.floor(Math.random() * closestTiles.length)].tile
+    } else {
+      chosenRivalTile = rivalTiles[Math.floor(Math.random() * rivalTiles.length)]
+    }
+
+    reveals.push({ tile: chosenRivalTile, revealer: 'player' })
   }
 
   return reveals

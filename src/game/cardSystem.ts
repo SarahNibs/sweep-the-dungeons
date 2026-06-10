@@ -9,6 +9,7 @@ import { decrementIceCreamStacks } from './cards/iceCream'
 import { decrementCarrotsStacks } from './cards/carrots'
 import { revealTileWithEquipmentEffects } from './cardEffects'
 import { clearRewardScreenState } from './rewardStateManager'
+import { generateRivalIntentPoints, addDistractionPoint, getExcludedPositionsByAdjacency } from './clueSystem'
 
 /**
  * Maps card names to their effect types for non-targeting cards
@@ -851,49 +852,8 @@ export function startNewTurn(state: GameState): GameState {
 
   const drawnState = drawCards(stateForTurnStart, totalCardsToDraw)
 
-  // Add Distraction stacks from Eyeshadow and Mascara equipment at start of turn
-  let stateAfterEquipment = drawnState
-  let equipmentStacks = 0
-  if (hasEquipment(drawnState, 'Eyeshadow')) {
-    equipmentStacks += 1
-  }
-  if (hasEquipment(drawnState, 'Mascara')) {
-    equipmentStacks += 1
-  }
-
-  if (equipmentStacks > 0) {
-    const existingDistraction = stateAfterEquipment.activeStatusEffects.find(e => e.type === 'distraction')
-
-    if (existingDistraction) {
-      const newCount = (existingDistraction.count || 0) + equipmentStacks
-      const updatedEffects = stateAfterEquipment.activeStatusEffects.map(e =>
-        e.type === 'distraction'
-          ? {
-              ...e,
-              count: newCount,
-              name: `Distraction (×${newCount})`,
-              description: `Rival's tile priorities are disrupted for their next turn (${newCount} stack${newCount > 1 ? 's' : ''})`
-            }
-          : e
-      )
-      stateAfterEquipment = { ...stateAfterEquipment, activeStatusEffects: updatedEffects }
-    } else {
-      const distractionEffect = {
-        id: crypto.randomUUID(),
-        type: 'distraction' as const,
-        icon: '🌀',
-        name: equipmentStacks > 1 ? `Distraction (×${equipmentStacks})` : 'Distraction',
-        description: equipmentStacks > 1
-          ? `Rival's tile priorities are disrupted for their next turn (${equipmentStacks} stacks)`
-          : "Rival's tile priorities are disrupted for their next turn",
-        count: equipmentStacks
-      }
-      stateAfterEquipment = { ...stateAfterEquipment, activeStatusEffects: [...stateAfterEquipment.activeStatusEffects, distractionEffect] }
-    }
-  }
-
   // Remove ramble status effect at start of new turn
-  const stateWithoutRamble = removeStatusEffect(stateAfterEquipment, 'ramble_active')
+  const stateWithoutRamble = removeStatusEffect(drawnState, 'ramble_active')
 
   // Determine easy mode tile before creating finalState
   let easyModeTile: import('../types').Position | null = null
@@ -905,23 +865,16 @@ export function startNewTurn(state: GameState): GameState {
     }
   }
 
-  // Get Distraction stack count (equipment already added stacks earlier in turn)
-  let distractionStacks = 0
-  const distractionEffect = stateWithoutRamble.activeStatusEffects.find(e => e.type === 'distraction')
-  if (distractionEffect) {
-    distractionStacks = distractionEffect.count || 0
-  }
-
-  // NOTE: Distraction status effect is NOT removed here - it stays visible during player's turn
-  // It will be removed at the START of the rival's turn (in AIController.ts)
-
   // Reset goblin cleanedThisTurn state at start of each turn (for Mop equipment)
   const newTiles = new Map(stateWithoutRamble.board.tiles)
   for (const [key, tile] of stateWithoutRamble.board.tiles) {
     if (tile.specialTiles.includes('goblin') && tile.goblinState?.cleanedThisTurn) {
       newTiles.set(key, {
         ...tile,
-        goblinState: { cleanedThisTurn: false }
+        goblinState: {
+          cleanedThisTurn: false,
+          targetPosition: tile.goblinState.targetPosition // Preserve target
+        }
       })
     }
   }
@@ -930,7 +883,6 @@ export function startNewTurn(state: GameState): GameState {
   let finalState = {
     ...stateWithResetGoblins,
     energy: stateWithResetGoblins.maxEnergy,
-    distractionStackCount: distractionStacks, // Store stack count for rival turn (noise generated per-tile)
     // isFirstTurn already set to false earlier in stateForTurnStart
     neutralsRevealedThisTurn: 0, // Reset neutral reveal counter
     underwireUsedThisTurn: false, // Reset underwire usage tracking
@@ -943,15 +895,50 @@ export function startNewTurn(state: GameState): GameState {
   }
 
   // Trigger Espresso effect if present (draw and immediately play a card)
+  let stateAfterEspresso = finalState
   if (hasEquipment(state, 'Espresso')) {
-    const espressoState = triggerEspressoEffect(finalState)
-    return {
+    stateAfterEspresso = {
       ...finalState,
-      ...espressoState
+      ...triggerEspressoEffect(finalState)
     }
   }
 
-  return finalState
+  // Start with existing points from previous turn (already decayed by rival turn)
+  let rivalIntentPoints = { ...stateAfterEspresso.rivalIntentPoints }
+
+  console.log(`[TURN-START] Existing points from previous turn:`, rivalIntentPoints)
+
+  // Generate NEW points for this turn and ADD them to existing points
+  const newPoints = generateRivalIntentPoints(stateAfterEspresso)
+
+  console.log(`[TURN-START] New points generated:`, newPoints)
+
+  // Add new points to existing points
+  for (const [key, points] of Object.entries(newPoints)) {
+    rivalIntentPoints[key] = (rivalIntentPoints[key] || 0) + points
+  }
+
+  console.log(`[TURN-START] Combined points after adding new:`, rivalIntentPoints)
+
+  // Apply equipment distractions to the points
+  const excludedPositions = getExcludedPositionsByAdjacency(stateAfterEspresso.board, 'rival')
+
+  // Eyeshadow: 1 distraction
+  if (hasEquipment(stateAfterEspresso, 'Eyeshadow')) {
+    addDistractionPoint(rivalIntentPoints, excludedPositions)
+  }
+
+  // Mascara: 1 distraction
+  if (hasEquipment(stateAfterEspresso, 'Mascara')) {
+    addDistractionPoint(rivalIntentPoints, excludedPositions)
+  }
+
+  console.log(`[TURN-START] Final rival intent points after equipment:`, rivalIntentPoints)
+
+  return {
+    ...stateAfterEspresso,
+    rivalIntentPoints
+  }
 }
 
 export function createInitialState(
@@ -1066,14 +1053,13 @@ export function createInitialState(
     equipmentOptions: undefined,
     isFirstTurn: true,
     neutralsRevealedThisTurn: 0,
-    rivalHiddenClues: [],
+    rivalIntentPoints: {},
     tingleAnimation: null,
     rivalAnimation: null,
     trystAnimation: null,
     adjacencyPatternAnimation: null,
     pulsingStatusEffectIds: [],
     seenRivalAITypes: new Set<string>(),
-    distractionStackCount: 0,
     copper,
     playerTilesRevealedCount,
     shopOptions: undefined,
@@ -1165,33 +1151,6 @@ export function createInitialState(
   if (startingEquipment.some(equipment => equipment.name === 'Glasses')) {
     finalState = prepareGlassesEffect(finalState)
     finalState = { ...finalState, glassesNeedsTingleAnimation: true }
-  }
-
-  // Add Distraction stacks from Eyeshadow and Mascara equipment at start of turn 1
-  let equipmentStacks = 0
-  if (startingEquipment.some(equipment => equipment.name === 'Eyeshadow')) {
-    equipmentStacks += 1
-  }
-  if (startingEquipment.some(equipment => equipment.name === 'Mascara')) {
-    equipmentStacks += 1
-  }
-
-  if (equipmentStacks > 0) {
-    const distractionEffect = {
-      id: crypto.randomUUID(),
-      type: 'distraction' as const,
-      icon: '🌀',
-      name: equipmentStacks > 1 ? `Distraction (×${equipmentStacks})` : 'Distraction',
-      description: equipmentStacks > 1
-        ? `Rival's tile priorities are disrupted for their next turn (${equipmentStacks} stacks)`
-        : "Rival's tile priorities are disrupted for their next turn",
-      count: equipmentStacks
-    }
-    finalState = {
-      ...finalState,
-      activeStatusEffects: [...finalState.activeStatusEffects, distractionEffect],
-      distractionStackCount: equipmentStacks
-    }
   }
 
   // Add manhattan adjacency status effect if board uses it
@@ -1324,6 +1283,41 @@ export function createInitialState(
   // Trigger Espresso effect if present (draw and immediately play a card)
   if (startingEquipment.some(equipment => equipment.name === 'Espresso')) {
     finalState = triggerEspressoEffect(finalState)
+  }
+
+  // Generate rival intent points for the first turn (includes 4 base distractions)
+  let rivalIntentPoints = generateRivalIntentPoints(finalState)
+
+  console.log(`[FLOOR-START] Generated rival intent points:`, rivalIntentPoints)
+
+  // Apply equipment distractions to the points
+  const excludedPositions = getExcludedPositionsByAdjacency(finalState.board, 'rival')
+  console.log(`[FLOOR-START] Equipment:`, finalState.equipment.map(e => e.name))
+  console.log(`[FLOOR-START] Excluded positions:`, Array.from(excludedPositions))
+
+  // Eyeshadow: 1 distraction
+  const hasEyeshadow = hasEquipment(finalState, 'Eyeshadow')
+  console.log(`[FLOOR-START] Has Eyeshadow:`, hasEyeshadow)
+  if (hasEyeshadow) {
+    console.log(`[FLOOR-START] Before Eyeshadow distraction:`, { ...rivalIntentPoints })
+    addDistractionPoint(rivalIntentPoints, excludedPositions)
+    console.log(`[FLOOR-START] After Eyeshadow distraction:`, { ...rivalIntentPoints })
+  }
+
+  // Mascara: 1 distraction
+  const hasMascara = hasEquipment(finalState, 'Mascara')
+  console.log(`[FLOOR-START] Has Mascara:`, hasMascara)
+  if (hasMascara) {
+    console.log(`[FLOOR-START] Before Mascara distraction:`, { ...rivalIntentPoints })
+    addDistractionPoint(rivalIntentPoints, excludedPositions)
+    console.log(`[FLOOR-START] After Mascara distraction:`, { ...rivalIntentPoints })
+  }
+
+  console.log(`[FLOOR-START] Final rival intent points after equipment:`, rivalIntentPoints)
+
+  finalState = {
+    ...finalState,
+    rivalIntentPoints
   }
 
   return finalState

@@ -1,15 +1,14 @@
-import { GameState, Board } from '../../types'
+import { GameState, Board, Position } from '../../types'
 import { AITurnResult, AIContext, RivalAI } from './AITypes'
 import { AIRegistry, selectAIForLevel } from './AIRegistry'
-import { generateDualRivalClues, applyVisibleRivalClues } from './utils/aiCommon'
 import { getLevelConfig, calculateCopperReward } from '../levelSystem'
 import { revealTileWithResult, spawnGoblinsFromLairs, placeRivalSurfaceMines, getTile, hasSpecialTile, cleanGoblin, positionToKey } from '../boardSystem'
 import { checkGameStatus, trackPlayerTileReveal } from '../cardEffects'
 import { startNewTurn } from '../cardSystem'
 import { isTestMode } from '../utils/testMode'
 import { checkChokerEffect } from '../equipment'
-import { removeStatusEffect } from '../gameRepository'
 import { checkTauntTrigger, updateTauntStatusEffects } from '../cards/taunt'
+import { decayRivalIntentPoints } from '../clueSystem'
 
 /**
  * Helper function to update state and award copper if game was just won
@@ -52,32 +51,45 @@ export class AIController {
   ) {}
 
   /**
-   * Process AI decision-making: generate clues, select tiles
+   * Process AI decision-making: use rivalIntentPoints to select tiles
    */
   processRivalTurn(state: GameState): AITurnResult {
     if (state.debugFlags.debugLogging) {
-      console.log(`[RIVAL-TURN] processRivalTurn called with distractionStackCount=${state.distractionStackCount}`)
+      console.log(`[RIVAL-TURN] processRivalTurn called with rivalIntentPoints:`, state.rivalIntentPoints)
+    }
+
+    // Clean up rivalIntentPoints: remove any revealed tiles
+    // This handles cases where the player revealed tiles during their turn
+    const cleanedIntentPoints: { [key: string]: number } = {}
+    for (const [key, points] of Object.entries(state.rivalIntentPoints)) {
+      const tile = state.board.tiles.get(key)
+      if (tile && !tile.revealed) {
+        cleanedIntentPoints[key] = points
+      }
+    }
+
+    // Update state with cleaned points
+    const stateWithCleanedPoints = {
+      ...state,
+      rivalIntentPoints: cleanedIntentPoints
+    }
+
+    if (state.debugFlags.debugLogging) {
+      const removedCount = Object.keys(state.rivalIntentPoints).length - Object.keys(cleanedIntentPoints).length
+      if (removedCount > 0) {
+        console.log(`[RIVAL-TURN] Removed ${removedCount} revealed tiles from intent points`)
+      }
     }
 
     // Get level config for AI selection and special behaviors
-    const levelConfig = getLevelConfig(state.currentLevelId)
+    const levelConfig = getLevelConfig(stateWithCleanedPoints.currentLevelId)
     if (!levelConfig) {
-      throw new Error(`Level config not found for ${state.currentLevelId}`)
+      throw new Error(`Level config not found for ${stateWithCleanedPoints.currentLevelId}`)
     }
 
     // Select appropriate AI type for this level (with debug override support)
-    const aiTypeName = state.aiTypeOverride || selectAIForLevel(levelConfig.specialBehaviors)
+    const aiTypeName = stateWithCleanedPoints.aiTypeOverride || selectAIForLevel(levelConfig.specialBehaviors)
     const ai = AIRegistry.create(aiTypeName)
-
-    // Generate dual rival clues (visible X marks + hidden AI clues)
-    const dualClues = generateDualRivalClues(
-      state,
-      state.rivalClueCounter + 1,
-      state.rivalClueCounter + 1
-    )
-
-    // Apply only visible clues to the game state (X marks for player)
-    const stateWithVisibleClues = applyVisibleRivalClues(state, dualClues.visiblePairs)
 
     // Build AI context
     const context: AIContext = {
@@ -86,19 +98,15 @@ export class AIController {
       specialBehaviors: levelConfig.specialBehaviors || {}
     }
 
-    // Let AI decide which tiles to reveal using hidden clues
+    // Let AI decide which tiles to reveal using rivalIntentPoints
     const tilesToReveal = ai.selectTilesToReveal(
-      stateWithVisibleClues,
-      dualClues.hiddenPairs,
+      stateWithCleanedPoints,
+      stateWithCleanedPoints.rivalIntentPoints,
       context
     )
 
     return {
-      stateWithVisibleClues: {
-        ...stateWithVisibleClues,
-        rivalClueCounter: stateWithVisibleClues.rivalClueCounter + 1
-      },
-      hiddenClues: dualClues.hiddenPairs,
+      stateWithVisibleClues: stateWithCleanedPoints,
       tilesToReveal
     }
   }
@@ -123,26 +131,12 @@ export class AIController {
   startRivalTurn(board: Board): void {
     const currentState = this.getState()
 
-    // CRITICAL: Read distraction count from status effect BEFORE removing it
-    let distractionStackCount = 0
-    const distractionEffect = currentState.activeStatusEffects.find(e => e.type === 'distraction')
-    if (distractionEffect) {
-      distractionStackCount = distractionEffect.count || 0
-      if (currentState.debugFlags.debugLogging) {
-        console.log(`[RIVAL-TURN] Found distraction status effect with ${distractionStackCount} stacks`)
-      }
-    }
-
-    // Remove Distraction status effect (it was visible during player's turn, now consumed)
-    const stateWithoutDistraction = removeStatusEffect(currentState, 'distraction')
-
     // Clear any pending card targeting state
     const clearedState = {
-      ...stateWithoutDistraction,
+      ...currentState,
       board,
       pendingCardEffect: null,
-      selectedCardName: null,
-      distractionStackCount // Update count for rival clue generation
+      selectedCardName: null
     }
 
     // Spawn goblins from lairs BEFORE rival takes their turn
@@ -152,62 +146,18 @@ export class AIController {
       board: boardWithGoblins
     }
 
-    // Process rival turn with dual clue system using AI
+    // Process rival turn using rivalIntentPoints
     const rivalTurnResult = this.processRivalTurn(stateWithGoblins)
-    const stateWithRivalClue = {
-      ...rivalTurnResult.stateWithVisibleClues,
-      rivalHiddenClues: [...stateWithGoblins.rivalHiddenClues, ...rivalTurnResult.hiddenClues]
-    }
+    const stateAfterAI = rivalTurnResult.stateWithVisibleClues
     const tilesToReveal = rivalTurnResult.tilesToReveal
-
-    // Update rival clue results to include tiles that will be revealed this turn
-    const tilesRevealedPositions = tilesToReveal.map(t => t.position)
-    const updatedBoard = { ...stateWithRivalClue.board }
-    updatedBoard.tiles = new Map(stateWithRivalClue.board.tiles)
-
-    // Update all tiles that have rival clue annotations to include tiles revealed during this turn
-    for (const [key, tile] of stateWithRivalClue.board.tiles.entries()) {
-      const clueResultsAnnotation = tile.annotations.find(a => a.type === 'clue_results')
-      if (clueResultsAnnotation?.clueResults) {
-        const updatedClueResults = clueResultsAnnotation.clueResults.map(clueResult => {
-          if (clueResult.cardType === 'rival_clue') {
-            return {
-              ...clueResult,
-              tilesRevealedDuringTurn: tilesRevealedPositions
-            }
-          }
-          return clueResult
-        })
-
-        const updatedAnnotations = tile.annotations.map(annotation => {
-          if (annotation.type === 'clue_results') {
-            return {
-              ...annotation,
-              clueResults: updatedClueResults
-            }
-          }
-          return annotation
-        })
-
-        updatedBoard.tiles.set(key, {
-          ...tile,
-          annotations: updatedAnnotations
-        })
-      }
-    }
-
-    const stateWithUpdatedClues = {
-      ...stateWithRivalClue,
-      board: updatedBoard
-    }
 
     if (tilesToReveal.length === 0) {
       // No tiles to reveal, place rival mines and end rival turn immediately
-      const levelConfig = getLevelConfig(stateWithUpdatedClues.currentLevelId)
+      const levelConfig = getLevelConfig(stateAfterAI.currentLevelId)
       const mineCount = levelConfig?.specialBehaviors.rivalPlacesMines || 0
-      const boardWithMines = placeRivalSurfaceMines(stateWithUpdatedClues.board, mineCount)
+      const boardWithMines = placeRivalSurfaceMines(stateAfterAI.board, mineCount)
       const newTurnState = startNewTurn({
-        ...stateWithUpdatedClues,
+        ...stateAfterAI,
         board: boardWithMines
       })
       this.setState({
@@ -219,7 +169,7 @@ export class AIController {
 
     if (isTestMode()) {
       // In tests, run rival turn synchronously
-      let currentState = stateWithUpdatedClues
+      let currentState = stateAfterAI
       for (const tile of tilesToReveal) {
         const revealResult = revealTileWithResult(currentState.board, tile.position, 'rival')
         currentState = {
@@ -232,13 +182,17 @@ export class AIController {
         if (tile.owner !== 'rival') break // Stop if non-rival tile revealed
       }
 
+      // Apply point decay after all reveals
+      const revealedPositions: Position[] = tilesToReveal.map(t => t.position)
+      const stateAfterDecay = decayRivalIntentPoints(currentState, revealedPositions)
+
       // Place rival mines before starting new turn
-      const levelConfig = getLevelConfig(currentState.currentLevelId)
+      const levelConfig = getLevelConfig(stateAfterDecay.currentLevelId)
       const mineCount = levelConfig?.specialBehaviors.rivalPlacesMines || 0
-      const boardWithMines = placeRivalSurfaceMines(currentState.board, mineCount)
+      const boardWithMines = placeRivalSurfaceMines(stateAfterDecay.board, mineCount)
 
       const newTurnState = startNewTurn({
-        ...currentState,
+        ...stateAfterDecay,
         board: boardWithMines
       })
       this.setState({
@@ -250,7 +204,7 @@ export class AIController {
 
     // Start the animation sequence
     this.setState({
-      ...stateWithUpdatedClues,
+      ...stateAfterAI,
       currentPlayer: 'rival',
       rivalAnimation: {
         isActive: true,
@@ -278,12 +232,16 @@ export class AIController {
     const { revealsRemaining, currentRevealIndex } = animation
 
     if (currentRevealIndex >= revealsRemaining.length) {
-      // Animation complete, place rival mines and end rival turn
-      const levelConfig = getLevelConfig(currentState.currentLevelId)
+      // Animation complete, apply point decay before starting new turn
+      const revealedPositions: Position[] = revealsRemaining.map(t => t.position)
+      const stateAfterDecay = decayRivalIntentPoints(currentState, revealedPositions)
+
+      // Place rival mines and end rival turn
+      const levelConfig = getLevelConfig(stateAfterDecay.currentLevelId)
       const mineCount = levelConfig?.specialBehaviors.rivalPlacesMines || 0
-      const boardWithMines = placeRivalSurfaceMines(currentState.board, mineCount)
+      const boardWithMines = placeRivalSurfaceMines(stateAfterDecay.board, mineCount)
       const newTurnState = startNewTurn({
-        ...currentState,
+        ...stateAfterDecay,
         board: boardWithMines
       })
 
@@ -466,13 +424,18 @@ export class AIController {
           this.performNextRivalReveal()
         }, 800)
       } else {
-        // End rival turn, place rival mines and start new turn
+        // End rival turn, apply point decay for all revealed tiles
         const finalState = this.getState()
-        const levelConfig = getLevelConfig(finalState.currentLevelId)
+        const revealedTiles = revealsRemaining.slice(0, finalState.rivalAnimation!.currentRevealIndex + 1)
+        const revealedPositions: Position[] = revealedTiles.map(t => t.position)
+        const stateAfterDecay = decayRivalIntentPoints(finalState, revealedPositions)
+
+        // Place rival mines and start new turn
+        const levelConfig = getLevelConfig(stateAfterDecay.currentLevelId)
         const mineCount = levelConfig?.specialBehaviors.rivalPlacesMines || 0
-        const boardWithMines = placeRivalSurfaceMines(finalState.board, mineCount)
+        const boardWithMines = placeRivalSurfaceMines(stateAfterDecay.board, mineCount)
         const newTurnState = startNewTurn({
-          ...finalState,
+          ...stateAfterDecay,
           board: boardWithMines
         })
 

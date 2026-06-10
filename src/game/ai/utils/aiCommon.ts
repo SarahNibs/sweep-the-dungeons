@@ -1,103 +1,63 @@
-import { GameState, ClueResult, Position } from '../../../types'
-import { prepareRivalClueSetup, generateRivalClueWithSharedSetup } from '../../clueSystem'
-import { RivalClueSet } from '../AITypes'
+import { GameState } from '../../../types'
 
 /**
- * Generate dual rival clues: visible (X marks) and hidden (AI-only)
- * Both use the same tile selection but different random draws from the bag
+ * Select a random tile from those with maximum intent points
+ * This is the default tile selection strategy for simple AIs
  */
-export function generateDualRivalClues(
+export function selectTileByMaxPoints(
   state: GameState,
-  clueOrder: number,
-  clueRowPosition: number
-): RivalClueSet {
-  // Share the same tile selection and bag construction
-  const { chosenRivalTiles, chosenRandomTiles } = prepareRivalClueSetup(state)
-
-  // Generate two different clue sets using the same setup but different random draws
-  const visibleResult = generateRivalClueWithSharedSetup(
-    chosenRivalTiles,
-    chosenRandomTiles,
-    clueOrder,
-    clueRowPosition
-  )
-
-  const hiddenResult = generateRivalClueWithSharedSetup(
-    chosenRivalTiles,
-    chosenRandomTiles,
-    clueOrder + 1000, // Different ID space to avoid conflicts
-    clueRowPosition
-  )
-
-  return {
-    visible: visibleResult.clueResults,
-    hidden: hiddenResult.clueResults,
-    visiblePairs: visibleResult.clueResultPairs || [],
-    hiddenPairs: hiddenResult.clueResultPairs || []
+  rivalIntentPoints: { [key: string]: number }
+): import('../../../types').Tile | null {
+  if (state.debugFlags.debugLogging) {
+    console.log(`[AI-SELECTION] selectTileByMaxPoints called with ${Object.keys(rivalIntentPoints).length} points`)
   }
-}
 
-/**
- * Apply visible rival clues (X marks) to the game state
- * This modifies tile annotations to show X marks to the player
- */
-export function applyVisibleRivalClues(
-  state: GameState,
-  visiblePairs: { clueResult: ClueResult; targetPosition: Position }[]
-): GameState {
-  let newState = state
-
-  // Use the clueResultPairs to properly match each ClueResult to its target position
-  for (const { clueResult, targetPosition } of visiblePairs) {
-    const key = `${targetPosition.x},${targetPosition.y}`
-    const tile = newState.board.tiles.get(key)
-
+  // Filter to only unrevealed tiles with points
+  const unrevealedTilesWithPoints: { tile: import('../../../types').Tile, points: number }[] = []
+  for (const [key, points] of Object.entries(rivalIntentPoints)) {
+    const tile = state.board.tiles.get(key)
     if (tile && !tile.revealed) {
-      const existingClueAnnotation = tile.annotations.find(a => a.type === 'clue_results')
-
-      let newAnnotations
-      if (existingClueAnnotation) {
-        // Add to existing clue results
-        const updatedClueResults = [...(existingClueAnnotation.clueResults || []), clueResult]
-        newAnnotations = tile.annotations.map(a =>
-          a.type === 'clue_results'
-            ? { ...a, clueResults: updatedClueResults }
-            : a
-        )
-      } else {
-        // Create new clue results annotation
-        newAnnotations = [
-          ...tile.annotations,
-          {
-            type: 'clue_results' as const,
-            clueResults: [clueResult]
-          }
-        ]
-      }
-
-      const newTiles = new Map(newState.board.tiles)
-      newTiles.set(key, {
-        ...tile,
-        annotations: newAnnotations
-      })
-
-      newState = {
-        ...newState,
-        board: {
-          ...newState.board,
-          tiles: newTiles
-        }
-      }
+      unrevealedTilesWithPoints.push({ tile, points })
     }
   }
 
-  return newState
-}
+  if (unrevealedTilesWithPoints.length === 0) {
+    if (state.debugFlags.debugLogging) {
+      console.log(`[AI-SELECTION] No unrevealed tiles with intent points, returning null`)
+    }
+    return null
+  }
 
-/**
- * Log the top tiles for AI debugging
- */
-export function logAIPriorityAnalysis(): void {
-  // Log AI priority analysis
-  // (removed for production)
+  // Find the maximum point value from unrevealed tiles only
+  const maxPoints = Math.max(...unrevealedTilesWithPoints.map(t => t.points))
+  if (state.debugFlags.debugLogging) {
+    console.log(`[AI-SELECTION] Max points (unrevealed only): ${maxPoints}`)
+  }
+
+  // Get all unrevealed tiles with max points
+  const tilesWithMaxPoints = unrevealedTilesWithPoints
+    .filter(t => t.points === maxPoints)
+    .map(t => t.tile)
+
+  if (tilesWithMaxPoints.length === 0) {
+    if (state.debugFlags.debugLogging) {
+      console.log(`[AI-SELECTION] No unrevealed tiles with max points, returning null`)
+    }
+    return null
+  }
+
+  if (state.debugFlags.debugLogging) {
+    console.log(
+      `[AI-SELECTION] Found ${tilesWithMaxPoints.length} tiles with ${maxPoints} points:`,
+      tilesWithMaxPoints.map(t => `(${t.position.x},${t.position.y})`).join(', ')
+    )
+  }
+
+  // Select one uniformly at random
+  const selectedTile = tilesWithMaxPoints[Math.floor(Math.random() * tilesWithMaxPoints.length)]
+  if (state.debugFlags.debugLogging) {
+    console.log(`[AI-SELECTION] Selected tile (${selectedTile.position.x},${selectedTile.position.y})`)
+  }
+
+  return selectedTile
 }

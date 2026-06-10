@@ -43,10 +43,11 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
     debugFlags,
     gameStatus,
     annotationView,
-    activeStatusEffects
+    activeStatusEffects,
+    rivalIntentPoints
   } = useGameStore()
   const [isHovered, setIsHovered] = useState(false)
-  
+
   // Add animation styles when component mounts
   useEffect(() => {
     if (!document.getElementById('tile-animations')) {
@@ -433,32 +434,10 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           // Fallback to clueOrder if clueRowPosition is not available (backward compatibility)
           const rowPosition = (clueResult.clueRowPosition || clueResult.clueOrder || 1) - 1
 
-          for (let i = 0; i < Math.min(strength, 6); i++) {
-            if (isEnemyClue) {
-              // Enemy Xs: bottom-left, going up and right
-              elements.push(
-                <Tooltip key={`pip-${clueResult.id}-${clueIndex}-${i}`} text={getClueHoverText(clueResult)} style={{ position: 'absolute', bottom: `${2 + rowPosition * 6}px`, left: `${2 + i * 6}px` }}>
-                  <div
-                    style={{
-                      color: '#000000',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      transform: isThisClueHovered ? 'scale(1.2)' : 'scale(1)',
-                      transition: 'all 0.15s ease'
-                    }}
-                    onMouseEnter={() => {
-                      setHoveredClueId(clueResult.id)
-                    }}
-                    onMouseLeave={() => {
-                      setHoveredClueId(null)
-                    }}
-                  >
-                    ×
-                  </div>
-                </Tooltip>
-              )
-            } else if (isAntiClue) {
+          // Skip rendering pips for enemy/rival clues (now shown as target symbols instead)
+          if (!isEnemyClue) {
+            for (let i = 0; i < Math.min(strength, 6); i++) {
+              if (isAntiClue) {
               // Anti-clue (red) pips: top-left, going down and right, RED SQUARES
               // Same size as regular pips (4px) but red squares instead of green circles
               elements.push(
@@ -509,6 +488,7 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
                   />
                 </Tooltip>
               )
+              }
             }
           }
         })
@@ -847,6 +827,8 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         }
       }
 
+      } // End of non-adjacency annotations for unrevealed tiles
+
       // Add dirty scribbles for extraDirty tiles (always, regardless of other annotations)
       if (tile.specialTiles.includes('extraDirty')) {
         elements.push(
@@ -885,6 +867,42 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
 
       // Add goblin icon for goblin tiles
       if (tile.specialTiles.includes('goblin')) {
+        // Get goblin's target position for directional arrow
+        const targetPos = tile.goblinState?.targetPosition
+
+        // Calculate direction and distance
+        let arrowSymbol = '❓' // Black question mark when no target
+        let arrowCount = 1
+
+        if (targetPos) {
+          const dx = targetPos.x - tile.position.x
+          const dy = targetPos.y - tile.position.y
+          // Use Chebyshev distance (max of abs values) for arrow count, not Manhattan
+          const distance = Math.max(Math.abs(dx), Math.abs(dy))
+
+          // Determine arrow direction (8 directions)
+          let direction = ''
+          if (dy < 0) direction += '↑'
+          if (dy > 0) direction += '↓'
+          if (dx < 0) direction += '←'
+          if (dx > 0) direction += '→'
+
+          // Map combined directions to diagonal arrows
+          const directionMap: { [key: string]: string } = {
+            '↑←': '↖',
+            '↑→': '↗',
+            '↓←': '↙',
+            '↓→': '↘',
+            '↑': '↑',
+            '↓': '↓',
+            '←': '←',
+            '→': '→'
+          }
+
+          arrowSymbol = directionMap[direction] || '❓'
+          arrowCount = distance
+        }
+
         elements.push(
           <div
             key="goblin-icon"
@@ -901,6 +919,29 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
             👺
           </div>
         )
+
+        // Arrow overlay on top of goblin
+        if (arrowSymbol) {
+          elements.push(
+            <div
+              key="goblin-arrow"
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                fontSize: '18px',
+                color: 'black',
+                fontWeight: 'bold',
+                textShadow: '0 0 3px white, 0 0 3px white, 0 0 3px white, 0 0 3px white',
+                pointerEvents: 'none',
+                zIndex: 1000
+              }}
+            >
+              {arrowSymbol.repeat(arrowCount)}
+            </div>
+          )
+        }
       }
 
       // Add surface mine icon for surface mine tiles
@@ -928,8 +969,6 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           </Tooltip>
         )
       }
-
-      } // End of non-adjacency annotations for unrevealed tiles
 
     // Render destroyed tile explosion (shown for both revealed and unrevealed)
     if (tile.specialTiles.includes('destroyed')) {
@@ -1081,14 +1120,15 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
         }
         }
       }
-
-      return <>{elements}</>
+      // Don't return early - fall through to target emoji code below
     }
 
-    // Show dirty scribbles for extraDirty tiles even when no other annotations exist
+    // Show dirty scribbles for extraDirty tiles
+    // Don't return early - add to elements array so annotations can coexist
     if (!tile.revealed && tile.specialTiles.includes('extraDirty')) {
-      return (
+      elements.push(
         <div
+          key="dirty-scribbles-overlay"
           style={{
             position: 'absolute',
             top: '50%',
@@ -1118,6 +1158,30 @@ export function Tile({ tile, onClick, isTargeting = false, isSelected = false, i
           ))}
         </div>
       )
+    }
+
+    // Add target symbol for rival intent points on unrevealed tiles (outside annotation conditional)
+    // This ensures targets show even on blank unrevealed tiles without annotations
+    if (!tile.revealed) {
+      const tileKey = `${tile.position.x},${tile.position.y}`
+      const intentPoints = (rivalIntentPoints && rivalIntentPoints[tileKey]) || 0
+
+      if (intentPoints >= 3) {
+        const symbol = intentPoints >= 5 ? '🎯' : '❓' // Target for 5+, question mark for 3-4
+        elements.push(
+          <Tooltip key="intent-target" text={`Rival interest: ${intentPoints} points`} style={{ position: 'absolute', bottom: '2px', left: '2px' }}>
+            <div
+              style={{
+                fontSize: '16px',
+                pointerEvents: 'none',
+                zIndex: 999
+              }}
+            >
+              {symbol}
+            </div>
+          </Tooltip>
+        )
+      }
     }
 
     // Return all overlay elements (adjacency count + any annotations)

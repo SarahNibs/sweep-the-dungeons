@@ -1,13 +1,11 @@
 import { RivalAI, AIContext } from '../AITypes'
-import { GameState, Tile, ClueResult, Position } from '../../../types'
-import { calculateTilePriorities } from '../utils/priorityScoring'
-import { logAIPriorityAnalysis } from '../utils/aiCommon'
-import { hasSpecialTile } from '../../boardSystem'
+import { GameState, Tile } from '../../../types'
+import { selectTileByMaxPoints } from '../utils/aiCommon'
 import { AI_METADATA } from '../../gameRepository'
 
 /**
- * NoGuessAI - The current default AI implementation
- * Uses clue-based priority scoring to select rival tiles
+ * NoGuessAI - Simple AI implementation based on intent points
+ * Selects randomly from tiles with maximum intent points
  * Never uses revealed adjacency information for deductions
  */
 export class NoGuessAI implements RivalAI {
@@ -17,71 +15,52 @@ export class NoGuessAI implements RivalAI {
 
   selectTilesToReveal(
     state: GameState,
-    hiddenClues: { clueResult: ClueResult; targetPosition: Position }[],
-    context: AIContext
+    rivalIntentPoints: { [key: string]: number },
+    _context: AIContext
   ): Tile[] {
-    if (state.debugFlags.debugLogging) {
     console.log(`\n[AI-NOGUESS] ========== NoGuessAI selectTilesToReveal ==========`)
-    }
-    if (state.debugFlags.debugLogging) {
-    console.log(`[AI-NOGUESS] Hidden clues: ${hiddenClues.length}`)
-    }
+    console.log(`[AI-NOGUESS] Intent points: ${Object.keys(rivalIntentPoints).length} tiles`)
 
-    // Calculate priorities for all unrevealed tiles (this will log its own details)
-    const tilesWithPriority = calculateTilePriorities(state, hiddenClues)
-
-    if (tilesWithPriority.length === 0) {
-      if (state.debugFlags.debugLogging) {
-      console.log(`[AI-NOGUESS] No tiles with priorities - ending turn`)
-      }
-      return []
-    }
-
-    // Check if this level has the rivalNeverMines special behavior
-    const rivalNeverMines = context.specialBehaviors.rivalNeverMines || false
-
-    // Log the top tiles for debugging
-    logAIPriorityAnalysis()
-
-    // Return ordered list, stopping when we would reveal a non-rival tile
-    // Skip mines if rivalNeverMines is enabled
-    // Skip surface mines (AI never reveals them)
     const tilesToReveal: Tile[] = []
-    let skippedCount = 0
-    for (const item of tilesWithPriority) {
-      // Skip surface mine tiles (AI never reveals them)
-      if (hasSpecialTile(item.tile, 'surfaceMine')) {
-        skippedCount++
-        continue
-      }
 
-      // Skip mine tiles if rivalNeverMines is enabled
-      if (rivalNeverMines && item.tile.owner === 'mine') {
-        skippedCount++
-        continue
-      }
+    // IMPORTANT: Create a mutable copy so we don't mutate the store's state object
+    const mutablePoints = { ...rivalIntentPoints }
 
-      tilesToReveal.push(item.tile)
-      if (state.debugFlags.debugLogging) {
-      console.log(`[AI-NOGUESS] Selecting tile (${item.tile.position.x},${item.tile.position.y})[${item.tile.owner}] with priority ${item.priority.toFixed(3)}`)
-      }
-
-      // Stop after adding a non-rival tile (this will be the last tile revealed)
-      if (item.tile.owner !== 'rival') {
-        if (state.debugFlags.debugLogging) {
-        console.log(`[AI-NOGUESS] Selected non-rival tile, ending turn`)
+    // Keep selecting tiles until we hit a non-rival tile
+    while (true) {
+      // Clean up any already-revealed tiles from mutablePoints before selecting
+      // This handles cases where player revealed a tile on their turn
+      for (const [key] of Object.entries(mutablePoints)) {
+        const tile = state.board.tiles.get(key)
+        if (tile?.revealed) {
+          console.log(`[AI-NOGUESS] Removing already-revealed tile ${key} from points`)
+          delete mutablePoints[key]
         }
+      }
+
+      // Select a tile using the max points strategy
+      const selectedTile = selectTileByMaxPoints(state, mutablePoints)
+
+      if (!selectedTile) {
+        console.log(`[AI-NOGUESS] No tile selected - ending turn with ${tilesToReveal.length} tiles`)
         break
       }
-    }
 
-    if (skippedCount > 0) {
-      if (state.debugFlags.debugLogging) {
-      console.log(`[AI-NOGUESS] Skipped ${skippedCount} tiles (surface mines or mines with rivalNeverMines)`)
+      console.log(`[AI-NOGUESS] Selected tile (${selectedTile.position.x},${selectedTile.position.y})[${selectedTile.owner}]`)
+
+      tilesToReveal.push(selectedTile)
+
+      // Stop if this is not a rival tile (would end turn)
+      if (selectedTile.owner !== 'rival') {
+        console.log(`[AI-NOGUESS] Stopping: tile is ${selectedTile.owner}, not rival`)
+        break
       }
-    }
-    if (state.debugFlags.debugLogging) {
-    console.log(`[AI-NOGUESS] Total tiles to reveal: ${tilesToReveal.length}`)
+
+      console.log(`[AI-NOGUESS] Continuing: tile is rival, will select next tile`)
+
+      // Remove the revealed tile's points so we don't select it again
+      const tileKey = `${selectedTile.position.x},${selectedTile.position.y}`
+      delete mutablePoints[tileKey]
     }
 
     return tilesToReveal

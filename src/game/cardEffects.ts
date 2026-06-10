@@ -13,6 +13,7 @@ import { executeSarcasticInstructionsEffect } from './cards/sarcasticInstruction
 import { executeEnergizedEffect } from './cards/energized'
 import { executeOptionsEffect } from './cards/options'
 import { executeBrushEffect } from './cards/brush'
+import { executeRambleEffect } from './cards/ramble'
 import { executeSweepEffect } from './cards/sweep'
 import { executeUnderwireEffect } from './cards/underwire'
 import { executeTrystEffect } from './cards/tryst'
@@ -701,9 +702,8 @@ export function executeCardEffect(state: GameState, effect: CardEffect, card?: i
     case 'brush':
       return executeBrushEffect(state, effect.target, card)
     case 'ramble':
-      // Ramble now adds Distraction stacks: 2 for basic, 4 for enhanced
-      const stacksToAdd = card?.enhanced ? 4 : 2
-      return addDistractionStacks(state, stacksToAdd)
+      // Ramble adds distraction points: 2 for basic, 4 for enhanced
+      return executeRambleEffect(state, card)
     case 'sweep':
       return executeSweepEffect(state, effect.target, card)
     case 'underwire':
@@ -805,50 +805,6 @@ export function getTargetingInfo(cardName: string, enhanced?: boolean): { count:
   }
 }
 
-/**
- * Add Distraction stacks to the game state.
- * Creates or updates the Distraction status effect.
- */
-function addDistractionStacks(state: GameState, stacks: number): GameState {
-  // Find existing Distraction status effect
-  const existingDistraction = state.activeStatusEffects.find(e => e.type === 'distraction')
-
-  if (existingDistraction) {
-    // Update existing Distraction with increased count
-    const newCount = (existingDistraction.count || 0) + stacks
-    const updatedEffects = state.activeStatusEffects.map(e =>
-      e.type === 'distraction'
-        ? {
-            ...e,
-            count: newCount,
-            name: `Distraction (×${newCount})`,
-            description: `Rival's tile priorities are disrupted for their next turn (${newCount} stack${newCount > 1 ? 's' : ''})`
-          }
-        : e
-    )
-    return {
-      ...state,
-      activeStatusEffects: updatedEffects
-    }
-  } else {
-    // Create new Distraction status effect
-    const distractionEffect = {
-      id: crypto.randomUUID(),
-      type: 'distraction' as const,
-      icon: '🌀',
-      name: stacks > 1 ? `Distraction (×${stacks})` : 'Distraction',
-      description: stacks > 1
-        ? `Rival's tile priorities are disrupted for their next turn (${stacks} stacks)`
-        : "Rival's tile priorities are disrupted for their next turn",
-      count: stacks
-    }
-
-    return {
-      ...state,
-      activeStatusEffects: [...state.activeStatusEffects, distractionEffect]
-    }
-  }
-}
 
 
 

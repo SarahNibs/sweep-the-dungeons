@@ -1,7 +1,7 @@
 import { RivalAI, AIContext } from '../AITypes'
-import { GameState, Tile, ClueResult, Position } from '../../../types'
-import { calculateTilePriorities } from '../utils/priorityScoring'
-import { revealTile, positionToKey, hasSpecialTile } from '../../boardSystem'
+import { GameState, Tile } from '../../../types'
+import { selectTileByMaxPoints } from '../utils/aiCommon'
+import { revealTile, hasSpecialTile } from '../../boardSystem'
 import { analyzeExclusionsAndGuarantees } from '../reasoning/exclusionLogic'
 import { AI_METADATA } from '../../gameRepository'
 
@@ -24,14 +24,12 @@ export class ConservativeAI implements RivalAI {
 
   selectTilesToReveal(
     state: GameState,
-    hiddenClues: { clueResult: ClueResult; targetPosition: Position }[],
+    rivalIntentPoints: { [key: string]: number },
     context: AIContext
   ): Tile[] {
     if (state.debugFlags.debugLogging) {
-    console.log(`\n[AI-CONSERVATIVE] ========== ConservativeAI selectTilesToReveal ==========`)
-    }
-    if (state.debugFlags.debugLogging) {
-    console.log(`[AI-CONSERVATIVE] Hidden clues: ${hiddenClues.length}`)
+      console.log(`\n[AI-CONSERVATIVE] ========== ConservativeAI selectTilesToReveal ==========`)
+      console.log(`[AI-CONSERVATIVE] Intent points: ${Object.keys(rivalIntentPoints).length} tiles`)
     }
 
     const tilesToReveal: Tile[] = []
@@ -74,46 +72,22 @@ export class ConservativeAI implements RivalAI {
       }
 
       if (!nextTile) {
-        // Step 5: Fall back to priority-based selection, skipping ruled-out tiles, surface mines, and mines
-        const availableTiles = Array.from(simulatedState.board.tiles.values())
-          .filter(tile =>
-            !tile.revealed &&
-            tile.owner !== 'empty' &&
-            !hasSpecialTile(tile, 'surfaceMine') && // Skip surface mines (AI never reveals them)
-            !ruledOutRivals.has(positionToKey(tile.position)) &&
-            // Skip mines if rivalNeverMines is enabled (only affects tile selection, not deduction)
-            !(context.specialBehaviors.rivalNeverMines && tile.owner === 'mine')
-          )
-
+        // Step 5: Fall back to max points selection
         if (state.debugFlags.debugLogging) {
-        console.log(`[AI-CONSERVATIVE] No guaranteed rivals, falling back to priority scoring with ${availableTiles.length} available tiles`)
+          console.log(`[AI-CONSERVATIVE] No guaranteed rivals, falling back to max points selection`)
         }
 
-        if (availableTiles.length === 0) {
+        nextTile = selectTileByMaxPoints(simulatedState, rivalIntentPoints)
+
+        if (!nextTile) {
           if (state.debugFlags.debugLogging) {
-          console.log(`[AI-CONSERVATIVE] No available tiles - ending turn`)
+            console.log(`[AI-CONSERVATIVE] No tile selected from max points - ending turn`)
           }
           break
         }
 
-        // Use priority scoring with available tiles (this will log its own details)
-        const tilesWithPriority = calculateTilePriorities(simulatedState, hiddenClues)
-        const filteredPriorities = tilesWithPriority.filter(tp =>
-          availableTiles.some(t => positionToKey(t.position) === positionToKey(tp.tile.position))
-        )
-
-        if (filteredPriorities.length === 0) {
-          if (state.debugFlags.debugLogging) {
-          console.log(`[AI-CONSERVATIVE] No selectable priorities - ending turn`)
-          }
-          break
-        }
-
-        // Sort by priority and pick highest
-        filteredPriorities.sort((a, b) => b.priority - a.priority)
-        nextTile = filteredPriorities[0].tile
         if (state.debugFlags.debugLogging) {
-        console.log(`[AI-CONSERVATIVE] Selected priority-based tile at (${nextTile.position.x},${nextTile.position.y})[${nextTile.owner}] with priority ${filteredPriorities[0].priority.toFixed(3)}`)
+          console.log(`[AI-CONSERVATIVE] Selected tile at (${nextTile.position.x},${nextTile.position.y})[${nextTile.owner}]`)
         }
       }
 

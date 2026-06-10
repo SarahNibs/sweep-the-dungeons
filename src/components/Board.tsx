@@ -11,7 +11,12 @@ interface BoardProps {
 }
 
 export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
-  const { rivalAnimation, trystAnimation, selectedCardName, selectedCardId, pendingCardEffect, hand, adjacencyPatternAnimation, clearAdjacencyPatternAnimation } = useGameStore()
+  // Subscribe to rivalIntentPoints to ensure Board re-renders when intent points change
+  // This is necessary so child Tile components re-render and show target symbols
+  const { rivalAnimation, trystAnimation, selectedCardName, selectedCardId, pendingCardEffect, hand, adjacencyPatternAnimation, clearAdjacencyPatternAnimation, rivalIntentPoints } = useGameStore()
+  // Explicitly reference rivalIntentPoints to avoid unused variable warning
+  void rivalIntentPoints
+
   const [areaHoverCenter, setAreaHoverCenter] = useState<Position | null>(null)
   const [hoveredTile, setHoveredTile] = useState<Position | null>(null)
 
@@ -138,13 +143,17 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
             rivalAnimation.highlightedTile.x === tile.position.x && 
             rivalAnimation.highlightedTile.y === tile.position.y)
             
-          const isTrystHighlighted = !!(trystAnimation?.highlightedTile && 
-            trystAnimation.highlightedTile.x === tile.position.x && 
+          const isTrystHighlighted = !!(trystAnimation?.highlightedTile &&
+            trystAnimation.highlightedTile.x === tile.position.x &&
             trystAnimation.highlightedTile.y === tile.position.y)
-          
+
+          // Include intent points in key to force re-render when points change
+          const intentPoints = rivalIntentPoints?.[key] || 0
+          const tileKey = `${key}-${intentPoints}`
+
           tiles.push(
             <Tile
-              key={key}
+              key={tileKey}
               tile={tile}
               onClick={onTileClick}
               isTargeting={isTargeting && (isAreaTargeting || !tile.revealed)}
@@ -185,13 +194,17 @@ export function Board({ board, onTileClick, targetingInfo }: BoardProps) {
           }
           
           const isTargeting = targetingInfo !== null
-          const isSelected = targetingInfo?.selected.some(pos => 
+          const isSelected = targetingInfo?.selected.some(pos =>
             positionToKey(pos) === key
           ) || false
-          
+
+          // Include intent points in key to force re-render (empty tiles won't have points, but keep consistent)
+          const intentPoints = rivalIntentPoints?.[key] || 0
+          const tileKey = `${key}-${intentPoints}`
+
           tiles.push(
             <Tile
-              key={key}
+              key={tileKey}
               tile={emptyTile}
               onClick={onTileClick}
               isTargeting={isTargeting}

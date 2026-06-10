@@ -485,3 +485,179 @@ export function prepareRivalClueSetup(state: GameState): {
 
   return { chosenRivalTiles, chosenRandomTiles }
 }
+
+/**
+ * Add a distraction point: pick a random tile with nonzero points and add 1 point
+ */
+export function addDistractionPoint(
+  currentPoints: { [key: string]: number },
+  excludedPositions: Set<string>
+): void {
+  // Get all tiles with nonzero points (excluding adjacency-ruled-out positions)
+  const tilesWithPoints = Object.keys(currentPoints).filter(
+    key => currentPoints[key] > 0 && !excludedPositions.has(key)
+  )
+
+  if (tilesWithPoints.length === 0) {
+    return // No tiles to distract on
+  }
+
+  // Pick one at random and add 1 point
+  const randomKey = tilesWithPoints[Math.floor(Math.random() * tilesWithPoints.length)]
+  currentPoints[randomKey] = (currentPoints[randomKey] || 0) + 1
+}
+
+/**
+ * Generate rival intent points for the current turn.
+ * This replaces the old bag-based clue system with a points-based interest system.
+ *
+ * Algorithm:
+ * 1. Pick 2 random rival tiles
+ * 2. Pick 6 random other tiles (excluding adjacency-ruled-out positions)
+ * 3. Stable sort by safety: Rival > Neutral > Player > Mine
+ * 4. Assign points: [5, 3, 3, 3, 3, 1, 1, 1]
+ * 5. Add 4 distraction points (random tiles with nonzero points get +1)
+ */
+export function generateRivalIntentPoints(state: GameState): { [key: string]: number } {
+  console.log(`\n[RIVAL-INTENT] ========== generateRivalIntentPoints ==========`)
+
+  // Get positions to exclude based on adjacency info
+  const excludedPositions = getExcludedPositionsByAdjacency(state.board, 'rival')
+
+  const unrevealedTiles = Array.from(state.board.tiles.values())
+    .filter(tile => !tile.revealed && tile.owner !== 'empty')
+    .filter(tile => !excludedPositions.has(positionToKey(tile.position)))
+  const rivalTiles = unrevealedTiles.filter(tile => tile.owner === 'rival')
+
+  console.log(`[RIVAL-INTENT] Available tiles: ${unrevealedTiles.length} total, ${rivalTiles.length} rival tiles`)
+
+  // Pick 2 rival tiles
+  const chosenRivalTiles = selectTilesForClue(rivalTiles, 2)
+
+  // Pick 6 other random tiles
+  const remainingTiles = unrevealedTiles.filter(tile =>
+    !chosenRivalTiles.some(chosen =>
+      chosen.position.x === tile.position.x && chosen.position.y === tile.position.y
+    )
+  )
+  const chosenOtherTiles = selectTilesForClue(remainingTiles, 6)
+
+  console.log(`[RIVAL-INTENT] Chosen 2 rival tiles:`, chosenRivalTiles.map(t => `(${t.position.x},${t.position.y})`))
+  console.log(`[RIVAL-INTENT] Chosen 6 other tiles:`, chosenOtherTiles.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`))
+
+  // Combine and stable sort by safety: Rival > Neutral > Player > Mine
+  const allTiles = [...chosenRivalTiles, ...chosenOtherTiles]
+  const ownerPriority: Record<string, number> = { rival: 0, neutral: 1, player: 2, mine: 3, empty: 4 }
+  allTiles.sort((a, b) => ownerPriority[a.owner] - ownerPriority[b.owner])
+
+  console.log(`[RIVAL-INTENT] Sorted tiles:`, allTiles.map(t => `(${t.position.x},${t.position.y})[${t.owner}]`))
+
+  // Assign initial points: [5, 3, 3, 3, 3, 1, 1, 1]
+  const points: { [key: string]: number } = {}
+  const pointValues = [5, 3, 3, 3, 3, 1, 1, 1]
+
+  for (let i = 0; i < allTiles.length && i < pointValues.length; i++) {
+    const key = positionToKey(allTiles[i].position)
+    points[key] = pointValues[i]
+  }
+
+  console.log(`[RIVAL-INTENT] Initial points assigned:`, Object.keys(points).map(k => `${k}:${points[k]}`))
+
+  // Add 4 distraction points
+  for (let i = 0; i < 4; i++) {
+    addDistractionPoint(points, excludedPositions)
+  }
+
+  console.log(`[RIVAL-INTENT] Final points after distraction:`, Object.keys(points).map(k => `${k}:${points[k]}`))
+
+  return points
+}
+
+/**
+ * Decay rival intent points after tile reveals.
+ * Called after any tile(s) are revealed during a turn.
+ *
+ * Algorithm:
+ * 1. Remove points for revealed positions
+ * 2. If revealed tile has adjacencyCount=0 for rival, remove points from neighbors
+ * 3. Decrement all remaining points by 1 (min 0)
+ * 4. Remove any tiles with 0 points from map
+ */
+export function decayRivalIntentPoints(
+  state: GameState,
+  revealedPositions: Position[]
+): GameState {
+  console.log(
+    `[INTENT-DECAY] Decaying points after revealing ${revealedPositions.length} tiles:`,
+    revealedPositions.map(p => `(${p.x},${p.y})`).join(', ')
+  )
+  console.log(`[INTENT-DECAY] Points before decay:`, { ...state.rivalIntentPoints })
+
+  // Clone the points map
+  const newPoints = { ...state.rivalIntentPoints }
+
+  // Step 1: Remove points for all revealed positions
+  for (const pos of revealedPositions) {
+    const key = positionToKey(pos)
+    if (newPoints[key] !== undefined) {
+      if (state.debugFlags.debugLogging) {
+        console.log(`[RIVAL-INTENT] Removing points for revealed tile ${key} (had ${newPoints[key]} points)`)
+      }
+      delete newPoints[key]
+    }
+  }
+
+  // Step 2: Check for adjacencyCount=0 for rival-revealed tiles and remove neighbor points
+  for (const pos of revealedPositions) {
+    const tile = state.board.tiles.get(positionToKey(pos))
+    if (tile && tile.revealed && tile.revealedBy === 'rival') {
+      // Check if this tile has 0 adjacent rivals (adjacency count for rival reveals)
+      if (tile.adjacencyCount === 0) {
+        if (state.debugFlags.debugLogging) {
+          console.log(
+            `[RIVAL-INTENT] Tile (${pos.x},${pos.y}) revealed by rival with adjacencyCount=0, removing points from neighbors`
+          )
+        }
+
+        // Remove points from all neighbors
+        const neighbors = getNeighbors(state.board, pos)
+        for (const neighborPos of neighbors) {
+          const neighborKey = positionToKey(neighborPos)
+          if (newPoints[neighborKey] !== undefined) {
+            if (state.debugFlags.debugLogging) {
+              console.log(`[RIVAL-INTENT] Removing points from neighbor ${neighborKey} (had ${newPoints[neighborKey]} points)`)
+            }
+            delete newPoints[neighborKey]
+          }
+        }
+      }
+    }
+  }
+
+  // Step 3: Decrement all remaining points by 1 (min 0)
+  const keysToDecrement = Object.keys(newPoints)
+  if (state.debugFlags.debugLogging) {
+    console.log(`[RIVAL-INTENT] Decrementing ${keysToDecrement.length} remaining tiles by 1`)
+  }
+  for (const key of keysToDecrement) {
+    newPoints[key] = Math.max(0, newPoints[key] - 1)
+  }
+
+  // Step 4: Remove any tiles with 0 points
+  const keysToRemove = Object.keys(newPoints).filter(k => newPoints[k] === 0)
+  if (keysToRemove.length > 0) {
+    if (state.debugFlags.debugLogging) {
+      console.log(`[RIVAL-INTENT] Removing ${keysToRemove.length} tiles with 0 points:`, keysToRemove)
+    }
+    for (const key of keysToRemove) {
+      delete newPoints[key]
+    }
+  }
+
+  console.log(`[INTENT-DECAY] Points after decay:`, { ...newPoints })
+
+  return {
+    ...state,
+    rivalIntentPoints: newPoints
+  }
+}

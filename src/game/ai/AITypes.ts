@@ -1,11 +1,4 @@
-import { GameState, Tile, ClueResult, Position, LevelConfig } from '../../types'
-
-export interface RivalClueSet {
-  visible: ClueResult[] // X marks shown to player
-  hidden: ClueResult[]  // AI-only information
-  visiblePairs: { clueResult: ClueResult, targetPosition: Position }[]
-  hiddenPairs: { clueResult: ClueResult, targetPosition: Position }[]
-}
+import { GameState, Tile, LevelConfig } from '../../types'
 
 export interface AIContext {
   levelConfig: LevelConfig
@@ -27,23 +20,19 @@ export interface RivalAI {
   readonly name: string
   readonly description: string
   readonly icon: string
-  
-  // Core AI decision making
+
+  // Core AI decision making - now uses rivalIntentPoints instead of clues
   selectTilesToReveal(
-    state: GameState, 
-    hiddenClues: { clueResult: ClueResult, targetPosition: Position }[],
+    state: GameState,
+    rivalIntentPoints: { [key: string]: number },
     context: AIContext
   ): Tile[]
-  
-  // Optional: Custom clue generation behavior
-  generateClues?(state: GameState): RivalClueSet
-  
+
   // Optional: Turn-specific behavior modifiers
   getTurnModifiers?(state: GameState, turnNumber: number): AIModifiers
 }
 
 export interface AITurnResult {
   stateWithVisibleClues: GameState
-  hiddenClues: { clueResult: ClueResult; targetPosition: Position }[]
   tilesToReveal: Tile[]
 }

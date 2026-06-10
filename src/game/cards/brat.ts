@@ -87,34 +87,12 @@ export function executeBratEffect(state: GameState, target: Position, card?: imp
     // Keep adjacencyCount - stored as annotation now for display
   })
 
-  // Remove this specific tile from all rival clue results
-  // Keep the clues themselves, just remove this tile from their allAffectedTiles array
-  const updatedRivalClues = state.rivalHiddenClues.map(({ clueResult, targetPosition }) => {
-    const updatedAffectedTiles = clueResult.allAffectedTiles.filter(
-      pos => !(pos.x === target.x && pos.y === target.y)
-    )
-
-    // Only update if the tile was actually affected by this clue
-    if (updatedAffectedTiles.length === clueResult.allAffectedTiles.length) {
-      return { clueResult, targetPosition } // No change needed
-    }
-
-    return {
-      clueResult: {
-        ...clueResult,
-        allAffectedTiles: updatedAffectedTiles
-      },
-      targetPosition
-    }
-  })
-
   return {
     ...state,
     board: {
       ...state.board,
       tiles: newTiles
     },
-    copper: newCopper,
-    rivalHiddenClues: updatedRivalClues
+    copper: newCopper
   }
 }

@@ -558,12 +558,17 @@ export function revealTileWithResult(board: Board, position: Position, revealedB
   }
   
   newTiles.set(key, revealedTile)
-  
+
+  const updatedBoard = {
+    ...board,
+    tiles: newTiles
+  }
+
+  // Revalidate goblin targets after revealing a tile
+  const boardWithRevalidatedTargets = revalidateGoblinTargets(updatedBoard)
+
   return {
-    board: {
-      ...board,
-      tiles: newTiles
-    },
+    board: boardWithRevalidatedTargets,
     revealed: true
   }
 }
@@ -774,11 +779,47 @@ export function shouldRevealEndTurn(state: GameState, tile: Tile): boolean {
 }
 
 /**
- * Move goblin from one tile to an adjacent unrevealed tile, or remove it if no valid target
- * Returns updated board with goblin moved/removed
+ * Revalidate all goblin targets and regenerate if invalid
+ * Call this after tiles are revealed or destroyed to ensure goblin targets remain valid
  */
-export function moveGoblin(board: Board, fromPosition: Position): Board {
-  const neighbors = getNeighbors(board, fromPosition)
+export function revalidateGoblinTargets(board: Board): Board {
+  const newTiles = new Map(board.tiles)
+  let modified = false
+
+  for (const tile of board.tiles.values()) {
+    if (hasSpecialTile(tile, 'goblin') && tile.goblinState?.targetPosition) {
+      const targetPos = tile.goblinState.targetPosition
+      const targetTile = getTile(board, targetPos)
+
+      // Check if target is still valid
+      const isValid = targetTile &&
+        !targetTile.revealed &&
+        targetTile.owner !== 'empty'
+
+      if (!isValid) {
+        // Regenerate target
+        const newTarget = selectGoblinTarget(board, tile.position)
+        const updatedTile = { ...tile }
+        updatedTile.goblinState = {
+          ...tile.goblinState,
+          targetPosition: newTarget !== null ? newTarget : undefined
+        }
+        newTiles.set(positionToKey(tile.position), updatedTile)
+        modified = true
+      }
+    }
+  }
+
+  return modified ? { ...board, tiles: newTiles } : board
+}
+
+/**
+ * Select a target position for a goblin to move to
+ * Uses soft-mine-avoidance: prefers non-mine tiles, only moves to mines if no other option
+ * Returns null if no valid targets available
+ */
+export function selectGoblinTarget(board: Board, goblinPosition: Position): Position | null {
+  const neighbors = getNeighbors(board, goblinPosition)
 
   // Find all unrevealed adjacent tiles that don't already have goblins
   const unrevealedNeighbors = neighbors
@@ -787,38 +828,84 @@ export function moveGoblin(board: Board, fromPosition: Position): Board {
       tile &&
       !tile.revealed &&
       tile.owner !== 'empty' &&
-      !hasSpecialTile(tile, 'goblin') // Don't move onto tiles that already have goblins
+      !hasSpecialTile(tile, 'goblin') // Don't target tiles that already have goblins
     )
 
   if (unrevealedNeighbors.length === 0) {
-    // No place to move, goblin disappears
-    return board
+    // No valid targets
+    return null
   }
 
-  // Separate into non-mine and mine tiles
+  // Separate into non-mine and mine tiles (soft-mine-avoidance)
   const nonMineTiles = unrevealedNeighbors.filter(({ tile }) => tile!.owner !== 'mine')
   const mineTiles = unrevealedNeighbors.filter(({ tile }) => tile!.owner === 'mine')
 
-  // Prefer non-mine tiles if available, otherwise move to mine
+  // Prefer non-mine tiles if available, otherwise target mines
   const targetOptions = nonMineTiles.length > 0 ? nonMineTiles : mineTiles
 
-  // Pick random target
+  // Pick random target from available options
   const randomIndex = Math.floor(Math.random() * targetOptions.length)
-  const targetPos = targetOptions[randomIndex].pos
-  const targetTile = getTile(board, targetPos)!
+  return targetOptions[randomIndex].pos
+}
 
+/**
+ * Move goblin from one tile to an adjacent unrevealed tile, or remove it if no valid target
+ * Uses predetermined target if available, otherwise selects new one
+ * Handles collision: if destination has goblin, removes moving goblin instead
+ * Returns updated board with goblin moved/removed
+ */
+export function moveGoblin(board: Board, fromPosition: Position): Board {
+  const goblinTile = getTile(board, fromPosition)
+  if (!goblinTile) return board
+
+  // Check for predetermined target
+  let targetPos = goblinTile.goblinState?.targetPosition
+
+  // Validate predetermined target
+  if (targetPos) {
+    const targetTile = getTile(board, targetPos)
+    const isValid = targetTile &&
+      !targetTile.revealed &&
+      targetTile.owner !== 'empty'
+
+    if (!isValid) {
+      // Target became invalid, select new one
+      const newTarget = selectGoblinTarget(board, fromPosition)
+      targetPos = newTarget !== null ? newTarget : undefined
+    } else if (hasSpecialTile(targetTile, 'goblin')) {
+      // COLLISION: Target has a goblin, remove moving goblin instead
+      return board
+    }
+  } else {
+    // No predetermined target, select one now
+    const newTarget = selectGoblinTarget(board, fromPosition)
+    targetPos = newTarget !== null ? newTarget : undefined
+  }
+
+  // No valid target found
+  if (!targetPos) {
+    return board
+  }
+
+  const targetTile = getTile(board, targetPos)!
 
   // Check if target is a surface mine
   if (hasSpecialTile(targetTile, 'surfaceMine')) {
-
     // Explode the surface mine (mark as destroyed, goblin disappears)
-    // Use destroyTile to properly update adjacency info and annotations
     return destroyTile(board, targetPos)
   }
 
-  // Normal goblin movement (no surface mine)
+  // Move goblin to target and select new target for next move
+  const newTarget = selectGoblinTarget(board, targetPos)
   const newTiles = new Map(board.tiles)
-  newTiles.set(positionToKey(targetPos), addSpecialTile(targetTile, 'goblin'))
+
+  const movedGoblinTile = addSpecialTile(targetTile, 'goblin')
+  movedGoblinTile.goblinState = {
+    cleanedThisTurn: false,
+    targetPosition: newTarget !== null ? newTarget : undefined
+  }
+
+  newTiles.set(positionToKey(targetPos), movedGoblinTile)
 
   return {
     ...board,
@@ -828,54 +915,62 @@ export function moveGoblin(board: Board, fromPosition: Position): Board {
 
 /**
  * Move a goblin from a tile to an adjacent unrevealed tile and mark it as cleaned this turn
+ * Uses predetermined target if available, otherwise selects new one
+ * Handles collision: if destination has goblin, removes moving goblin instead
  * Used by cleanGoblin to track Mop equipment effect
  */
 export function moveGoblinWithCleanedFlag(board: Board, fromPosition: Position): Board {
-  const neighbors = getNeighbors(board, fromPosition)
+  const goblinTile = getTile(board, fromPosition)
+  if (!goblinTile) return board
 
-  // Find all unrevealed adjacent tiles that don't already have goblins
-  const unrevealedNeighbors = neighbors
-    .map(pos => ({ pos, tile: getTile(board, pos) }))
-    .filter(({ tile }) =>
-      tile &&
-      !tile.revealed &&
-      tile.owner !== 'empty' &&
-      !hasSpecialTile(tile, 'goblin') // Don't move onto tiles that already have goblins
-    )
+  // Check for predetermined target
+  let targetPos = goblinTile.goblinState?.targetPosition
 
-  if (unrevealedNeighbors.length === 0) {
-    // No place to move, goblin disappears
+  // Validate predetermined target
+  if (targetPos) {
+    const targetTile = getTile(board, targetPos)
+    const isValid = targetTile &&
+      !targetTile.revealed &&
+      targetTile.owner !== 'empty'
+
+    if (!isValid) {
+      // Target became invalid, select new one
+      const newTarget = selectGoblinTarget(board, fromPosition)
+      targetPos = newTarget !== null ? newTarget : undefined
+    } else if (hasSpecialTile(targetTile, 'goblin')) {
+      // COLLISION: Target has a goblin, remove moving goblin instead
+      return board
+    }
+  } else {
+    // No predetermined target, select one now
+    const newTarget = selectGoblinTarget(board, fromPosition)
+    targetPos = newTarget !== null ? newTarget : undefined
+  }
+
+  // No valid target found
+  if (!targetPos) {
     return board
   }
 
-  // Separate into non-mine and mine tiles
-  const nonMineTiles = unrevealedNeighbors.filter(({ tile }) => tile!.owner !== 'mine')
-  const mineTiles = unrevealedNeighbors.filter(({ tile }) => tile!.owner === 'mine')
-
-  // Prefer non-mine tiles if available, otherwise move to mine
-  const targetOptions = nonMineTiles.length > 0 ? nonMineTiles : mineTiles
-
-  // Pick random target
-  const randomIndex = Math.floor(Math.random() * targetOptions.length)
-  const targetPos = targetOptions[randomIndex].pos
   const targetTile = getTile(board, targetPos)!
-
 
   // Check if target is a surface mine
   if (hasSpecialTile(targetTile, 'surfaceMine')) {
-
     // Explode the surface mine (mark as destroyed, goblin disappears)
-    // Use destroyTile to properly update adjacency info and annotations
     return destroyTile(board, targetPos)
   }
 
-  // Normal goblin movement (no surface mine) - mark goblin as cleaned this turn
+  // Move goblin to target and mark as cleaned this turn
+  const newTarget = selectGoblinTarget(board, targetPos)
   const newTiles = new Map(board.tiles)
-  const tileWithGoblin = addSpecialTile(targetTile, 'goblin')
-  newTiles.set(positionToKey(targetPos), {
-    ...tileWithGoblin,
-    goblinState: { cleanedThisTurn: true }
-  })
+
+  const movedGoblinTile = addSpecialTile(targetTile, 'goblin')
+  movedGoblinTile.goblinState = {
+    cleanedThisTurn: true,
+    targetPosition: newTarget !== null ? newTarget : undefined
+  }
+
+  newTiles.set(positionToKey(targetPos), movedGoblinTile)
 
   return {
     ...board,
@@ -1008,8 +1103,16 @@ export function spawnGoblinsFromLairs(board: Board): Board {
     } else {
       // Normal spawn (no surface mine)
       const newTiles = new Map(currentBoard.tiles)
-      const updatedTile = addSpecialTile(targetTile, 'goblin')
-      newTiles.set(positionToKey(targetPos), updatedTile)
+      const goblinTile = addSpecialTile(targetTile, 'goblin')
+
+      // Select predetermined target for this goblin's next move
+      const nextTarget = selectGoblinTarget(currentBoard, targetPos)
+      goblinTile.goblinState = {
+        cleanedThisTurn: false,
+        targetPosition: nextTarget !== null ? nextTarget : undefined
+      }
+
+      newTiles.set(positionToKey(targetPos), goblinTile)
 
       currentBoard = {
         ...currentBoard,

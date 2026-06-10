@@ -1,5 +1,5 @@
 import { GameState, Position } from '../../types'
-import { positionToKey, addSpecialTile, hasSpecialTile } from '../boardSystem'
+import { positionToKey, addSpecialTile, hasSpecialTile, selectGoblinTarget } from '../boardSystem'
 import { addOwnerSubsetAnnotation } from '../cardEffects'
 import { destroyTile } from '../destroyTileSystem'
 
@@ -66,9 +66,17 @@ export function executeDonutEffect(state: GameState, enhanced: boolean = false):
     // Check if tile has a surface mine before adding goblin
     const hasMine = hasSpecialTile(tile, 'surfaceMine')
 
-    // Add goblin to the tile
+    // Add goblin to the tile and select its target
     let newTiles = new Map(currentState.board.tiles)
     const tileWithGoblin = addSpecialTile(tile, 'goblin')
+
+    // Select predetermined target for this goblin
+    const target = selectGoblinTarget(currentState.board, position)
+    tileWithGoblin.goblinState = {
+      cleanedThisTurn: false,
+      targetPosition: target !== null ? target : undefined
+    }
+
     newTiles.set(key, tileWithGoblin)
 
     currentState = {

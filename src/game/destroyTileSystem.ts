@@ -1,5 +1,5 @@
 import { Board, Tile, Position, TileAnnotation } from '../types'
-import { getTile, positionToKey, getNeighbors, calculateAdjacency, hasSpecialTile } from './boardSystem'
+import { getTile, positionToKey, getNeighbors, calculateAdjacency, hasSpecialTile, revalidateGoblinTargets } from './boardSystem'
 
 /**
  * Recalculate adjacency_info annotations for all tiles that have them.
@@ -237,6 +237,9 @@ export function destroyTile(board: Board, position: Position): Board {
       }
     }
   }
+
+  // Revalidate goblin targets after destroying a tile
+  updatedBoard = revalidateGoblinTargets(updatedBoard)
 
   return updatedBoard
 }

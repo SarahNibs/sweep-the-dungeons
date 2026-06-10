@@ -1,4 +1,4 @@
-import { GameState, ClueResult, Position } from '../../../types'
+import { GameState } from '../../../types'
 import { positionToKey } from '../../boardSystem'
 import { MonteCarloResults, TilePriority, ExclusionAnalysis } from './types'
 import { countRemainingTiles } from './utils'
@@ -26,8 +26,7 @@ export function calculatePriorities(
   state: GameState,
   monteCarloResults: MonteCarloResults,
   analysis: ExclusionAnalysis,
-  basePriorities: Map<string, number>,
-  rivalCluePipsThisTurn: Map<string, number>
+  basePriorities: Map<string, number>
 ): TilePriority[] {
   if (state.debugFlags.debugLogging) {
   console.log(`\n[PRIORITY] ========== calculatePriorities ==========`)
@@ -82,22 +81,21 @@ export function calculatePriorities(
     // Calculate mine penalty: (1/3) * log₂((mine_count + bias) / (20 + denom_bias))
     const minePenalty = (1 / 3) * Math.log2((counts.mine + mineBias) / (20 + denomBias))
 
-    // Calculate no-clue mine penalty: -0.3 if mine with no rival pips this turn
-    let noClueMinePenalty = 0
+    // Calculate no-points mine penalty: -0.3 if mine with no intent points
+    let noPointsMinePenalty = 0
     if (tile.owner === 'mine') {
-      const pipsThisTurn = rivalCluePipsThisTurn.get(key) || 0
-      if (pipsThisTurn === 0) {
-        noClueMinePenalty = -0.3
+      if (basePriority === 0) {
+        noPointsMinePenalty = -0.3
       }
     }
 
     // Calculate final priority
-    const priority = basePriority + rivalBonus - minePenalty + noClueMinePenalty
+    const priority = basePriority + rivalBonus - minePenalty + noPointsMinePenalty
 
     // Log detailed breakdown for first 10 tiles
     if (priorities.length < 10) {
       if (state.debugFlags.debugLogging) {
-      console.log(`[PRIORITY] Tile (${tile.position.x},${tile.position.y})[${tile.owner}]: base=${basePriority.toFixed(2)}, rivalBonus=${rivalBonus.toFixed(2)}, minePenalty=${minePenalty.toFixed(2)}, noClueMinePenalty=${noClueMinePenalty.toFixed(2)} => final=${priority.toFixed(2)}`)
+      console.log(`[PRIORITY] Tile (${tile.position.x},${tile.position.y})[${tile.owner}]: base=${basePriority.toFixed(2)}, rivalBonus=${rivalBonus.toFixed(2)}, minePenalty=${minePenalty.toFixed(2)}, noPointsMinePenalty=${noPointsMinePenalty.toFixed(2)} => final=${priority.toFixed(2)}`)
       }
     }
 
@@ -108,7 +106,7 @@ export function calculatePriorities(
         basePriority,
         rivalBonus,
         minePenalty,
-        noClueMinePenalty
+        noClueMinePenalty: noPointsMinePenalty
       }
     })
   }
@@ -126,84 +124,41 @@ export function calculatePriorities(
 /**
  * Calculate base priorities for all unrevealed tiles upfront
  *
- * Base priority includes:
- * - Rival clue pips (current turn: full pips, past turns: max(pips - 1, 0))
- * - Distraction noise (independent random values per tile per stack)
- *
- * IMPORTANT: Distraction noise is generated independently for EACH tile.
- * Each Distraction stack generates a fresh [0, 1.5] random value per tile.
- * This means every tile gets different noise values, ensuring priorities are differentiated.
- *
- * Rival clue decay formula:
- * - Current turn clues (from parameter): full pip count
- * - Past turn clues (from state.rivalHiddenClues[]): max(pips - 1, 0)
+ * Base priorities come from rivalIntentPoints which already include:
+ * - Initial point allocation (higher for rival tiles)
+ * - Distraction effects (random point additions)
+ * - Point decay after reveals
  *
  * @param state Current game state
- * @param currentTurnClues Current turn clue pairs (NOT yet in state.rivalHiddenClues[])
+ * @param rivalIntentPoints Intent points for each tile position
  * @returns Map from position key to base priority
  */
 export function calculateBasePriorities(
   state: GameState,
-  currentTurnClues: { clueResult: ClueResult; targetPosition: Position }[]
+  rivalIntentPoints: { [key: string]: number }
 ): Map<string, number> {
   if (state.debugFlags.debugLogging) {
-  console.log(`\n[PRIORITY] ========== calculateBasePriorities ==========`)
-  }
-  if (state.debugFlags.debugLogging) {
-  console.log(`[PRIORITY] Processing ${currentTurnClues.length} current turn clues, ${state.rivalHiddenClues.length} historical clues, ${state.distractionStackCount} distraction stacks`)
+    console.log(`\n[PRIORITY] ========== calculateBasePriorities ==========`)
+    console.log(`[PRIORITY] Using rivalIntentPoints with ${Object.keys(rivalIntentPoints).length} tiles`)
   }
 
   const basePriorities = new Map<string, number>()
 
-  // Process all unrevealed tiles
-  for (const tile of state.board.tiles.values()) {
-    if (tile.owner === 'empty' || tile.revealed) continue
-
-    const key = positionToKey(tile.position)
-    let basePriority = 0
-    let currentTurnPips = 0
-    let historicalPips = 0
-    let distractionNoise = 0
-
-    // Step 1: Process CURRENT turn clues (from parameter) - use full pip count
-    // These clues are NOT in state.rivalHiddenClues[] yet
-    for (const { clueResult, targetPosition } of currentTurnClues) {
-      if (positionToKey(targetPosition) === key) {
-        currentTurnPips += clueResult.strengthForThisTile
-      }
-    }
-    basePriority += currentTurnPips
-
-    // Step 2: Process PAST turn clues (from state) - use max(pips - 1, 0)
-    // These are all previous turns' clues (stored as pairs with targetPosition)
-    for (const { clueResult, targetPosition } of state.rivalHiddenClues) {
-      if (positionToKey(targetPosition) === key) {
-        // This clue affects our tile - apply decay
-        const pips = clueResult.strengthForThisTile
-        historicalPips += Math.max(pips - 1, 0)
-      }
-    }
-    basePriority += historicalPips
-
-    // Generate independent Distraction noise for THIS tile
-    // Each stack generates a fresh random [0, 1.1] value
-    for (let i = 0; i < state.distractionStackCount; i++) {
-      distractionNoise += Math.random() * 1.1
-    }
-    basePriority += distractionNoise
+  // Simply use the rivalIntentPoints as base priorities
+  for (const [key, points] of Object.entries(rivalIntentPoints)) {
+    basePriorities.set(key, points)
 
     // Log first 10 tiles with non-zero base priority
-    if (basePriority > 0 && basePriorities.size < 10) {
-      if (state.debugFlags.debugLogging) {
-      console.log(`[PRIORITY] Tile (${tile.position.x},${tile.position.y}): currentPips=${currentTurnPips.toFixed(2)}, historicalPips=${historicalPips.toFixed(2)}, distraction=${distractionNoise.toFixed(2)} => base=${basePriority.toFixed(2)}`)
+    if (points > 0 && basePriorities.size <= 10) {
+      const tile = state.board.tiles.get(key)
+      if (tile && state.debugFlags.debugLogging) {
+        console.log(`[PRIORITY] Tile (${tile.position.x},${tile.position.y}): points=${points} => base=${points}`)
       }
     }
-
-    basePriorities.set(key, basePriority)
   }
 
   if (state.debugFlags.debugLogging) {
-  console.log(`[PRIORITY] Calculated base priorities for ${basePriorities.size} tiles`)
+    console.log(`[PRIORITY] Calculated base priorities for ${basePriorities.size} tiles`)
   }
 
   return basePriorities

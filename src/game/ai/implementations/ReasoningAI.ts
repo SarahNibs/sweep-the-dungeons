@@ -1,6 +1,6 @@
 import { RivalAI, AIContext } from '../AITypes'
-import { GameState, Tile, ClueResult, Position } from '../../../types'
-import { positionToKey, revealTile, hasSpecialTile } from '../../boardSystem'
+import { GameState, Tile } from '../../../types'
+import { revealTile, hasSpecialTile } from '../../boardSystem'
 import { analyzeExclusionsAndGuarantees } from '../reasoning/exclusionLogic'
 import { extractAdjacencyInfo } from '../reasoning/adjacencyExtractor'
 import { runMonteCarloSimulation } from '../reasoning/monteCarloRunner'
@@ -14,7 +14,7 @@ import { AI_METADATA } from '../../gameRepository'
  * 1. Use constraint propagation to find excluded/guaranteed tiles
  * 2. If guaranteed tiles exist, reveal one immediately (early exit)
  * 3. Run Monte Carlo simulation (20 iterations of random assignment + hill climbing)
- * 4. Calculate priorities combining clues + Monte Carlo results + penalties
+ * 4. Calculate priorities combining intent points + Monte Carlo results + penalties
  * 5. Select highest priority tile
  */
 export class ReasoningAI implements RivalAI {
@@ -24,20 +24,19 @@ export class ReasoningAI implements RivalAI {
 
   selectTilesToReveal(
     state: GameState,
-    hiddenClues: { clueResult: ClueResult; targetPosition: Position }[],
+    rivalIntentPoints: { [key: string]: number },
     context: AIContext
   ): Tile[] {
     if (state.debugFlags.debugLogging) {
-    console.log(`\n[AI-DECISION] ========== ReasoningAI selectTilesToReveal ==========`)
+      console.log(`\n[AI-DECISION] ========== ReasoningAI selectTilesToReveal ==========`)
     }
 
-    // Calculate base priorities ONCE upfront (includes rival clues with decay + Distraction noise)
+    // Calculate base priorities ONCE upfront (from rival intent points)
     // These remain constant throughout the rival's turn
-    const rivalCluePipsThisTurn = extractRivalCluePips(hiddenClues)
-    const basePriorities = calculateBasePriorities(state, hiddenClues)
+    const basePriorities = calculateBasePriorities(state, rivalIntentPoints)
 
     if (state.debugFlags.debugLogging) {
-    console.log(`[AI-DECISION] Hidden clues: ${hiddenClues.length}, Base priorities calculated for ${basePriorities.size} tiles`)
+      console.log(`[AI-DECISION] Intent points: ${Object.keys(rivalIntentPoints).length}, Base priorities calculated for ${basePriorities.size} tiles`)
     }
 
     const tilesToReveal: Tile[] = []
@@ -92,7 +91,11 @@ export class ReasoningAI implements RivalAI {
         }
 
         // Phase 5: Calculate priorities (using pre-calculated base priorities)
-        const priorities = calculatePriorities(simulatedState, monteCarloResults, analysis, basePriorities, rivalCluePipsThisTurn)
+        const priorities = calculatePriorities(simulatedState, monteCarloResults, analysis, basePriorities)
+
+        if (state.debugFlags.debugLogging) {
+          console.log(`[AI-DECISION] calculatePriorities returned ${priorities.length} tiles`)
+        }
 
         if (priorities.length === 0) {
           if (state.debugFlags.debugLogging) {
@@ -138,7 +141,14 @@ export class ReasoningAI implements RivalAI {
 
       // Stop if this is not a rival tile (would end turn)
       if (nextTile.owner !== 'rival') {
+        if (state.debugFlags.debugLogging) {
+          console.log(`[AI-DECISION] Stopping: revealed tile is ${nextTile.owner}, not rival`)
+        }
         break
+      }
+
+      if (state.debugFlags.debugLogging) {
+        console.log(`[AI-DECISION] Continuing: revealed tile is rival, simulating reveal and selecting next tile`)
       }
 
       // Simulate revealing this tile to use new info in next iteration
@@ -159,24 +169,4 @@ export class ReasoningAI implements RivalAI {
       board: newBoard
     }
   }
-}
-
-/**
- * Extract rival clue pips added this turn from hidden clues
- *
- * @param hiddenClues Hidden clues added by rival this turn
- * @returns Map from position key to number of rival pips
- */
-function extractRivalCluePips(
-  hiddenClues: { clueResult: ClueResult; targetPosition: Position }[]
-): Map<string, number> {
-  const pipsPerTile = new Map<string, number>()
-
-  for (const { clueResult, targetPosition } of hiddenClues) {
-    const key = positionToKey(targetPosition)
-    const currentPips = pipsPerTile.get(key) || 0
-    pipsPerTile.set(key, currentPips + clueResult.strengthForThisTile)
-  }
-
-  return pipsPerTile
 }

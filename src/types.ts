@@ -101,7 +101,10 @@ export interface Tile {
   rivalMineProtected?: boolean // True if this mine was protected by rival mine protection
   cleanedOnce?: boolean // True if this tile has been cleaned once by Spritz or Sweep (used for non-surface-mine cleaning)
   surfaceMineState?: { cleanedOnce: boolean } // State carried by the surface mine itself (moves with the mine)
-  goblinState?: { cleanedThisTurn: boolean } // State for goblins (resets each turn) - used to prevent Mop from drawing multiple cards from same goblin
+  goblinState?: {
+    cleanedThisTurn: boolean // Used to prevent Mop from drawing multiple cards from same goblin
+    targetPosition?: Position // Predetermined destination for goblin's next move
+  }
   innerTile?: boolean // True if this tile is an inner tile (only reachable through sanctum portals)
   connectedSanctums?: Position[] // Positions of sanctums this inner tile is connected to
 }
@@ -210,8 +213,8 @@ export interface GameState {
   equipment: Equipment[] // Equipment the player currently has
   isFirstTurn: boolean // True if this is the first turn of the level (for Frilly Dress)
   neutralsRevealedThisTurn: number // Number of neutrals revealed this turn (for Frilly Dress - allows 6 on turn 1)
-  // Dual rival clue system: visible clues (shown as X) vs AI clues (hidden)
-  rivalHiddenClues: { clueResult: ClueResult; targetPosition: Position }[] // AI-only clues for rival decision making (not shown to player)
+  // Rival intent system: points-based interest tracking
+  rivalIntentPoints: { [key: string]: number } // positionKey -> points, shows rival's interest in tiles
   tingleAnimation: {
     isActive: boolean
     targetTile: Position | null
@@ -242,8 +245,6 @@ export interface GameState {
   // Status effect pulsing (for highlighting certain effects at floor start)
   pulsingStatusEffectIds: string[] // IDs of status effects that should pulse
   seenRivalAITypes: Set<string> // Set of rival AI types that have been pulsed (first floor only)
-  // Distraction stack count (used to generate independent noise per tile during rival turn)
-  distractionStackCount: number // Number of Distraction stacks (each adds independent [0, 1.5] noise per tile)
   // Currency and shop system
   copper: number // Copper currency earned from unrevealed rival tiles
   playerTilesRevealedCount: number // Counter for player tiles revealed (every 5th grants 1 copper, persists across floors)
